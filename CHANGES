@@ -1,7 +1,16 @@
-In recent years there have been few changes to dpic except for
-the occasional bug fix.  More recently, changes have been as
-follows:
+For several years, there were few changes to dpic except for the
+occasional bug fix.  Recent changes have been as follows:
 
+2010 07 13 Adjusted justification of stacked text.
+2010 06 16 Type 3 arrowheads
+2010 05 11 Fix treatment of < character.
+2010 05 02 SVG tweaks.
+2010 03 15 Curved arc arrowheads for -f, -f, -m, -p, -s and updated -m output.
+2010 03 05 Curved arc arrowheads in Postscript and SVG output.
+2010 02 19 Fixed an obscure bug with macro args.
+2010 02 17 SVG output units changed to px and pt
+2010 02 11 -v option to produce SVG output
+2010 01 11 Generalized sprintf("string",args) to sprintf(stringexpr,args)
 2009 10 30 Tweaked Makefiles for easier Linux installation. Give an error
   message on attempt to set scale parameter to 0.
 2009 10 21 Skip white space preceding pic macro arguments to avoid long

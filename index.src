@@ -6,38 +6,41 @@
 
 <body bgcolor="#ffffff">
 
+<dl>
+<dt>
+   <h3>
+   Source downloads for dpic version VERSIONDATE:
+    copy and unpack either dpic.tar.gz or dpic.zip
+   </h3>
 
-<h3>
-Source downloads for dpic version VERSIONDATE:
- copy and unpack either dpic.tar.gz or dpic.zip
-</h3>
+<dt>
+   <TABLE>
+   <TR>
+   <TD><img SRC="D.gif" align=LEFT>
+   <TD>
+   <ul>
+   <li>
+    <a href="README" target="_top"> README</a>
+   <li>
+   <a href="CHANGES" target="_top"> CHANGES</a>
+   <li>
+    <a href="dpic.tar.gz"> dpic.tar.gz</a>
+   <li>
+    <a href="dpic.zip"> dpic.zip</a>
+   <li>
+    <a href="Windows/index.html"> PC executable</a> compiled with MinGW gcc.
+   <li>
+    <a href="dpicdoc.pdf"> draft dpic manual</a>.
+   </ul>
+   </TABLE>
+<dt>
+   <br>
+   <HR ALIGN="LEFT">
+   <address>
+     Email: aplevich (AT) uwaterloo.ca
+   </address>
+</dl>
 
-<TABLE ALIGN="LEFT">
-<TR>
-<TD><img SRC="D.gif" align=LEFT>
-<TD>
-<left>
-<ul>
-<li>
- <a href="README" target="_top"> README</a>
-<li>
-<a href="CHANGES" target="_top"> CHANGES</a>
-<li>
- <a href="dpic.tar.gz"> dpic.tar.gz</a>
-<li>
- <a href="dpic.zip"> dpic.zip</a>
-<li>
- <a href="Windows/index.html"> PC executable</a> compiled with MinGW gcc.
-<li>
- <a href="dpicdoc.pdf"> draft dpic manual</a>.
-</ul>
-</TABLE>
-
-<br> <br> <br> <br> <br> <br> <br>
-<HR ALIGN="LEFT">
-<address>
-  Email: aplevich (AT) uwaterloo.ca
-</address>
 <!--#include virtual="/cgi-bin/cgiwrap/aplevich/dpic_access_log.pl"-->
 </body>
 </html>

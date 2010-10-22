@@ -6,7 +6,7 @@ nooption:
 #	dvips -Ppdf tst.dvi
 
 all: nooption epic pstricks pgf pdf mfpic psfrag postscript overlay metapost \
-  xfig
+  xfig svg
 
 epic:
 	cp sources/diag2.pic diag.pic
@@ -58,6 +58,11 @@ postscript:
 	latex tst
 	dvips -Ppdf tst
 
+svg:
+	cp sources/diag6.pic diag.pic
+	cp sources/test6.tex tst.tex
+	dpic -v diag.pic > tst.svg
+
 overlay:
 	dpic -r sources/diagA.pic > diag.eps
 	dpic -p sources/diagB.pic > diag.tex
@@ -79,4 +84,4 @@ xfig:
 
 clean:
 	rm -f *.ps *.eps *.dvi *.log *.mp *.1 mpxerr* *pk *gf *.mpx *.dim *.mf
-	rm -f *.tfm *.aux *.pfg tst.tex diag.pic diag.tex *.trace *.fig *.pdf
+	rm -f *.tfm *.aux *.pfg tst.tex diag.pic diag.tex *.trace *.fig *.pdf *.svg

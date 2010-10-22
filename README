@@ -1,4 +1,4 @@
-Copying: The files in this distribution are copyright (c) 2009, J. D. Aplevich,
+Copying: The files in this distribution are copyright (c) 2010, J. D. Aplevich,
 and are distributed under the licence at the end of this file.
 
 Downloading:
@@ -26,16 +26,19 @@ Web-server installation:
    option has the same effect (see below).
 
 Installation on a non-unix PC:
-   Compile as above using your favourite compiler.  Commands
-   equivalent to the following should do the trick, but see (1) and (2)
-   above:
+   Compile as above using make and your favourite compiler.  A Cygwin
+   installation should require no changes.  For MinGW, see the switch
+   in the Makefile.
+
+   Otherwise, commands equivalent to the following should do the trick,
+   but see (1) and (2) above:
       gcc   -O  -c  dpic.c
       gcc   -O  -c  dpic2.c
       gcc   -O  -c  p2clib.c
       gcc -o dpic dpic.o dpic2.o p2clib.o -lm
 
-   Otherwise, copy dpic.exe from the Windows directory into your folder of
-   executable files.
+   If you do not wish to compile the program, copy dpic.exe from the
+   distribution Windows directory into your folder of executable files.
 
 Dpic usage:
 
@@ -54,6 +57,7 @@ Options:
    -r        raw Postscript output, no automatic string formatting
    -s        MetaPost output (for compatibility)
    -t        eepicemu output (slightly less limited than LaTeX output)
+   -v        svg output
    -x        xfig 3.2 output (for wysiwyg drawing)
    -z        safe mode (sh and copy disabled)
 
@@ -88,7 +92,7 @@ Bugs:
    inconsistencies between dpic and gpic are found, I usually check to
    see whether dpic should be changed to conform.  Error and warning
    messages are not identical.  Other exceptions can be found in the
-   file dpic_man.txt.
+   file dpicdoc.pdf.
 
 Version:
    The version of dpic is the date the source was created, printed as a
@@ -99,7 +103,7 @@ Version:
 -------------------------------------------------------------------
 BSD Licence:
  
-    Copyright (c) 2009, J. D. Aplevich
+    Copyright (c) 2010, J. D. Aplevich
     All rights reserved.
  
     Redistribution and use in source and binary forms, with or without
