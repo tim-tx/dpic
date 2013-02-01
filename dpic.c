@@ -3,28 +3,20 @@
 
 
 /* dpic translator program.
-
    The p2c-dependent, debugging-dependent, and machine-dependent
    comment symbols are stripped out by the makefile or by p2c
-
 */
-
 /* BSD Licence:
-
-    Copyright (c) 2010, J. D. Aplevich
+    Copyright (c) 2013, J. D. Aplevich
     All rights reserved.
-
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
     are met:
-
     * Redistributions of source code must retain the above copyright
     notice, this list of conditions and the following disclaimer.
-
     * Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
     documentation and/or other materials provided with the distribution.
-
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER "AS IS" AND ANY
     EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
     IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -38,37 +30,33 @@
     ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-
 #include "p2c.h"
 #include <time.h>
 
 
-/*D,logD*/
-
+/*D,log D*/
 /*X program dpic(input,output); X*/
-
-/* exit label for parser errors      */
-
+/* exit label for parser errors */
 /* include dp0.h */
 /* dp0.x */
-/* Global definitions                                                 */
+/* Global definitions */
+/* Some PC versions of p2c crash on Pascal const declarations at low levels.
+   All consts should be in dp0.x */
 
-#define Version         "dpic version 22.Oct.2010"
-
+#define Version         "dpic version 2013.Feb.01"
 /* UMBX distmax = 1E25; XBMU */
 
 #define distmax         3.40282347e+38   /* assumes at least IEEE single */
+/*DM MaxReal = distmax; MD*/
 /*GH distmax = MaxReal; HG*/
 #define mdistmax        (-distmax)
 #define pi              3.1415926535897931
 #define ln10            2.3025850929940459
 
-#define SVGPX           90   /* SVG pixels per inch                */
-
+#define SVGPX           90   /* SVG pixels per inch */
 /*UGH maxint = 2147483647; HGU*/
-
-/* Parser constants                                                   */
+#define HASHLIM         7   /* Hash array len for variable names */
+/* Parser constants */
 #define next            1
 #define kind            2
 #define symb            3
@@ -76,14 +64,12 @@
 #define rs              3
 #define prod            4
 #define lb              3
-
 /* include parscst.i */
-#define symbmax         241
+#define symbmax         240
 #define prodmax         180
-#define lrmax           4751
+#define lrmax           4760
 #define lxmax           447
 /*B%include parscstB*/
-
 /* include parscdc.i */
 #define METAGOAL1       0
 #define input1          1
@@ -115,8 +101,8 @@
 #define element11       27
 #define element12       28
 #define lbrace1         29
-#define namedbox1       30
-#define namedbox2       31
+#define namedobj1       30
+#define namedobj2       31
 #define suffix1         32
 #define suffix2         33
 #define position1       34
@@ -210,11 +196,11 @@
 #define optexp1         122
 #define optexp2         123
 #define closeblock1     124
-#define pair1           125
-#define pair2           126
-#define objectwith1     127
-#define objectwith2     128
-#define objectwith3     129
+#define objectwith1     125
+#define objectwith2     126
+#define objectwith3     127
+#define pair1           128
+#define pair2           129
 #define nth1            130
 #define nth2            131
 #define nth3            132
@@ -266,19 +252,17 @@
 #define primary10       178
 #define primary11       179
 #define primary12       180
-
 /* include lxcst.h */
 /*D XAND = 36; D*/
 #define XBLOCK          26
 #define XLBRACKET       21
 #define XRBRACKET       22
 #define XCOMMENT        42
-#define XLcolrspec      137
-#define XLcolour        138
-#define XCARET          15
+#define XLcolrspec      136
+#define XLcolour        137
 #define XCOLON          20
 #define XD              25
-#define XDOUBLEHEAD     150
+#define XDOUBLEHEAD     149
 #define XDc             98
 #define XDe             94
 #define XDend           97
@@ -291,132 +275,132 @@
 #define XDsw            91
 #define XDw             95
 #define XEMPTY          2
-#define XEND            46
+#define XEND            45
 #define XEQEQ           100
 #define XEQ             29
 #define XGE             102
 #define XLE             103
 #define XERROR          3
-#define XFOR            84
-#define XGT             105
+#define XFOR            83
+#define XGT             104
 #define XLBRACE         23
-#define XLEFTHEAD       148
-#define XLL             104
+#define XLEFTHEAD       147
 #define XLT             4
 #define XLabel          39
-#define XLabove         145
-#define XLabs           112
-#define XLacos          113
-#define XLarc           160
-#define XLarcrad        166
-#define XLarg           44
-#define XLarrow         162
-#define XLarrowhd       147
-#define XLarrowhead     183
-#define XLarrowht       167
-#define XLarrowwid      168
-#define XLasin          114
-#define XLat            55
-#define XLatan2         127
-#define XLbelow         146
-#define XLbox           157
-#define XLboxht         169
-#define XLboxrad        170
-#define XLboxwid        171
+#define XLabove         144
+#define XLabs           111
+#define XLacos          112
+#define XLarc           159
+#define XLarcrad        165
+#define XLarg           43
+#define XLarrow         161
+#define XLarrowhd       146
+#define XLarrowhead     182
+#define XLarrowht       166
+#define XLarrowwid      167
+#define XLasin          113
+#define XLat            54
+#define XLatan2         126
+#define XLbelow         145
+#define XLbox           156
+#define XLboxht         168
+#define XLboxrad        169
+#define XLboxwid        170
 #define XLccw           6
-#define XLcenter        142
-#define XLchop          60
-#define XLcircle        158
-#define XLcirclerad     172
+#define XLcenter        141
+#define XLchop          59
+#define XLcircle        157
+#define XLcirclerad     171
 #define XLcoloneq       30
-#define XLcontinue      59
+#define XLcontinue      58
 #define XLcorner        87
-#define XLcos           115
+#define XLcos           114
 #define XLcw            5
-#define XLdashed        134
-#define XLdashwid       173
-#define XLdefine        79
-#define XLdiameter      110
-#define XLdirecton      151
+#define XLdashed        133
+#define XLdashwid       172
+#define XLdefine        78
+#define XLdiameter      109
+#define XLdirecton      150
 #define XLdiveq         34
-#define XLdo            85
-#define XLdotted        133
-#define XLdown          153
-#define XLellipse       159
-#define XLellipseht     174
-#define XLellipsewid    175
-#define XLelse          83
-#define XLenvvar        165
-#define XLexp           116
-#define XLexpe          117
-#define XLfillval       184
+#define XLdo            84
+#define XLdotted        132
+#define XLdown          152
+#define XLellipse       158
+#define XLellipseht     173
+#define XLellipsewid    174
+#define XLelse          82
+#define XLendfor        85
+#define XLenvvar        164
+#define XLexp           115
+#define XLexpe          116
+#define XLfillval       183
 #define XLfloat         37
-#define XLfloor         125
-#define XLfrom          53
-#define XLfunc1         111
-#define XLfunc2         126
-#define XLheight        107
-#define XLint           118
-#define XLinvis         135
-#define XLlastenv       188
-#define XLlastsc        182
-#define XLleft          155
-#define XLline          161
-#define XLlineht        176
-#define XLlinethick     185
-#define XLlinetype      131
-#define XLlinewid       177
-#define XLljust         143
-#define XLlog           119
-#define XLloge          120
+#define XLfloor         124
+#define XLfrom          52
+#define XLfunc1         110
+#define XLfunc2         125
+#define XLheight        106
+#define XLint           117
+#define XLinvis         134
+#define XLlastenv       187
+#define XLlastsc        181
+#define XLleft          154
+#define XLline          160
+#define XLlineht        175
+#define XLlinethick     184
+#define XLlinetype      130
+#define XLlinewid       176
+#define XLljust         142
+#define XLlog           118
+#define XLloge          119
 #define XLcompare       99
-#define XLmax           128
-#define XLmaxpsht       186
-#define XLmaxpswid      187
-#define XLmin           129
+#define XLmax           127
+#define XLmaxpsht       185
+#define XLmaxpswid      186
+#define XLmin           128
 #define XLminuseq       32
-#define XLmove          163
-#define XLmoveht        178
-#define XLmovewid       179
+#define XLmove          162
+#define XLmoveht        177
+#define XLmovewid       178
 #define XLmulteq        33
 #define XLname          38
-#define XLoutlined      139
-#define XLparam         106
-#define XLpath          136
+#define XLoutlined      138
+#define XLparam         105
+#define XLpath          135
 #define XLpluseq        31
-#define XLpmod          130
-#define XLprimitiv      156
-#define XLradius        109
+#define XLpmod          129
+#define XLprimitiv      155
+#define XLradius        108
 #define XLremeq         35
-#define XLright         154
-#define XLrjust         144
-#define XLscale         188
-#define XLshaded        140
-#define XLsign          121
-#define XLsin           122
-#define XLsolid         132
-#define XLspline        164
-#define XLsqrt          123
+#define XLright         153
+#define XLrjust         143
+#define XLscale         187
+#define XLshaded        139
+#define XLsign          120
+#define XLsin           121
+#define XLsolid         131
+#define XLspline        163
+#define XLsqrt          122
 #define XLstring        41
-#define XLtan           124
-#define XLtextht        180
-#define XLtextoffset    181
-#define XLtextpos       141
-#define XLtextwid       182
-#define XLthen          58
-#define XLto            54
+#define XLtan           123
+#define XLtextht        179
+#define XLtextoffset    180
+#define XLtextpos       140
+#define XLtextwid       181
+#define XLthen          57
+#define XLto            53
 #define XLaTeX          40
-#define XLundefine      80
-#define XLup            152
-#define XLwidth         108
+#define XLundefine      79
+#define XLup            151
+#define XLwidth         107
 #define XNEQ            101
 #define XNOT            16
 #define XNL             14
 #define XRBRACE         24
-#define XRIGHTHEAD      149
+#define XRIGHTHEAD      148
 #define XSEMICOLON      14
 #define XSTAR           9
-#define XSTART          45
+#define XSTART          44
 #define XANDAND         17
 #define XOROR           18
 #define Xlparen         7
@@ -425,40 +409,35 @@
 #define Xcomma          19
 #define Xminus          11
 #define XSLASH          12
-
-/* Machine constants                                                  */
-#define ordMINCH        0   /* first element of type character    */
-
+/* Machine constants */
+#define ordMINCH        0   /* first element of type character */
 /* last element of type character,
-   newline, tab, CR, ETX              */
-
+   newline, tab, CR, ETX */
 #define ordMAXCH        255
 #define ordNL           10
 #define ordTAB          9
 #define ordCR           13
 #define ordETX          3
+#define ordBSL          92
 /*B
     ordMAXCH = 255; ordNL = 37; ordTAB = 5; ordCR = 13; ordETX = 3 B*/
-
 #define maxbval         16383
 /* must be > CHBUFSIZ-2 */
-
-/* Lexical parameters                                                 */
+/* Lexical parameters */
 #define CHBUFSIZ        4095   /* size of chbuf arrays, input record */
-#define FILENAMELEN     1024   /* max length of file names           */
+#define FILENAMELEN     1024   /* max length of file names */
 #define DFONT           11   /* default svg textht, pt; should be adj*/
 
-#define TEXTRATIO       1.6   /* baseline to text height ratio      */
+#define TEXTRATIO       1.6   /* baseline to text height ratio */
+/* Lalr machine parameters */
 
-/* Lalr machine parameters                                            */
-
-#define STACKMAX        255   /* size of attstack and parsestack    */
-#define REDUMAX         128   /* size of reduction buffer           */
-#define ERRMAX          3   /* max no of error messages per line  */
-#define MAXERRCOUNT     3   /* max no of errors before giving up  */
+#define STACKMAX        255   /* size of attstack and parsestack */
+#define REDUMAX         128   /* size of reduction buffer */
+#define ERRMAX          3   /* max no of error messages per line */
+#define MAXERRCOUNT     3   /* max no of errors before giving up */
 
 
-/* Lexical types                                                      */
+/* Lexical types */
 typedef short chbufinx;
 
 typedef uchar symbol;
@@ -469,13 +448,11 @@ typedef uchar production;
 
 typedef Char chbufarray[CHBUFSIZ + 1];
 typedef Char mstring[FILENAMELEN];
-
 /* Environment variable index */
 /*GH1HG*/
 typedef uchar environx;
 
-
-/* Lalr machine types                                                 */
+/* Lalr machine types */
 typedef uchar stackinx;
 
 typedef short redubufrange;
@@ -487,7 +464,7 @@ typedef struct reduelem {
   production prod_;
 } reduelem;
 
-/* Message types                                                      */
+/* Message types */
 typedef char errmsginx;
 
 #define TeX             0
@@ -504,12 +481,9 @@ typedef char errmsginx;
 
 /* Production types */
 /*,PSmps*/
-
 /* For storing names */
 
 typedef struct nametype {
-  /* packed */
-  /* Sun compiler complains otherwise */
   Char *segmnt;
   chbufinx seginx, len;
   double val;
@@ -520,7 +494,7 @@ typedef struct nametype {
 
 typedef struct fbuffer {
   Char *carray;
-  long savedlen, readx, attrib;
+  int savedlen, readx, attrib;
   struct fbuffer *higherb, *prevb, *nextb;
 } fbuffer;
 
@@ -531,20 +505,20 @@ typedef struct arg {
   struct arg *higherb, *nextb;
 } arg;
 
+/* Pic position */
+
 typedef struct postype {
   /* packed */
   double xpos, ypos;
 } postype;
 
 typedef double envarray[XLlastenv - XLenvvar];
-
-
 /* maybe textp should be a primitivep to allow text to have the full
    properties of boxes */
 /* To save some space:
    shadedp: box, circle, ellipse
    outlinep: box, circle, ellipse, line, arc, spline
-   textp: not for block: maybe delete the vars pointer
+   textp: not for block
    */
 
 typedef struct primitive {
@@ -552,30 +526,31 @@ typedef struct primitive {
   struct primitive *parent, *son, *next_;
   postype aat;
   double lparam, lthick;
-  long direction, spec, ptype;
+  int direction, spec, ptype;
   union {
     struct {
       double boxheight, boxwidth, boxfill, boxradius;
-    } U157;
+    } Ubox;
     struct {
       double blockheight, blockwidth;
       postype here;
-      nametype *vars;
+      nametype *vars[HASHLIM + 1];
+      int nvars[HASHLIM + 1];
       double *env;
-    } U26;
+    } Ublock;
     struct {
       double cfill, radius;
-    } U158;
+    } Ucircle;
     struct {
       double elheight, elwidth, efill;
-    } U159;
+    } Uellipse;
     struct {
       /* XLarc:( endpos.xpos,endpos.ypos: real );
                   endpos.xpos, endpos.ypos */
       postype endpos;
       double height, width, lfill, aradius;
-      long atype;
-    } U161;
+      int atype;
+    } Uline;
   } UU;
 } primitive;
 
@@ -586,11 +561,11 @@ typedef struct XLboxprimitive {
   primitive *parent, *son, *next_;
   postype aat;
   double lparam, lthick;
-  long direction, spec, ptype;
+  int direction, spec, ptype;
   union {
     struct {
       double boxheight, boxwidth, boxfill, boxradius;
-    } U157;
+    } Ubox;
   } UU;
 } XLboxprimitive;
 
@@ -599,11 +574,11 @@ typedef struct XLcircleprimitive {
   primitive *parent, *son, *next_;
   postype aat;
   double lparam, lthick;
-  long direction, spec, ptype;
+  int direction, spec, ptype;
   union {
     struct {
       double cfill, radius;
-    } U158;
+    } Ucircle;
   } UU;
 } XLcircleprimitive;
 
@@ -612,11 +587,11 @@ typedef struct XLellipseprimitive {
   primitive *parent, *son, *next_;
   postype aat;
   double lparam, lthick;
-  long direction, spec, ptype;
+  int direction, spec, ptype;
   union {
     struct {
       double elheight, elwidth, efill;
-    } U159;
+    } Uellipse;
   } UU;
 } XLellipseprimitive;
 
@@ -625,13 +600,13 @@ typedef struct XLlineprimitive {
   primitive *parent, *son, *next_;
   postype aat;
   double lparam, lthick;
-  long direction, spec, ptype;
+  int direction, spec, ptype;
   union {
     struct {
       postype endpos;
       double height, width, lfill, aradius;
-      long atype;
-    } U161;
+      int atype;
+    } Uline;
   } UU;
 } XLlineprimitive;
 
@@ -640,436 +615,427 @@ typedef struct XLabelprimitive {
   primitive *parent, *son, *next_;
   postype aat;
   double lparam, lthick;
-  long direction, spec, ptype;
+  int direction, spec, ptype;
 } XLabelprimitive;
 
-/* Attribute stack types                                              */
+/* Attribute stack types */
 
 typedef struct attribute {
   chbufinx chbufx;
-  long length;
+  int length;
   primitive *prim, *root;
   nametype *varname;
   double xval, yval, startchop, endchop;
-  long lexval, state;
+  int lexval, state;
 } attribute;
 
 typedef attribute attstacktype[STACKMAX + 1];
-
 /* Parser types */
 
 typedef struct stackelm {
   stackinx link;
-  long table;
+  int table;
 } stackelm;
 
 typedef stackelm tparsestack[STACKMAX + 1];
 
 
 typedef struct _REC_errmsg {
-  long no, col, symb_;
+  int no, col, symb_;
 } _REC_errmsg;
 
 
-/*BXdefXB*/
-/* Machine-dependent characters                                       */
-Char tabch, nlch, crch, etxch;
-
-/* File names                                                         */
-FILE *input, *output, *stderr_;   /*G asmname 'std_err'; G*/
+/*BX def XB*/
+/* Machine-dependent characters */
+Char tabch, nlch, crch, etxch, bslch;
+/* File names */
+FILE *input, *output, *errout;   /*G asmname 'std_err'; G*/
 FILE *copyin;   /*G asmname 'copy_in'; G*/
 FILE *redirect;   /*G asmname 'redi_rect'; G*/
 /*D log: text; D*/
 /*DG asmname 'log_file'; GD*/
-
-mstring infname;   /* name of current input file       */
-mstring outfnam;   /* name of current output file     */
+mstring infname;   /* name of current input file */
+mstring outfnam;   /* name of current output file */
 /*X infname: string; X*/
-
-boolean inputeof;   /* end of input flag                  */
-long argct;   /* argument counter for options     */
-char drawmode;   /* output conversion                  */
-boolean safemode;   /* disable sh and copy                */
+boolean inputeof;   /* end of input flag */
+boolean forbufend;   /* end of for buffer */
+int argct;   /* argument counter for options */
+char drawmode;   /* output conversion */
+boolean safemode;   /* disable sh and copy */
 /*D oflag: integer; D*/
-
-/* Lexical analyzer character buffer                                  */
+/* Lexical analyzer character buffer */
+/* chbuf: strptr; */
 Char *chbuf;
-chbufinx chbufi, oldbufi;   /* character buffer index             */
-
-/* Lexical variables                                                  */
-Char ch;   /* current character                  */
-short newsymb;   /* current lexical symbol             */
-long lexstate, lexsymb;
+chbufinx chbufi, oldbufi;   /* character buffer index */
+/* Lexical variables */
+Char ch;   /* current character */
+short newsymb;   /* current lexical symbol */
+int lexstate, lexsymb;
 _REC_errmsg errmsg[ERRMAX + 1];
-boolean inlogic;   /* set < to <^ in logical context     */
-fbuffer *inbuf, *savebuf, *freebuf;
-
-/* Error handling                                                     */
-long errcount;   /* becomes nonzero when errors found  */
-errmsginx errmp;   /* index of error messages in errmsg  */
-long lineno;   /* current input line number          */
-
-/* Production variables                                               */
+boolean inlogic;   /* set < to <compare> in context */
+fbuffer *inbuf, *savebuf, *freeinbuf;
+/* Error handling */
+int errcount;   /* becomes nonzero when errors found */
+errmsginx errmp;   /* index of error messages in errmsg */
+int lineno;   /* current input line number */
+/* Production variables */
 attribute *attstack;
 /*D stackhigh: integer;D*/
 redubufrange reduinx, redutop;
-reduelem redubuf[REDUMAX + REDUMAX + 1];   /* reduction buffer    */
-
-double floatvalue;   /* numerical value of floats read     */
+reduelem redubuf[REDUMAX + REDUMAX + 1];   /* reduction buffer */
+double floatvalue;   /* numerical value of floats read */
 primitive *envblock;
-
-double north, south, east, west;
-    /* compass corners of a primitive     */
-double xfheight;   /* for calculating xfig coordinates   */
-Char *freeseg;   /* segment open to store strings      */
-short freex;   /* next free location                 */
-Char *tmpbuf;   /* buffer for snprintf or sprintf     */
+double north, south, east, west;   /* compass corners of a primitive */
+double xfheight;   /* for calculating xfig coordinates */
+Char *freeseg;   /* segment open to store strings */
+short freex;   /* next free location */
+Char *tmpbuf;   /* buffer for snprintf or sprintf */
 double scale, fsc;   /* scale factor and final scale factor*/
-long splcount, spltot;   /* spline depth counter               */
-primitive *snode;   /* temporary node storage             */
-boolean sfill;   /* fill flag for linear objects       */
+int splcount, spltot;   /* spline depth counter */
+primitive *snode;   /* temporary node storage */
+boolean sfill;   /* fill flag for linear objects */
 double vfill;   /* fill value */
-nametype *sshade, *soutline;   /* temp values for linear objects     */
-double lastfillval;   /* last-used fill density             */
-double lastthick;   /* last-used line thickness           */
-long printstate;   /* for passing output state info      */
-postype splineend;   /* tmp storage for svg spline         */
-
+nametype *sshade, *soutline;   /* temp values for linear objects */
+double lastfillval;   /* last-used fill density */
+double lastthick;   /* last-used line thickness */
+int printstate;   /* for passing output state info */
+postype splineend;   /* tmp storage for svg spline */
 /* Global tables for easy C conversion.
-   Alternative: use run-time space    */
+   Alternative: use run-time space */
 short lr[lrmax + 1]={
-0,   5,1,   0,  0,   0,  10,6,   0, -1,  15,3740,1,   1,  1,
-0,  20,1,  45,  7,  25, 580,2,  16,151,  30, 575,2, 165,169,
+0,   5,1,   0,  0,   0,  10,6,   0, -1,  15,3745,1,   1,  1,
+0,  20,1,  44,  7,  25, 580,2,  16,151,  30, 575,2, 164,169,
 35, 565,2,  38,170,  40, 555,2,  37,171,  45, 415,2,   7,172,
-50, 325,2,  81,176,  55, 315,2, 111,178,  60, 305,2, 126,179,
-65, 285,2,  39,153,  70, 210,2,  87,147,  75, 205,2,  67,149,
-80, 180,2,  69,132,  85, 175,2,  27,158,  90,  95,2,  23,159,
-0,4477,4,   0,  7, 100, 670,1,  10,  2, 105, 615,1,  11, 66,
-110, 580,1,  16,151, 115, 575,1, 165,169, 120, 565,1,  38,170,
-125, 555,1,  37,171, 130, 415,1,   7,172, 135, 325,1,  81,176,
-140, 315,1, 111,178, 145, 305,1, 126,179, 150, 285,1,  39,153,
-155, 210,1,  87,147, 160, 205,1,  67,149, 165, 180,1,  69,132,
+50, 325,2,  80,176,  55, 315,2, 110,178,  60, 305,2, 125,179,
+65, 285,2,  39,153,  70, 210,2,  87,147,  75, 205,2,  66,149,
+80, 180,2,  68,132,  85, 175,2,  27,158,  90,  95,2,  23,159,
+0,4486,4,   0,  7, 100, 670,1,  10,  2, 105, 615,1,  11, 66,
+110, 580,1,  16,151, 115, 575,1, 164,169, 120, 565,1,  38,170,
+125, 555,1,  37,171, 130, 415,1,   7,172, 135, 325,1,  80,176,
+140, 315,1, 110,178, 145, 305,1, 125,179, 150, 285,1,  39,153,
+155, 210,1,  87,147, 160, 205,1,  66,149, 165, 180,1,  68,132,
 170, 175,1,  27,158,   0,  95,1,  23,159, 100, 670,1,  10,  2,
-0,4277,3,   0,132,   0, 190,1,  68,  3, 195, 200,2,  69,131,
-0,4482,4,   0,130,   0,4277,3,   2,131,   0, 300,3,   0,149,
-215,1690,1,  62,  4, 220, 285,1,  39,153, 225, 180,1,  69,132,
-165, 230,1,  37,157,   0, 185,3,   0,-157, 240, 275,1, 156,  5,
+0,4286,3,   0,132,   0, 190,1,  67,  3, 195, 200,2,  68,131,
+0,4491,4,   0,130,   0,4286,3,   2,131,   0, 300,3,   0,149,
+215,1690,1,  61,  4, 220, 285,1,  39,153, 225, 180,1,  68,132,
+165, 230,1,  37,157,   0, 185,3,   0,-157, 240, 275,1, 155,  5,
 245, 270,1,  26,134, 250, 265,1,  41,135,   0, 255,1,  21,136,
-0, 260,1,  22,  6,   0,4289,3,   1,136,   0,4289,3,   0,-135,
-0,4289,3,   0,-134,   0,4289,3,   0,-133,   0,4429,3,   1,154,
-290, 295,2,  21, 33,   0,3833,6,   0, 32, 100, 670,1,  10,  2,
-0,4309,3,   0,-142,   0, 310,1,   7,  7, 100, 670,1,  10,  2,
+0, 260,1,  22,  6,   0,4298,3,   1,136,   0,4298,3,   0,-135,
+0,4298,3,   0,-134,   0,4298,3,   0,-133,   0,4438,3,   1,154,
+290, 295,2,  21, 33,   0,3838,6,   0, 32, 100, 670,1,  10,  2,
+0,4318,3,   0,-142,   0, 310,1,   7,  7, 100, 670,1,  10,  2,
 0, 320,1,   7,  7, 100, 670,1,  10,  2,   0, 330,1,   7,  7,
-95,1640,1,   8,  8, 340, 385,2, 106,175, 345, 360,2,  25,155,
-350, 355,2,  87,146,   0,4487,4,   0,145,   0, 300,3,   1,146,
-220, 375,1,  39,  9, 240, 275,1, 156,  5,   0,4429,3,   3,156,
-290, 295,2,  21, 33,   0,4429,3,   3,155,   0,4469,3,   1,175,
-395, 920,1,  71, 10, 400, 915,1,  72,174, 405, 925,1,   9,143,
+95,1640,1,   8,  8, 340, 385,2, 105,175, 345, 360,2,  25,155,
+350, 355,2,  87,146,   0,4496,4,   0,145,   0, 300,3,   1,146,
+220, 375,1,  39,  9, 240, 275,1, 155,  5,   0,4438,3,   3,156,
+290, 295,2,  21, 33,   0,4438,3,   3,155,   0,4478,3,   1,175,
+395, 920,1,  70, 10, 400, 915,1,  71,174, 405, 925,1,   9,143,
 0, 410,1,  12,144, 110, 580,1,  16, 11, 420,1290,1,  38, 12,
-425,1255,1, 165, 62, 430, 670,1,  10, 65, 435, 615,1,  11, 66,
-440, 415,1,   7,140, 445, 210,1,  87,147, 450, 205,1,  67,149,
+425,1255,1, 164, 62, 430, 670,1,  10, 65, 435, 615,1,  11, 66,
+440, 415,1,   7,140, 445, 210,1,  87,147, 450, 205,1,  66,149,
 455, 580,1,  16,151, 460, 515,1,  41, 58, 465, 285,1,  39,153,
-470, 555,1,  37,171, 475, 325,1,  81,176, 480, 315,1, 111,178,
-485, 305,1, 126,179, 160, 490,1,  86, 86,   0, 495,1,   7,  7,
+470, 555,1,  37,171, 475, 325,1,  80,176, 480, 315,1, 110,178,
+485, 305,1, 125,179, 160, 490,1,  86, 86,   0, 495,1,   7,  7,
 500, 515,1,  41, 13,   0, 490,1,  86, 86,   0, 510,1,   8, 14,
-0,4041,3,   1,-59,   0,4041,3,   0, 58,   0,3969,3,   0,-56,
-530, 550,2,  19, 87, 535, 540,2,  10, 57,   0,4492,4,   0, 86,
-500, 515,1,  41, 13,   0,3969,3,   2, 57, 100, 670,1,  10,  2,
-560, 230,4,  68,157,   0,4497,4,   0,171, 290, 295,2,  21, 33,
-0,4469,3,   1,170,   0,4469,3,   0,169, 115, 575,1, 165, 15,
-0,4401,3,   1,151, 595, 600,2,  15,152,   0,4502,4,   0,150,
-110, 580,1,  16, 11,   0,4401,3,   2,152,   0,3793,3,   0,-13,
+0,4050,3,   1,-59,   0,4050,3,   0, 58,   0,3978,3,   0,-56,
+530, 550,2,  19, 87, 535, 540,2,  10, 57,   0,4501,4,   0, 86,
+500, 515,1,  41, 13,   0,3978,3,   2, 57, 100, 670,1,  10,  2,
+560, 230,4,  67,157,   0,4506,4,   0,171, 290, 295,2,  21, 33,
+0,4478,3,   1,170,   0,4478,3,   0,169, 115, 575,1, 164, 15,
+0,4410,3,   1,151, 595, 600,2,  15,152,   0,4511,4,   0,150,
+110, 580,1,  16, 11,   0,4410,3,   2,152,   0,3798,3,   0,-13,
 110, 580,1,  16, 11, 625, 660,2,   9, 14, 630, 650,2,  12, 15,
-635, 640,2,  13, 16,   0,4507,4,   0, 66, 110, 580,1,  16, 11,
-0,3793,3,   2, 16, 110, 580,1,  16, 11,   0,3793,3,   2, 15,
-110, 580,1,  16, 11,   0,3793,3,   2, 14, 110, 580,1,  16, 11,
+635, 640,2,  13, 16,   0,4516,4,   0, 66, 110, 580,1,  16, 11,
+0,3798,3,   2, 16, 110, 580,1,  16, 11,   0,3798,3,   2, 15,
+110, 580,1,  16, 11,   0,3798,3,   2, 14, 110, 580,1,  16, 11,
 680, 660,2,   9, 14, 685, 650,2,  12, 15, 690, 640,2,  13, 16,
-0,4512,4,   0, 65, 700, 660,2,   9, 14, 705, 650,2,  12, 15,
-710, 640,2,  13, 16,   0,4517,4,   0, 64, 720, 785,2,  19, 89,
-725, 760,2,  10, 67, 730, 735,2,  11, 68,   0,4522,4,   0, 88,
+0,4521,4,   0, 65, 700, 660,2,   9, 14, 705, 650,2,  12, 15,
+710, 640,2,  13, 16,   0,4526,4,   0, 64, 720, 785,2,  19, 89,
+725, 760,2,  10, 67, 730, 735,2,  11, 68,   0,4531,4,   0, 88,
 110, 580,1,  16, 11, 745, 660,2,   9, 14, 750, 650,2,  12, 15,
-755, 640,2,  13, 16,   0,4527,4,   0, 68, 110, 580,1,  16, 11,
+755, 640,2,  13, 16,   0,4536,4,   0, 68, 110, 580,1,  16, 11,
 770, 660,2,   9, 14, 775, 650,2,  12, 15, 780, 640,2,  13, 16,
-0,4532,4,   0, 67, 100, 670,1,  10,  2,   0,4229,3,   2, 89,
+0,4541,4,   0, 67, 100, 670,1,  10,  2,   0,4238,3,   2, 89,
 0, 505,3,   4, 87, 805, 815,2,   4,163, 810, 540,2,  10, 57,
-0,4537,4,   0,166, 500, 515,1,  41, 13, 825, 540,2,  10, 57,
-0,4542,4,   0,163, 835, 840,2,  99,167,   0,4547,4,   0,162,
+0,4546,4,   0,166, 500, 515,1,  41, 13, 825, 540,2,  10, 57,
+0,4551,4,   0,163, 835, 840,2,  99,167,   0,4556,4,   0,162,
 845, 670,1,  10, 12, 850, 615,1,  11, 66, 855, 515,1,  41, 58,
 860, 580,1,  16,151, 110, 490,1,  86, 86, 870, 540,2,  10, 57,
-0,4552,4,   0,168, 880, 760,2,  10, 67, 885, 735,2,  11, 68,
-0,4557,4,   0,167, 895, 925,2,   9,143, 900, 410,2,  12,144,
-905, 920,2,  71,173, 910, 915,2,  72,174,   0,4301,6,   0,137,
-0,4469,3,   1,174,   0,4469,3,   1,-173, 110, 580,1,  16, 11,
-0,4309,3,   2,143, 940,1135,2,  10,138, 945, 950,2,  11,139,
-0,4562,4,   0,126, 955, 975,1,   7, 16, 960, 210,1,  87,147,
-215, 205,1,  67,149, 970, 355,2,  87,146, 350, 360,2,  25,155,
+0,4561,4,   0,168, 880, 760,2,  10, 67, 885, 735,2,  11, 68,
+0,4566,4,   0,167, 895, 925,2,   9,143, 900, 410,2,  12,144,
+905, 920,2,  70,173, 910, 915,2,  71,174,   0,4310,6,   0,137,
+0,4478,3,   1,174,   0,4478,3,   1,-173, 110, 580,1,  16, 11,
+0,4318,3,   2,143, 940,1135,2,  10,138, 945, 950,2,  11,139,
+0,4571,4,   0,129, 955, 975,1,   7, 16, 960, 210,1,  87,147,
+215, 205,1,  66,149, 970, 355,2,  87,146, 350, 360,2,  25,155,
 980, 670,1,  10,  2, 985, 615,1,  11, 66, 990, 415,1,   7,140,
-995, 210,1,  87,147,1000, 205,1,  67,149,1005, 580,1,  16,151,
-1010, 285,1,  39,153,1015, 575,1, 165,169,1020, 565,1,  38,170,
-1025, 555,1,  37,171,1030, 325,1,  81,176,1035, 315,1, 111,178,
-160, 305,1, 126,179,1045,1190,1,  65, 17,1050,1155,1,  62, 36,
-1055,1090,1,   4, 37,1060,1070,1,  19,125,1065, 760,1,  10, 67,
+995, 210,1,  87,147,1000, 205,1,  66,149,1005, 580,1,  16,151,
+1010, 285,1,  39,153,1015, 575,1, 164,169,1020, 565,1,  38,170,
+1025, 555,1,  37,171,1030, 325,1,  80,176,1035, 315,1, 110,178,
+160, 305,1, 125,179,1045,1190,1,  64, 17,1050,1155,1,  61, 36,
+1055,1090,1,   4, 37,1060,1070,1,  19,128,1065, 760,1,  10, 67,
 0, 735,1,  11, 68, 100, 670,1,  10,  2,1080, 760,2,  10, 67,
-1085, 735,2,  11, 68,   0,4567,4,   0,125, 980, 670,1,  10,  2,
-0,3861,3,   0,-34,   0,1105,1,  19, 18, 980, 670,1,  10,  2,
-0,1115,1,  99, 19,   0,4301,6,   0,137,1125,1135,2,  10,138,
-1130, 950,2,  11,139,   0,4572,4,   0, 37, 955, 975,1,   7, 16,
-1145, 925,2,   9,143,1150, 410,2,  12,144,   0,4577,4,   0,138,
-0,1160,1,  63, 20,   0,1165,1,  64, 21,   0,1170,1,  65, 22,
-980, 670,1,  10,  2,   0,1180,1,  66, 23, 980, 670,1,  10,  2,
-0,3861,3,   7, 36, 980, 670,1,  10,  2,   0,1200,1,  66, 23,
-980, 670,1,  10,  2,   0,3861,3,   4, 35,1215,1235,1,   8, 24,
+1085, 735,2,  11, 68,   0,4576,4,   0,128, 980, 670,1,  10,  2,
+0,3866,3,   0,-34,   0,1105,1,  19, 18, 980, 670,1,  10,  2,
+0,1115,1,  99, 19,   0,4310,6,   0,137,1125,1135,2,  10,138,
+1130, 950,2,  11,139,   0,4581,4,   0, 37, 955, 975,1,   7, 16,
+1145, 925,2,   9,143,1150, 410,2,  12,144,   0,4586,4,   0,138,
+0,1160,1,  62, 20,   0,1165,1,  63, 21,   0,1170,1,  64, 22,
+980, 670,1,  10,  2,   0,1180,1,  65, 23, 980, 670,1,  10,  2,
+0,3866,3,   7, 36, 980, 670,1,  10,  2,   0,1200,1,  65, 23,
+980, 670,1,  10,  2,   0,3866,3,   4, 35,1215,1235,1,   8, 24,
 0,1220,1,  19,141, 980, 670,1,  10,  2,   0,1230,1,   8, 14,
-0,4309,3,   4,141,   0,4309,3,   2,140,1245, 925,2,   9,143,
-1250, 410,2,  12,144,   0,4582,4,   0,139,1260,1265,2,  29, 62,
+0,4318,3,   4,141,   0,4318,3,   2,140,1245, 925,2,   9,143,
+1250, 410,2,  12,144,   0,4591,4,   0,139,1260,1265,2,  29, 62,
 0, 575,4,   0,169,1270, 670,1,  10,  2,1275, 615,1,  11, 66,
-1280,1290,1,  38, 60,1285,1255,1, 165, 62, 120, 580,1,  16,151,
+1280,1290,1,  38, 60,1285,1255,1, 164, 62, 120, 580,1,  16,151,
 290, 295,2,  21, 33,1300,1305,2,  29, 60,   0, 570,4,   0,170,
-1270, 670,1,  10,  2,   0,4049,3,   3, 61,1320, 760,2,  10, 67,
-1325, 735,2,  11, 68,   0,4587,4,   0, 60,   0,4049,3,   2, 63,
-1340, 760,2,  10, 67,1345, 735,2,  11, 68,   0,4592,4,   0, 62,
-0,4453,3,   0,-160,1360,1190,2,  65, 35,1365,1155,2,  62, 36,
-1370,1390,2,   4, 37,1375,1070,2,  19,125,1380, 760,2,  10, 67,
-1385, 735,2,  11, 68,   0,4597,4,   0,165,1395, 670,1,  10,  2,
+1270, 670,1,  10,  2,   0,4058,3,   3, 61,1320, 760,2,  10, 67,
+1325, 735,2,  11, 68,   0,4596,4,   0, 60,   0,4058,3,   2, 63,
+1340, 760,2,  10, 67,1345, 735,2,  11, 68,   0,4601,4,   0, 62,
+0,4462,3,   0,-160,1360,1190,2,  64, 35,1365,1155,2,  61, 36,
+1370,1390,2,   4, 37,1375,1070,2,  19,128,1380, 760,2,  10, 67,
+1385, 735,2,  11, 68,   0,4606,4,   0,165,1395, 670,1,  10,  2,
 1400, 615,1,  11, 66,1405, 415,1,   7,140,1410, 580,1,  16,151,
-1415, 210,1,  87,147,1420, 205,1,  67,149,1425, 575,1, 165,169,
-1430, 565,1,  38,170,1435, 555,1,  37,171,1440, 325,1,  81,176,
-1445, 315,1, 111,178,1450, 305,1, 126,179, 160, 285,1,  39,153,
-1460,1190,2,  65, 35,1465,1155,2,  62, 36,1470,1090,2,   4, 37,
-1475, 760,2,  10, 67,1480, 735,2,  11, 68,1485,1070,2,  19,125,
-0,4602,4,   0,164,   0,3929,3,   0,-38,1500,1505,2,  17,161,
-0,4607,4,   0, 71,1510, 670,1,  10, 12,1515, 615,1,  11, 66,
+1415, 210,1,  87,147,1420, 205,1,  66,149,1425, 575,1, 164,169,
+1430, 565,1,  38,170,1435, 555,1,  37,171,1440, 325,1,  80,176,
+1445, 315,1, 110,178,1450, 305,1, 125,179, 160, 285,1,  39,153,
+1460,1190,2,  64, 35,1465,1155,2,  61, 36,1470,1090,2,   4, 37,
+1475, 760,2,  10, 67,1480, 735,2,  11, 68,1485,1070,2,  19,128,
+0,4611,4,   0,164,   0,3938,3,   0,-38,1500,1505,2,  17,161,
+0,4616,4,   0, 71,1510, 670,1,  10, 12,1515, 615,1,  11, 66,
 1520, 515,1,  41, 58, 105, 490,1,  86, 86,1375,1530,2,   4,164,
 100, 670,1,  10,  2,1540, 760,2,  10, 67,1485, 735,2,  11, 68,
-0,4453,3,   2,161,1555,1590,1,   8, 24,   0,1560,1,  19, 39,
-1565,1575,1,  38, 25,   0,1570,1, 165, 62,   0,1265,1,  29, 26,
-290, 295,2,  21, 33,   0,1305,1,  29, 26,   0,3929,3,   2, 39,
-0,4469,3,   2,180,1600,1620,1,   8, 27,   0,1605,1,  18, 72,
-1510, 670,1,  10, 12,1615,1505,2,  17,161,   0,4612,4,   0, 72,
-0,4469,3,   2,172,   0,4309,3,   2,144,1060,1635,1,   8, 28,
-0,4469,3,   3,177,   0,4469,3,   2,176,1060,1650,1,   8, 28,
-0,4469,3,   3,178,1060,1660,1,  19, 29, 100, 670,1,  10,  2,
-1060,1670,1,   8, 28,   0,4469,3,   5,179,1060,1680,1,  22, 30,
-0,3833,3,   2, 33,   0,4429,3,   1,153, 220, 285,1,  39,  9,
-1700, 360,2,  25,155,   0,4617,4,   0,148,1710, 360,2,  25,155,
-0,4622,4,   0,147,1060,1720,1,  28, 31,   0, 185,3,   2,158,
+0,4462,3,   2,161,1555,1590,1,   8, 24,   0,1560,1,  19, 39,
+1565,1575,1,  38, 25,   0,1570,1, 164, 62,   0,1265,1,  29, 26,
+290, 295,2,  21, 33,   0,1305,1,  29, 26,   0,3938,3,   2, 39,
+0,4478,3,   2,180,1600,1620,1,   8, 27,   0,1605,1,  18, 72,
+1510, 670,1,  10, 12,1615,1505,2,  17,161,   0,4621,4,   0, 72,
+0,4478,3,   2,172,   0,4318,3,   2,144,1060,1635,1,   8, 28,
+0,4478,3,   3,177,   0,4478,3,   2,176,1060,1650,1,   8, 28,
+0,4478,3,   3,178,1060,1660,1,  19, 29, 100, 670,1,  10,  2,
+1060,1670,1,   8, 28,   0,4478,3,   5,179,1060,1680,1,  22, 30,
+0,3838,3,   2, 33,   0,4438,3,   1,153, 220, 285,1,  39,  9,
+1700, 360,2,  25,155,   0,4626,4,   0,148,1710, 360,2,  25,155,
+0,4631,4,   0,147,1060,1720,1,  28, 31,   0, 185,3,   2,158,
 1060,1730,1,  24, 32,   0, 185,3,   2,159,1740, 660,2,   9, 14,
 1745, 650,2,  12, 15,1750, 640,2,  13, 16,1755, 580,2,  16,151,
-1760, 575,2, 165,169,1765, 565,2,  38,170,1770, 555,2,  37,171,
-1775, 415,2,   7,172,1780, 325,2,  81,176,1785, 315,2, 111,178,
-1790, 305,2, 126,179,1795, 285,2,  39,153,1800, 210,2,  87,147,
-1805, 205,2,  67,149,1810, 180,2,  69,132,1815, 175,2,  27,158,
-1820,  95,2,  23,159,   0,4627,4,   0,  8,1830, 660,2,   9, 14,
-1835, 650,2,  12, 15,1840, 640,2,  13, 16,   0,4632,4,   0,  9,
-1850,1860,1,  14, 33,   0,1855,1,   3,  6,   0,3745,3,   0, -6,
-0,3745,3,   0, -5,1870,3150,2,  39, 18,1875,3135,2, 151, 20,
-1880,3130,2,  40, 21,1885,3055,2,  78, 27,1890,3040,2,  76, 28,
-1895,2485,2,  73, 40,1900,2450,2,  75, 43,1905,2435,2,  77, 45,
-1910,2420,2,  74, 46,1915,2365,2,  80, 48,1920,3115,6,  23, 29,
-1925,2230,2,  59,116,1930,1575,2,  38, 60,1935,1570,2, 165, 62,
-1940,2210,2,  79, 84,1945,2115,2,  84, 73,1950,2010,2, 156,118,
-1955,2190,6,  82, 70,1960,1980,6,  21,117,1965,1980,6,  26,117,
-1970, 515,2,  41, 58,1975, 490,2,  86, 86,   0,3765,6,   0, 10,
+1760, 575,2, 164,169,1765, 565,2,  38,170,1770, 555,2,  37,171,
+1775, 415,2,   7,172,1780, 325,2,  80,176,1785, 315,2, 110,178,
+1790, 305,2, 125,179,1795, 285,2,  39,153,1800, 210,2,  87,147,
+1805, 205,2,  66,149,1810, 180,2,  68,132,1815, 175,2,  27,158,
+1820,  95,2,  23,159,   0,4636,4,   0,  8,1830, 660,2,   9, 14,
+1835, 650,2,  12, 15,1840, 640,2,  13, 16,   0,4641,4,   0,  9,
+1850,1860,1,  14, 33,   0,1855,1,   3,  6,   0,3750,3,   0, -6,
+0,3750,3,   0, -5,1870,3150,2,  39, 18,1875,3135,2, 150, 20,
+1880,3130,2,  40, 21,1885,3055,2,  77, 27,1890,3040,2,  75, 28,
+1895,2480,2,  72, 40,1900,2445,2,  74, 43,1905,2430,2,  76, 45,
+1910,2415,2,  73, 46,1915,2360,2,  79, 48,1920,3115,6,  23, 29,
+1925,2230,2,  58,116,1930,1575,2,  38, 60,1935,1570,2, 164, 62,
+1940,2210,2,  78, 84,1945,2115,2,  83, 73,1950,2010,2, 155,118,
+1955,2190,6,  81, 70,1960,1980,6,  21,117,1965,1980,6,  26,117,
+1970, 515,2,  41, 58,1975, 490,2,  86, 86,   0,3770,6,   0, 10,
 1985,1995,1,  21, 34,   0,1990,1,  26,121,   0,2335,3,   1,121,
-1870,3150,2,  39, 18,2005, 540,2,  10, 57,   0,4637,4,   0,119,
+1870,3150,2,  39, 18,2005, 540,2,  10, 57,   0,4646,4,   0,119,
 2015, 670,2,  10, 65,2020, 615,2,  11, 66,2025, 580,2,  16,151,
-2030, 575,2, 165,169,2035, 565,2,  38,170,2040, 555,2,  37,171,
-2045, 415,2,   7,172,2050, 325,2,  81,176,2055, 315,2, 111,178,
-2060, 305,2, 126,179,2065, 285,2,  39,153,2070, 210,2,  87,147,
-2075, 205,2,  67,149,2080, 180,2,  69,132,2085, 175,2,  27,158,
-2090,  95,2,  23,159,   0,4245,6,   0,122,2100, 760,2,  10, 67,
-2105, 735,2,  11, 68,   0,4642,4,   0,123,   0,2335,3,   1,118,
-1565,1575,1,  38, 25,1555,2125,1,  54, 35, 100, 670,1,  10,  2,
-2135, 760,1,  10, 36,2140, 735,1,  11, 68,2145,2180,1,  85, 75,
-0,2150,1,  57, 77,2155,2160,2,   9, 78,   0,4647,4,   0, 77,
-0,2165,3,   1, 78, 100, 670,1,  10,  2,1060,2175,1,  85, 37,
-0,2185,3,   2, 76,   0,2185,3,   0, 75,   0,2345,3,   4, 73,
-0,2195,1,  82, 38,1510, 670,1,  10, 12,1600,2205,1,  58, 39,
-0,2355,3,   3, 69,2215,2225,1,  38, 40,   0,2220,1,  39, 85,
-0,2385,3,   1, 85,   0,2385,3,   1, 84,   0,4237,3,   0,116,
-2240,2320,1,  87, 41,2245,2295,1,  55,115,2250,2270,1,  25,128,
+2030, 575,2, 164,169,2035, 565,2,  38,170,2040, 555,2,  37,171,
+2045, 415,2,   7,172,2050, 325,2,  80,176,2055, 315,2, 110,178,
+2060, 305,2, 125,179,2065, 285,2,  39,153,2070, 210,2,  87,147,
+2075, 205,2,  66,149,2080, 180,2,  68,132,2085, 175,2,  27,158,
+2090,  95,2,  23,159,   0,4254,6,   0,122,2100, 760,2,  10, 67,
+2105, 735,2,  11, 68,   0,4651,4,   0,123,   0,2335,3,   1,118,
+1565,1575,1,  38, 25,1555,2125,1,  53, 35, 100, 670,1,  10,  2,
+2135, 760,1,  10, 36,2140, 735,1,  11, 68,2145,2180,1,  84, 75,
+0,2150,1,  56, 77,2155,2160,2,   9, 78,   0,4656,4,   0, 77,
+0,2165,3,   1, 78, 100, 670,1,  10,  2,1060,2175,1,  84, 37,
+0,2185,3,   2, 76,   0,2185,3,   0, 75,   0,2340,3,   4, 73,
+0,2195,1,  81, 38,1510, 670,1,  10, 12,1600,2205,1,  57, 39,
+0,2350,3,   3, 69,2215,2225,1,  38, 40,   0,2220,1,  39, 85,
+0,2380,3,   1, 85,   0,2380,3,   1, 84,   0,4246,3,   0,116,
+2240,2325,1,  54, 41,2245,2310,1,  87,114,2250,2270,1,  25,126,
 2255, 670,1,  10, 65,2260, 615,1,  11, 66, 995, 415,1,   7,140,
-1060,1070,1,  19, 29, 220,2285,1,  39,  9, 240, 275,1, 156,  5,
-0,2235,3,   3,129, 290, 295,2,  21, 33,   0,2235,3,   3,128,
-980, 670,1,  10,  2,   0,4237,3,   2,115,   0,2310,1,  55, 42,
-980, 670,1,  10,  2,   0,4237,3,   3,114, 210,2325,1,  55, 43,
-980, 670,1,  10,  2,   0,4237,3,   3,113,   0,4237,3,   0,-90,
-1870,3150,2,  39, 18,   0,2350,1,  23, 44,1870,3150,2,  39, 18,
-0,2360,1,  23, 44,1870,3150,2,  39, 18,2370,2380,1,  38, 40,
-0,2375,1,  39, 49,   0,3125,3,   1, 49,   0,3125,3,   1, 48,
-2390,1860,2,  14,  5,2395,1855,2,   3,  6,   0,3941,6,   0,-50,
-0,3941,3,   0,-51,   0,2410,1,  23, 44,   0,2415,1,  24, 45,
-0,3125,3,   3,-47, 500, 515,1,  41, 13,2430, 540,2,  10, 57,
-0,4652,4,   0, 46, 500, 515,1,  41, 13,2445, 540,2,  10, 57,
-0,4657,4,   0, 45,2455,2460,2, 165, 82,   0,4662,4,   0, 43,
-0,2465,3,   0, 82,2470,2475,2,  19, 83,   0,4667,4,   0, 44,
-0,2480,1, 165, 46,   0,2465,3,   2, 83,2490, 670,1,  10, 12,
-2495, 615,1,  11, 66,2500, 515,1,  41, 58,2505, 580,1,  16,151,
-2510, 415,1,   7,140,2515, 490,1,  86, 86,2520, 575,1, 165,169,
-2525, 565,1,  38,170,2530, 555,1,  37,171,2535, 325,1,  81,176,
-2540, 315,1, 111,178,2545, 305,1, 126,179,2550, 210,1,  87,147,
-2555, 205,1,  67,149, 160, 285,1,  39,153,2565, 540,2,  10, 57,
-2570,2575,2,  99, 80,   0,4217,6,   0, 79, 495,2580,1,  99, 47,
-500, 515,1,  41, 13,2590, 540,2,  10, 57,   0,4672,4,   0, 81,
-2600, 540,2,  10, 57,   0,4677,4,   0, 80,   0,3125,3,   2, 42,
-2570,2575,2,  99, 80,   0,3125,3,   2, 41,2625, 760,2,  10, 67,
-2630, 735,2,  11, 68,2635,1190,2,  65, 35,2640,1155,2,  62, 36,
-2645,1090,2,   4, 37,2565,1070,2,  19,125,   0,3125,3,   2, 40,
-2660,3020,2,  47, 91,2665,3000,2,  48, 92,2670,2980,2,  49, 93,
-2675,2960,2,  50, 94,2680,2940,2,  51, 95,2685,2920,2,  52, 96,
-2690,2910,2, 151, 97,2695,2900,2,  57, 98,2700,2895,2,  58, 99,
-2705,2885,2, 131,100,2710,2875,2,  60,101,2715,2865,2,  70,102,
-2720,2860,2, 147,103,2725,2855,2,   5,104,2730,2850,2,   6,105,
-2735,2845,2,  61,106,2740,2825,2,  53,108,2745,2815,2,  54,109,
-2750,2805,2,  55,110,2755,2800,2, 141,111,2760,2785,2, 137,112,
-2765,2780,2,  56,127,2770, 515,2,  41, 58,2775, 490,2,  86, 86,
-0,4682,4,   0, 30,   0,2235,3,   1,-127, 500, 515,1,  41, 13,
-2795, 540,2,  10, 57,   0,4687,4,   0,112,   0,4237,3,   1,111,
-980, 670,1,  10,  2,   0,4237,3,   2,110, 980, 670,1,  10,  2,
-0,4237,3,   2,109, 980, 670,1,  10,  2,   0,4237,3,   2,108,
-2840, 540,2,  10, 57,   0,4692,4,   0,107,   0,4237,3,   1,106,
-0,4237,3,   1,105,   0,4237,3,   1,104,   0,4237,3,   1,103,
-2015, 670,2,  10, 65,   0,4237,3,   2,102,2015, 670,2,  10, 65,
-0,4237,3,   2,101,2015, 670,2,  10, 65,   0,4237,3,   2,100,
-0,4237,3,   1, 99, 980, 670,1,  10,  2,   0,4237,3,   2, 98,
-2015, 670,2,  10, 65,   0,4237,3,   2, 97, 100, 670,1,  10,  2,
-2930, 760,2,  10, 67,2935, 735,2,  11, 68,   0,4697,4,   0, 96,
+1060,1070,1,  19, 29, 220,2285,1,  39,  9, 240, 275,1, 155,  5,
+0,2235,3,   3,127, 290, 295,2,  21, 33,   0,2235,3,   3,126,
+0,2300,1,  54, 42, 980, 670,1,  10,  2,   0,4246,3,   3,115,
+210,2315,1,  54, 43, 980, 670,1,  10,  2,   0,4246,3,   3,114,
+980, 670,1,  10,  2,   0,4246,3,   2,113,   0,4246,3,   0,-90,
+0,2345,1,  23, 44,1870,3150,2,  39, 18,   0,2355,1,  23, 44,
+1870,3150,2,  39, 18,2365,2375,1,  38, 40,   0,2370,1,  39, 49,
+0,3125,3,   1, 49,   0,3125,3,   1, 48,2385,1860,2,  14,  5,
+2390,1855,2,   3,  6,   0,3950,6,   0,-50,   0,3950,3,   0,-51,
+0,2405,1,  23, 44,   0,2410,1,  24, 45,   0,3125,3,   3,-47,
+500, 515,1,  41, 13,2425, 540,2,  10, 57,   0,4661,4,   0, 46,
+500, 515,1,  41, 13,2440, 540,2,  10, 57,   0,4666,4,   0, 45,
+2450,2455,2, 164, 82,   0,4671,4,   0, 43,   0,2460,3,   0, 82,
+2465,2470,2,  19, 83,   0,4676,4,   0, 44,   0,2475,1, 164, 46,
+0,2460,3,   2, 83,2485, 670,1,  10, 12,2490, 615,1,  11, 66,
+2495, 515,1,  41, 58,2500, 580,1,  16,151,2505, 415,1,   7,140,
+2510, 490,1,  86, 86,2515, 575,1, 164,169,2520, 565,1,  38,170,
+2525, 555,1,  37,171,2530, 325,1,  80,176,2535, 315,1, 110,178,
+2540, 305,1, 125,179,2545, 210,1,  87,147,2550, 205,1,  66,149,
+160, 285,1,  39,153,2560, 540,2,  10, 57,2565,2570,2,  99, 80,
+0,4226,6,   0, 79, 495,2575,1,  99, 47, 500, 515,1,  41, 13,
+2585, 540,2,  10, 57,   0,4681,4,   0, 81,2595, 540,2,  10, 57,
+0,4686,4,   0, 80,   0,3125,3,   2, 42,2565,2570,2,  99, 80,
+0,3125,3,   2, 41,2620, 760,2,  10, 67,2625, 735,2,  11, 68,
+2630,1190,2,  64, 35,2635,1155,2,  61, 36,2640,1090,2,   4, 37,
+2560,1070,2,  19,128,   0,3125,3,   2, 40,2655,3020,2,  46, 91,
+2660,3000,2,  47, 92,2665,2980,2,  48, 93,2670,2960,2,  49, 94,
+2675,2940,2,  50, 95,2680,2920,2,  51, 96,2685,2910,2, 150, 97,
+2690,2900,2, 130, 98,2695,2890,2,  59, 99,2700,2880,2,  69,100,
+2705,2870,2, 146,101,2710,2865,2,  57,102,2715,2860,2,   5,103,
+2720,2855,2,   6,104,2725,2850,2,  60,105,2730,2830,2,  56,107,
+2735,2820,2,  52,108,2740,2810,2,  53,109,2745,2800,2,  54,110,
+2750,2795,2, 140,111,2755,2780,2, 136,112,2760,2775,2,  55,125,
+2765, 515,2,  41, 58,2770, 490,2,  86, 86,   0,4691,4,   0, 30,
+0,2235,3,   1,-125, 500, 515,1,  41, 13,2790, 540,2,  10, 57,
+0,4696,4,   0,112,   0,4246,3,   1,111, 980, 670,1,  10,  2,
+0,4246,3,   2,110, 980, 670,1,  10,  2,   0,4246,3,   2,109,
+980, 670,1,  10,  2,   0,4246,3,   2,108, 980, 670,1,  10,  2,
+0,4246,3,   2,107,2845, 540,2,  10, 57,   0,4701,4,   0,106,
+0,4246,3,   1,105,   0,4246,3,   1,104,   0,4246,3,   1,103,
+0,4246,3,   1,102,2015, 670,2,  10, 65,   0,4246,3,   2,101,
+2015, 670,2,  10, 65,   0,4246,3,   2,100,2015, 670,2,  10, 65,
+0,4246,3,   2, 99,2015, 670,2,  10, 65,   0,4246,3,   2, 98,
+2015, 670,2,  10, 65,   0,4246,3,   2, 97, 100, 670,1,  10,  2,
+2930, 760,2,  10, 67,2935, 735,2,  11, 68,   0,4706,4,   0, 96,
 100, 670,1,  10,  2,2950, 760,2,  10, 67,2955, 735,2,  11, 68,
-0,4702,4,   0, 95, 100, 670,1,  10,  2,2970, 760,2,  10, 67,
-2975, 735,2,  11, 68,   0,4707,4,   0, 94, 100, 670,1,  10,  2,
-2990, 760,2,  10, 67,2995, 735,2,  11, 68,   0,4712,4,   0, 93,
+0,4711,4,   0, 95, 100, 670,1,  10,  2,2970, 760,2,  10, 67,
+2975, 735,2,  11, 68,   0,4716,4,   0, 94, 100, 670,1,  10,  2,
+2990, 760,2,  10, 67,2995, 735,2,  11, 68,   0,4721,4,   0, 93,
 100, 670,1,  10,  2,3010, 760,2,  10, 67,3015, 735,2,  11, 68,
-0,4717,4,   0, 92, 100, 670,1,  10,  2,3030, 760,2,  10, 67,
-3035, 735,2,  11, 68,   0,4722,4,   0, 91, 500, 515,1,  41, 13,
-3050, 540,2,  10, 57,   0,4727,4,   0, 28, 500, 515,1,  41, 13,
-3065, 540,2,  10, 57,   0,4732,4,   0, 27,3075,3085,1,  24, 48,
-0,3080,1,  43, 74,   0,2340,3,   1, 74,   0,3821,3,   1,-26,
-0,3095,1,  23, 44,1870,3150,2,  39, 18,3105,3110,2,  83, 53,
-0,4737,4,   0, 24,   0,3090,3,   1, 53,   0,3120,1,  23, 44,
-1870,3150,2,  39, 18,   0,3821,3,   0, 22,   0,3821,3,   0, 21,
-0,3821,3,   0, 20,3145,1560,2,  19, 39,   0,4742,4,   0, 19,
-290, 295,2,  21, 33,   0,3160,1,  20, 49,3165,2230,2,  59,116,
-3170, 670,2,  10, 65,3175, 615,2,  11, 66,3180,2010,2, 156,118,
-3185, 415,2,   7,140,3190, 210,2,  87,147,3195, 205,2,  67,149,
+0,4726,4,   0, 92, 100, 670,1,  10,  2,3030, 760,2,  10, 67,
+3035, 735,2,  11, 68,   0,4731,4,   0, 91, 500, 515,1,  41, 13,
+3050, 540,2,  10, 57,   0,4736,4,   0, 28, 500, 515,1,  41, 13,
+3065, 540,2,  10, 57,   0,4741,4,   0, 27,3075,3565,2,  24, 26,
+0,3080,6,   0, 74,   0,3085,1,  85, 48,1870,3150,2,  39, 18,
+0,3095,1,  23, 44,1870,3150,2,  39, 18,3105,3110,2,  82, 53,
+0,4746,4,   0, 24,   0,3090,3,   1, 53,   0,3120,1,  23, 44,
+1870,3150,2,  39, 18,   0,3826,3,   0, 22,   0,3826,3,   0, 21,
+0,3826,3,   0, 20,3145,1560,2,  19, 39,   0,4751,4,   0, 19,
+290, 295,2,  21, 33,   0,3160,1,  20, 49,3165,2230,2,  58,116,
+3170, 670,2,  10, 65,3175, 615,2,  11, 66,3180,2010,2, 155,118,
+3185, 415,2,   7,140,3190, 210,2,  87,147,3195, 205,2,  66,149,
 3200, 580,2,  16,151,3205, 515,2,  41, 58,3210, 285,2,  39,153,
-3215, 575,2, 165,169,3220, 565,2,  38,170,3225, 555,2,  37,171,
-3230, 325,2,  81,176,3235, 315,2, 111,178,3240, 305,2, 126,179,
-3245, 490,2,  86, 86,3250, 180,2,  69,132,3255, 175,2,  27,158,
-3260,  95,2,  23,159,   0,1980,6,   0,117,3270,3020,2,  47, 91,
-3275,3000,2,  48, 92,3280,2980,2,  49, 93,3285,2960,2,  50, 94,
-3290,2940,2,  51, 95,3295,2920,2,  52, 96,3300,2910,2, 151, 97,
-3305,2900,2,  57, 98,3310,2895,2,  58, 99,3315,2885,2, 131,100,
-3320,2875,2,  60,101,3325,2865,2,  70,102,3330,2860,2, 147,103,
-3335,2855,2,   5,104,3340,2850,2,   6,105,3345,2845,2,  61,106,
-3350,2825,2,  53,108,3355,2815,2,  54,109,3360,2805,2,  55,110,
-3365,2800,2, 141,111,3370,2785,2, 137,112,3375,2780,2,  56,127,
-3380, 515,2,  41, 58,3385, 490,2,  86, 86,   0,4747,4,   0, 31,
-0,3821,3,   3, 18,   0,3821,3,   0, 17,   0,3765,3,   0, 11,
-2390,1860,2,  14,  5,3415,3150,2,  39, 18,3420,3135,2, 151, 20,
-3425,3130,2,  40, 21,3430,3055,2,  78, 27,3435,3040,2,  76, 28,
-3440,2485,2,  73, 40,3445,2450,2,  75, 43,3450,2435,2,  77, 45,
-3455,2420,2,  74, 46,3460,2365,2,  80, 48,3465,3115,6,  23, 29,
-3470,2230,2,  59,116,3475,1575,2,  38, 60,3480,1570,2, 165, 62,
-3485,2210,2,  79, 84,3490,2115,2,  84, 73,3495,2010,2, 156,118,
-3500,2190,6,  82, 70,3505,1980,6,  21,117,3510,1980,6,  26,117,
-3515, 515,2,  41, 58,3520, 490,2,  86, 86,   0,2400,4,   0, 51,
-0,3765,3,   2, 12,   0,3535,1,  24, 45,   0,3821,3,   4, 23,
-2390,1860,2,  14,  5,   0,3550,1,  24, 45,   0,3821,3,   4,-25,
-2390,1860,2,  14,  5,   0,3565,1,  24, 45,   0,3100,3,   4,-52,
-2390,1860,2,  14,  5,   0,3070,3,   3,-54,2390,1860,2,  14,  5,
-0,3070,3,   2,-55,2390,1860,2,  14,  5,   0,3600,3,   1,124,
-0,3605,1,  22,  6,   0,2335,3,   3,120,1845,3725,1,  46, 50,
-3620,3720,2,  46,  4,3625,3150,2,  39, 18,3630,3135,2, 151, 20,
-3635,3130,2,  40, 21,3640,3055,2,  78, 27,3645,3040,2,  76, 28,
-3650,2485,2,  73, 40,3655,2450,2,  75, 43,3660,2435,2,  77, 45,
-3665,2420,2,  74, 46,3670,2365,2,  80, 48,3675,3115,6,  23, 29,
-3680,2230,2,  59,116,3685,1575,2,  38, 60,3690,1570,2, 165, 62,
-3695,2210,2,  79, 84,3700,2115,2,  84, 73,3705,2010,2, 156,118,
-3710,2190,6,  82, 70,3715, 515,2,  41, 58,3260, 490,2,  86, 86,
-0,3730,3,   4,  4,   0,3730,3,   3,  3,1850,1860,1,  14, 33,
-0,  10,3,   2,  2,   0,   0,0,   2,  0,3749,1865,5,1845    ,
-3753,2400,5,2385    ,3757,3615,5,3610    ,3761,3735,5,3730    ,
-0,3410,5,   0    ,3769,3590,5,1995    ,3773,3580,5,2340    ,
-3777,3570,5,2350    ,3781,3555,5,2360    ,3785,3540,5,3095    ,
-3789,3405,5,3120    ,   0,3610,5,   0    ,3797,1735,5,  20    ,
-3801, 620,5, 615    ,3805, 675,5, 670    ,3809, 740,5, 735    ,
-3813, 765,5, 760    ,3817,1825,5,1735    ,   0, 695,5,   0    ,
-3825,3525,5,3410    ,3829,3525,5,3615    ,   0,3400,5,   0    ,
-3837, 380,5, 375    ,3841, 570,5, 565    ,3845,1295,5,1290    ,
-3849,1580,5,1575    ,3853,2290,5,2285    ,3857,3155,5,3150    ,
-0,1685,5,   0    ,3865,1100,5,1090    ,3869,1110,5,1105    ,
-3873,1175,5,1170    ,3877,1185,5,1180    ,3881,1195,5,1190    ,
-3885,1205,5,1200    ,3889,1225,5,1220    ,3893,1100,5,1390    ,
-3897,2300,5,2295    ,3901,2315,5,2310    ,3905,2330,5,2325    ,
-3909,2610,5,2485    ,3913,2810,5,2805    ,3917,2820,5,2815    ,
-3921,2830,5,2825    ,3925,3390,5,3160    ,   0,1210,5,   0    ,
-3933,1550,5, 415    ,3937,2120,5,2115    ,   0,3140,5,   0    ,
-3945,3530,5,3405    ,3949,3545,5,3540    ,3953,3560,5,3555    ,
-3957,3575,5,3570    ,3961,3585,5,3580    ,3965,3595,5,3590    ,
-0,2405,5,   0    ,3973, 800,5, 415    ,3977, 525,5, 495    ,
-3981, 820,5, 815    ,3985, 865,5, 840    ,3989, 800,5,1505    ,
-3993, 800,5,1605    ,3997, 800,5,2195    ,4001,2425,5,2420    ,
-4005,2440,5,2435    ,4009,2560,5,2485    ,4013,2595,5,2575    ,
-4017,2585,5,2580    ,4021,2835,5,2655    ,4025,2790,5,2785    ,
-4029,3045,5,3040    ,4033,3060,5,3055    ,4037,2835,5,3265    ,
-0,2000,5,   0    ,4045, 545,5, 540    ,   0, 520,5,   0    ,
-4053,1330,5,1265    ,4057,1310,5,1305    ,4061,1585,5,1560    ,
-0,1490,5,   0    ,4069,1725,5,  95    ,4073,1715,5, 175    ,
-4077,1675,5, 295    ,4081,1655,5, 310    ,4085,1645,5, 320    ,
-4089,1630,5, 330    ,4093,1355,5, 415    ,4097, 715,5, 550    ,
-4101, 715,5, 785    ,4105, 875,5, 840    ,4109,1075,5,1070    ,
-4113,1335,5,1265    ,4117,1315,5,1305    ,4121,1455,5,1390    ,
-4125,1525,5,1505    ,4129,1535,5,1530    ,4133,1525,5,1605    ,
-4137,1665,5,1660    ,4141,2095,5,2010    ,4145,2130,5,2125    ,
-4149,2170,5,2165    ,4153,1525,5,2195    ,4157,2265,5,2235    ,
-4161,2620,5,2485    ,4165,2095,5,2865    ,4169,2095,5,2875    ,
-4173,2095,5,2885    ,4177,2265,5,2900    ,4181,2095,5,2910    ,
-4185,2925,5,2920    ,4189,2945,5,2940    ,4193,2965,5,2960    ,
-4197,2985,5,2980    ,4201,3005,5,3000    ,4205,3025,5,3020    ,
-0,1040,5,   0    ,4213,2200,5,2195    ,   0,1595,5,   0    ,
-4221,2615,5,2610    ,4225,2650,5,2620    ,   0,2605,5,   0    ,
-4233, 790,5, 785    ,   0, 795,5,   0    ,4241,3265,5,3160    ,
-0,2655,5,   0    ,4249,2870,5,2865    ,4253,2880,5,2875    ,
-4257,2890,5,2885    ,4261,2915,5,2910    ,   0,2110,5,   0    ,
-4269,2305,5,2235    ,4273,2905,5,2900    ,   0,1095,5,   0    ,
-4281, 365,5, 360    ,4285,2275,5,2270    ,   0, 235,5,   0    ,
-4293, 370,5, 365    ,4297,2280,5,2275    ,   0, 280,5,   0    ,
-4305,1120,5,1115    ,   0, 935,5,   0    ,4313, 890,5, 415    ,
-4317,1240,5, 950    ,4321, 890,5, 975    ,4325, 890,5,1090    ,
-4329, 890,5,1105    ,4333,1140,5,1135    ,4337, 890,5,1170    ,
-4341, 890,5,1180    ,4345, 890,5,1190    ,4349, 890,5,1200    ,
-4353, 890,5,1220    ,4357, 890,5,1390    ,4361, 890,5,2235    ,
-4365, 890,5,2295    ,4369, 890,5,2310    ,4373, 890,5,2325    ,
-4377, 890,5,2485    ,4381, 890,5,2805    ,4385, 890,5,2815    ,
-4389, 890,5,2825    ,4393, 890,5,2900    ,4397, 890,5,3160    ,
-0, 390,5,   0    ,4405,1625,5, 410    ,4409, 605,5, 600    ,
-4413, 645,5, 640    ,4417, 655,5, 650    ,4421, 665,5, 660    ,
-4425, 930,5, 925    ,   0, 610,5,   0    ,4433,1705,5, 210    ,
-4437, 965,5, 950    ,4441, 965,5,1135    ,4445,1695,5,1690    ,
-4449,1705,5,2320    ,   0, 335,5,   0    ,4457,1610,5,1605    ,
-0,1495,5,   0    ,4465,1545,5,1505    ,   0,1350,5,   0    ,
-4473, 585,5, 580    ,   0, 590,5,   0    ,   0,1845,3,   0,  7,
-0,4277,3,   1,130,   0, 300,3,   0,145,   0, 505,3,   2, 86,
-0,4469,3,   0,-171,   0,4401,3,   0,-150,   0,4065,3,   1, 66,
-0,4065,3,   1, 65,   0,4065,3,   0,-64,   0,4229,3,   0, 88,
-0,4065,3,   2, 68,   0,4065,3,   2, 67,   0, 830,3,   0,-166,
-0,4461,3,   2,163,   0,4461,3,   0,162,   0, 830,3,   2,168,
-0, 830,3,   2,167,   0,4265,3,   1,126,   0,4265,3,   2,125,
-0,3861,3,   6, 37,   0,4301,3,   2,138,   0,4301,3,   2,139,
-0,4049,3,   3, 60,   0,4049,3,   2, 62,   0, 830,3,   0,-165,
-0,4461,3,   2,164,   0,4209,3,   0,-71,   0,4209,3,   2, 72,
-0, 300,3,   2,148,   0, 300,3,   1,147,   0,1845,3,   1,  8,
-0,1845,3,   2,  9,   0,2335,3,   0,119,   0,4245,3,   0,-123,
-0,2165,3,   0,-77,   0,3125,3,   1, 46,   0,3125,3,   1, 45,
-0,3125,3,   0, 43,   0,3125,3,   1,-44,   0,4217,3,   2, 81,
-0,4217,3,   1, 80,   0,3395,3,   0, 30,   0,4237,3,   2,112,
-0,4237,3,   1,107,   0,4237,3,   2, 96,   0,4237,3,   2, 95,
-0,4237,3,   2, 94,   0,4237,3,   2, 93,   0,4237,3,   2, 92,
-0,4237,3,   2, 91,   0,3821,3,   1, 28,   0,3821,3,   1, 27,
-0,3821,3,   0,-24,   0,3821,3,   0, 19,   0,3395,3,   3, 31
+3215, 575,2, 164,169,3220, 565,2,  38,170,3225, 555,2,  37,171,
+3230, 325,2,  80,176,3235, 315,2, 110,178,3240, 305,2, 125,179,
+3245, 490,2,  86, 86,3250, 180,2,  68,132,3255, 175,2,  27,158,
+3260,  95,2,  23,159,   0,1980,6,   0,117,3270,3020,2,  46, 91,
+3275,3000,2,  47, 92,3280,2980,2,  48, 93,3285,2960,2,  49, 94,
+3290,2940,2,  50, 95,3295,2920,2,  51, 96,3300,2910,2, 150, 97,
+3305,2900,2, 130, 98,3310,2890,2,  59, 99,3315,2880,2,  69,100,
+3320,2870,2, 146,101,3325,2865,2,  57,102,3330,2860,2,   5,103,
+3335,2855,2,   6,104,3340,2850,2,  60,105,3345,2830,2,  56,107,
+3350,2820,2,  52,108,3355,2810,2,  53,109,3360,2800,2,  54,110,
+3365,2795,2, 140,111,3370,2780,2, 136,112,3375,2775,2,  55,125,
+3380, 515,2,  41, 58,3385, 490,2,  86, 86,   0,4756,4,   0, 31,
+0,3826,3,   3, 18,   0,3826,3,   0, 17,   0,3770,3,   0, 11,
+2385,1860,2,  14,  5,3415,3150,2,  39, 18,3420,3135,2, 150, 20,
+3425,3130,2,  40, 21,3430,3055,2,  77, 27,3435,3040,2,  75, 28,
+3440,2480,2,  72, 40,3445,2445,2,  74, 43,3450,2430,2,  76, 45,
+3455,2415,2,  73, 46,3460,2360,2,  79, 48,3465,3115,6,  23, 29,
+3470,2230,2,  58,116,3475,1575,2,  38, 60,3480,1570,2, 164, 62,
+3485,2210,2,  78, 84,3490,2115,2,  83, 73,3495,2010,2, 155,118,
+3500,2190,6,  81, 70,3505,1980,6,  21,117,3510,1980,6,  26,117,
+3515, 515,2,  41, 58,3520, 490,2,  86, 86,   0,2395,4,   0, 51,
+0,3770,3,   2, 12,   0,3535,1,  24, 45,   0,3826,3,   4, 23,
+2385,1860,2,  14,  5,   0,3550,1,  24, 45,   0,3826,3,   4,-25,
+2385,1860,2,  14,  5,   0,3070,3,   4, 55,   0,3826,3,   1,-26,
+2385,1860,2,  14,  5,   0,3580,1,  24, 45,   0,3100,3,   4,-52,
+2385,1860,2,  14,  5,   0,3070,3,   3,-54,2385,1860,2,  14,  5,
+0,3605,3,   1,124,   0,3610,1,  22,  6,   0,2335,3,   3,120,
+1845,3730,1,  45, 50,3625,3725,2,  45,  4,3630,3150,2,  39, 18,
+3635,3135,2, 150, 20,3640,3130,2,  40, 21,3645,3055,2,  77, 27,
+3650,3040,2,  75, 28,3655,2480,2,  72, 40,3660,2445,2,  74, 43,
+3665,2430,2,  76, 45,3670,2415,2,  73, 46,3675,2360,2,  79, 48,
+3680,3115,6,  23, 29,3685,2230,2,  58,116,3690,1575,2,  38, 60,
+3695,1570,2, 164, 62,3700,2210,2,  78, 84,3705,2115,2,  83, 73,
+3710,2010,2, 155,118,3715,2190,6,  81, 70,3720, 515,2,  41, 58,
+3260, 490,2,  86, 86,   0,3735,3,   4,  4,   0,3735,3,   3,  3,
+1850,1860,1,  14, 33,   0,  10,3,   2,  2,   0,   0,0,   2,  0,
+3754,1865,5,1845    ,3758,2395,5,2380    ,3762,3620,5,3615    ,
+3766,3740,5,3735    ,   0,3410,5,   0    ,3774,3595,5,1995    ,
+3778,3585,5,2345    ,3782,3570,5,2355    ,3786,3555,5,3085    ,
+3790,3540,5,3095    ,3794,3405,5,3120    ,   0,3615,5,   0    ,
+3802,1735,5,  20    ,3806, 620,5, 615    ,3810, 675,5, 670    ,
+3814, 740,5, 735    ,3818, 765,5, 760    ,3822,1825,5,1735    ,
+0, 695,5,   0    ,3830,3525,5,3410    ,3834,3525,5,3620    ,
+0,3400,5,   0    ,3842, 380,5, 375    ,3846, 570,5, 565    ,
+3850,1295,5,1290    ,3854,1580,5,1575    ,3858,2290,5,2285    ,
+3862,3155,5,3150    ,   0,1685,5,   0    ,3870,1100,5,1090    ,
+3874,1110,5,1105    ,3878,1175,5,1170    ,3882,1185,5,1180    ,
+3886,1195,5,1190    ,3890,1205,5,1200    ,3894,1225,5,1220    ,
+3898,1100,5,1390    ,3902,2305,5,2300    ,3906,2320,5,2315    ,
+3910,2330,5,2325    ,3914,2605,5,2480    ,3918,2805,5,2800    ,
+3922,2815,5,2810    ,3926,2825,5,2820    ,3930,2835,5,2830    ,
+3934,3390,5,3160    ,   0,1210,5,   0    ,3942,1550,5, 415    ,
+3946,2120,5,2115    ,   0,3140,5,   0    ,3954,3530,5,3405    ,
+3958,3545,5,3540    ,3962,3560,5,3555    ,3966,3575,5,3570    ,
+3970,3590,5,3585    ,3974,3600,5,3595    ,   0,2400,5,   0    ,
+3982, 800,5, 415    ,3986, 525,5, 495    ,3990, 820,5, 815    ,
+3994, 865,5, 840    ,3998, 800,5,1505    ,4002, 800,5,1605    ,
+4006, 800,5,2195    ,4010,2420,5,2415    ,4014,2435,5,2430    ,
+4018,2555,5,2480    ,4022,2590,5,2570    ,4026,2580,5,2575    ,
+4030,2840,5,2650    ,4034,2785,5,2780    ,4038,3045,5,3040    ,
+4042,3060,5,3055    ,4046,2840,5,3265    ,   0,2000,5,   0    ,
+4054, 545,5, 540    ,   0, 520,5,   0    ,4062,1330,5,1265    ,
+4066,1310,5,1305    ,4070,1585,5,1560    ,   0,1490,5,   0    ,
+4078,1725,5,  95    ,4082,1715,5, 175    ,4086,1675,5, 295    ,
+4090,1655,5, 310    ,4094,1645,5, 320    ,4098,1630,5, 330    ,
+4102,1355,5, 415    ,4106, 715,5, 550    ,4110, 715,5, 785    ,
+4114, 875,5, 840    ,4118,1075,5,1070    ,4122,1335,5,1265    ,
+4126,1315,5,1305    ,4130,1455,5,1390    ,4134,1525,5,1505    ,
+4138,1535,5,1530    ,4142,1525,5,1605    ,4146,1665,5,1660    ,
+4150,2095,5,2010    ,4154,2130,5,2125    ,4158,2170,5,2165    ,
+4162,1525,5,2195    ,4166,2265,5,2235    ,4170,2615,5,2480    ,
+4174,2095,5,2870    ,4178,2095,5,2880    ,4182,2095,5,2890    ,
+4186,2095,5,2900    ,4190,2095,5,2910    ,4194,2925,5,2920    ,
+4198,2945,5,2940    ,4202,2965,5,2960    ,4206,2985,5,2980    ,
+4210,3005,5,3000    ,4214,3025,5,3020    ,   0,1040,5,   0    ,
+4222,2200,5,2195    ,   0,1595,5,   0    ,4230,2610,5,2605    ,
+4234,2645,5,2615    ,   0,2600,5,   0    ,4242, 790,5, 785    ,
+0, 795,5,   0    ,4250,3265,5,3160    ,   0,2650,5,   0    ,
+4258,2875,5,2870    ,4262,2885,5,2880    ,4266,2895,5,2890    ,
+4270,2905,5,2900    ,4274,2915,5,2910    ,   0,2110,5,   0    ,
+4282,2295,5,2235    ,   0,1095,5,   0    ,4290, 365,5, 360    ,
+4294,2275,5,2270    ,   0, 235,5,   0    ,4302, 370,5, 365    ,
+4306,2280,5,2275    ,   0, 280,5,   0    ,4314,1120,5,1115    ,
+0, 935,5,   0    ,4322, 890,5, 415    ,4326,1240,5, 950    ,
+4330, 890,5, 975    ,4334, 890,5,1090    ,4338, 890,5,1105    ,
+4342,1140,5,1135    ,4346, 890,5,1170    ,4350, 890,5,1180    ,
+4354, 890,5,1190    ,4358, 890,5,1200    ,4362, 890,5,1220    ,
+4366, 890,5,1390    ,4370, 890,5,2235    ,4374, 890,5,2300    ,
+4378, 890,5,2315    ,4382, 890,5,2325    ,4386, 890,5,2480    ,
+4390, 890,5,2800    ,4394, 890,5,2810    ,4398, 890,5,2820    ,
+4402, 890,5,2830    ,4406, 890,5,3160    ,   0, 390,5,   0    ,
+4414,1625,5, 410    ,4418, 605,5, 600    ,4422, 645,5, 640    ,
+4426, 655,5, 650    ,4430, 665,5, 660    ,4434, 930,5, 925    ,
+0, 610,5,   0    ,4442,1705,5, 210    ,4446, 965,5, 950    ,
+4450, 965,5,1135    ,4454,1695,5,1690    ,4458,1705,5,2310    ,
+0, 335,5,   0    ,4466,1610,5,1605    ,   0,1495,5,   0    ,
+4474,1545,5,1505    ,   0,1350,5,   0    ,4482, 585,5, 580    ,
+0, 590,5,   0    ,   0,1845,3,   0,  7,   0,4286,3,   1,130,
+0, 300,3,   0,145,   0, 505,3,   2, 86,   0,4478,3,   0,-171,
+0,4410,3,   0,-150,   0,4074,3,   1, 66,   0,4074,3,   1, 65,
+0,4074,3,   0,-64,   0,4238,3,   0, 88,   0,4074,3,   2, 68,
+0,4074,3,   2, 67,   0, 830,3,   0,-166,   0,4470,3,   2,163,
+0,4470,3,   0,162,   0, 830,3,   2,168,   0, 830,3,   2,167,
+0,4278,3,   1,129,   0,4278,3,   2,128,   0,3866,3,   6, 37,
+0,4310,3,   2,138,   0,4310,3,   2,139,   0,4058,3,   3, 60,
+0,4058,3,   2, 62,   0, 830,3,   0,-165,   0,4470,3,   2,164,
+0,4218,3,   0,-71,   0,4218,3,   2, 72,   0, 300,3,   2,148,
+0, 300,3,   1,147,   0,1845,3,   1,  8,   0,1845,3,   2,  9,
+0,2335,3,   0,119,   0,4254,3,   0,-123,   0,2165,3,   0,-77,
+0,3125,3,   1, 46,   0,3125,3,   1, 45,   0,3125,3,   0, 43,
+0,3125,3,   1,-44,   0,4226,3,   2, 81,   0,4226,3,   1, 80,
+0,3395,3,   0, 30,   0,4246,3,   2,112,   0,4246,3,   1,106,
+0,4246,3,   2, 96,   0,4246,3,   2, 95,   0,4246,3,   2, 94,
+0,4246,3,   2, 93,   0,4246,3,   2, 92,   0,4246,3,   2, 91,
+0,3826,3,   1, 28,   0,3826,3,   1, 27,   0,3826,3,   0,-24,
+0,3826,3,   0, 19,   0,3395,3,   3, 31
 
 };
-short entryhp[ordMAXCH + 1]={
+lxinx entryhp[ordMAXCH + 1]={
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,2,
 3,0,0,0,4,5,0,6,8,88,0,0,0,0,0,0,0,0,0,0,89,0,90,93,94,0,0,0,0,0,0,0,0,0,95,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,0,0,0,0,0,99,132,156,201,228,248,0,265,
@@ -1078,31 +1044,7 @@ short entryhp[ordMAXCH + 1]={
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0};
-symbol entrytv[ordMAXCH + 1]={
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,41,42,44,
-13,36,28,7,8,9,10,19,11,25,12,0,0,0,0,0,0,0,0,0,0,20,14,4,29,105,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,21,0,22,15,0,27,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,0,24,43,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-short lxnp[lxmax + 1]={
-0,0,0,0,0,0,7,0,9,10,11,12,13,14,15,16,17,18,19,20,0,22,0,0,0,0,0,0,0,0,31,32,
-33,0,0,0,0,0,0,0,41,0,0,0,0,0,0,0,0,50,51,0,0,0,0,0,0,0,59,0,0,0,0,0,65,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,80,0,0,0,0,0,0,0,0,0,0,91,0,0,0,0,0,0,0,0,100,101,102,
-103,104,0,0,0,0,0,0,111,0,0,0,115,0,0,0,119,0,0,0,0,0,0,0,0,0,129,0,0,0,133,
-134,0,136,0,138,139,0,0,0,0,0,0,0,0,0,149,0,0,0,0,0,0,0,157,158,159,160,161,
-0,163,164,165,166,0,0,0,0,0,0,0,0,0,0,0,0,179,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,197,0,0,0,0,202,203,204,0,206,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,224,0,0,
-0,0,229,230,0,232,0,0,0,0,237,0,0,0,0,0,0,244,0,0,0,0,249,250,251,0,0,0,0,0,
-0,0,0,0,261,0,0,0,0,266,0,0,0,0,0,272,0,274,0,0,0,0,0,0,0,282,283,284,285,0,
-0,0,0,0,0,0,0,294,295,0,0,0,0,0,0,0,0,0,0,0,0,308,309,0,0,0,313,0,0,0,0,0,0,
-0,0,322,0,0,0,0,0,328,0,0,0,0,0,0,0,336,337,0,0,0,0,0,0,0,0,346,347,348,349,
-0,0,0,0,0,0,0,0,0,0,360,0,0,0,0,0,366,367,368,369,370,371,372,0,0,0,0,0,0,379,
-0,0,0,0,0,0,0,0,0,0,0,391,0,0,0,0,0,0,0,0,0,0,0,0,404,405,406,0,0,409,0,0,0,
-0,0,0,0,0,0,0,420,421,0,0,0,0,0,0,0,0,0,0,432,0,0,0,0,0,0,0,440,0,442,0,0,0,
-0,0,0};
-short lxhp[lxmax + 1]={
+lxinx lxhp[lxmax + 1]={
 0,0,0,0,0,0,0,0,83,76,69,64,58,55,49,40,30,28,21,0,0,26,23,24,25,0,27,0,29,0,
 0,37,34,0,35,36,0,38,39,0,45,42,43,44,0,46,47,48,0,0,52,0,53,54,0,56,57,0,60,
 0,61,62,63,0,67,66,0,68,0,70,71,72,73,74,75,0,77,78,79,82,81,0,0,84,85,86,87,
@@ -1122,23 +1064,47 @@ short lxhp[lxmax + 1]={
 382,383,0,385,386,0,388,389,0,392,0,0,394,395,396,0,398,399,400,0,402,0,430,
 417,408,407,0,416,410,411,412,413,414,415,0,0,418,419,429,424,422,423,0,425,
 426,427,428,0,0,0,433,0,434,435,436,437,438,0,446,441,444,443,0,445,0,0,0};
+lxinx lxnp[lxmax + 1]={
+0,0,0,0,0,0,7,0,9,10,11,12,13,14,15,16,17,18,19,20,0,22,0,0,0,0,0,0,0,0,31,32,
+33,0,0,0,0,0,0,0,41,0,0,0,0,0,0,0,0,50,51,0,0,0,0,0,0,0,59,0,0,0,0,0,65,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,80,0,0,0,0,0,0,0,0,0,0,91,0,0,0,0,0,0,0,0,100,101,102,
+103,104,0,0,0,0,0,0,111,0,0,0,115,0,0,0,119,0,0,0,0,0,0,0,0,0,129,0,0,0,133,
+134,0,136,0,138,139,0,0,0,0,0,0,0,0,0,149,0,0,0,0,0,0,0,157,158,159,160,161,
+0,163,164,165,166,0,0,0,0,0,0,0,0,0,0,0,0,179,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,197,0,0,0,0,202,203,204,0,206,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,224,0,0,
+0,0,229,230,0,232,0,0,0,0,237,0,0,0,0,0,0,244,0,0,0,0,249,250,251,0,0,0,0,0,
+0,0,0,0,261,0,0,0,0,266,0,0,0,0,0,272,0,274,0,0,0,0,0,0,0,282,283,284,285,0,
+0,0,0,0,0,0,0,294,295,0,0,0,0,0,0,0,0,0,0,0,0,308,309,0,0,0,313,0,0,0,0,0,0,
+0,0,322,0,0,0,0,0,328,0,0,0,0,0,0,0,336,337,0,0,0,0,0,0,0,0,346,347,348,349,
+0,0,0,0,0,0,0,0,0,0,360,0,0,0,0,0,366,367,368,369,370,371,372,0,0,0,0,0,0,379,
+0,0,0,0,0,0,0,0,0,0,0,391,0,0,0,0,0,0,0,0,0,0,0,0,404,405,406,0,0,409,0,0,0,
+0,0,0,0,0,0,0,420,421,0,0,0,0,0,0,0,0,0,0,432,0,0,0,0,0,0,0,440,0,442,0,0,0,
+0,0,0};
 symbol lxtv[lxmax + 1]={
-0,101,35,17,33,31,32,149,93,98,0,94,0,95,92,94,93,92,95,71,72,0,0,108,0,108,
-0,95,0,92,89,0,0,91,0,0,96,0,0,93,0,0,0,0,94,109,0,0,109,88,0,90,0,0,92,0,0,
-95,0,107,0,0,0,107,0,0,97,0,94,0,0,110,0,0,0,110,0,0,0,0,0,98,98,0,93,0,0,93,
-34,30,148,103,150,100,102,0,0,67,26,0,0,0,0,0,55,0,0,127,0,114,160,0,0,162,0,
-0,0,168,0,167,0,183,0,0,166,66,0,113,0,112,0,145,0,0,57,0,157,0,0,0,0,171,0,
-170,169,0,0,93,0,0,0,0,0,65,0,146,0,0,0,0,0,5,0,0,0,0,115,74,0,0,0,0,59,0,0,
-0,78,0,138,0,138,0,138,0,138,0,0,0,158,0,0,172,0,60,0,0,0,0,142,142,6,0,0,0,
-85,0,0,153,0,0,133,0,50,0,0,0,50,0,0,0,79,0,0,0,0,0,173,134,0,0,0,0,116,117,
-76,97,0,0,83,0,0,0,159,0,0,0,175,174,0,0,0,0,0,53,84,0,0,125,0,70,0,0,0,184,
-70,0,47,0,0,0,47,82,0,118,0,0,135,0,0,0,135,0,0,0,0,0,119,120,0,0,143,0,161,
-0,0,0,0,177,0,0,0,185,176,0,155,0,69,0,0,0,0,163,0,0,0,179,178,129,128,0,0,0,
-0,0,187,186,68,62,0,0,0,0,0,139,139,0,0,0,0,0,73,0,130,0,136,0,68,0,0,0,0,0,
-144,0,0,154,0,0,75,49,0,81,0,0,49,0,0,77,0,0,0,0,68,0,0,96,0,123,0,0,0,0,0,86,
-0,0,164,0,0,132,0,122,121,0,0,140,140,0,0,188,52,0,61,0,0,68,54,92,63,0,0,51,
-0,0,0,51,58,0,0,0,0,0,0,182,0,0,0,0,181,180,124,0,152,0,0,80,0,0,80,0,0,48,0,
-56,0,48,64,18};
+0,101,35,17,33,31,32,148,93,98,0,94,0,95,92,94,93,92,95,70,71,0,0,107,0,107,
+0,95,0,92,89,0,0,91,0,0,96,0,0,93,0,0,0,0,94,108,0,0,108,88,0,90,0,0,92,0,0,
+95,0,106,0,0,0,106,0,0,97,0,94,0,0,109,0,0,0,109,0,0,0,0,0,98,98,0,93,0,0,93,
+34,30,147,103,149,100,102,0,0,66,26,0,0,0,0,0,54,0,0,126,0,113,159,0,0,161,0,
+0,0,167,0,166,0,182,0,0,165,65,0,112,0,111,0,144,0,0,56,0,156,0,0,0,0,170,0,
+169,168,0,0,93,0,0,0,0,0,64,0,145,0,0,0,0,0,5,0,0,0,0,114,73,0,0,0,0,58,0,0,
+0,77,0,137,0,137,0,137,0,137,0,0,0,157,0,0,171,0,59,0,0,0,0,141,141,6,0,0,0,
+84,0,0,152,0,0,132,0,49,0,0,0,49,0,0,0,78,0,0,0,0,0,172,133,0,0,0,0,115,116,
+75,97,0,0,82,0,0,0,158,0,0,0,174,173,0,0,0,0,0,52,83,0,0,124,0,69,0,0,0,183,
+69,0,46,0,0,0,46,81,0,117,0,0,134,0,0,0,134,0,0,0,0,0,118,119,0,0,142,0,160,
+0,0,0,0,176,0,0,0,184,175,0,154,0,68,0,0,0,0,162,0,0,0,178,177,128,127,0,0,0,
+0,0,186,185,67,61,0,0,0,0,0,138,138,0,0,0,0,0,72,0,129,0,135,0,67,0,0,0,0,0,
+143,0,0,153,0,0,74,48,0,80,0,0,48,0,0,76,0,0,0,0,67,0,0,96,0,122,0,0,0,0,0,86,
+0,0,163,0,0,131,0,121,120,0,0,139,139,0,0,187,51,0,60,0,0,67,53,92,62,0,0,50,
+0,0,0,50,57,0,0,0,0,0,0,181,0,0,0,0,180,179,123,0,151,0,0,79,0,0,79,0,0,47,0,
+55,0,47,63,18};
+symbol entrytv[ordMAXCH + 1]={
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,41,42,43,
+13,36,28,7,8,9,10,19,11,25,12,0,0,0,0,0,0,0,0,0,0,20,14,4,29,104,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,21,0,22,15,0,27,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,0,24,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 Char lxch[lxmax + 1]={
 '0','=','=','&','=','=','=','>','b','c','d','e','h','l','n','r','s','t','w',
 'x','y','e','i','d','t','h','s','t','o','p','e','o','t','w','a','r','t','u',
@@ -1164,27 +1130,25 @@ Char lxch[lxmax + 1]={
 'e','d','m','e','a','e','h','o','p','e','i','c','k','n','e','s','s','n','x',
 't','h','o','w','i','d','f','f','s','e','t','t','n','n','p','d','e','f','i',
 'n','e','a','i','d','t','h','t','h','y','|'};
-/* integer debugging constants        */
+/* integer debugging constants */
 /*D debuglevel, linesignal: integer; D*/
 /*D trace: boolean; D*/
-/* used for debugging the parser      */
-
+/* used for debugging the parser */
 /* Parser variables */
-long oldsymb;   /* last lexical symbol                */
-arg *macros, *args;   /* macro and macro argument list      */
+int oldsymb;   /* last lexical symbol */
+arg *macros, *args;   /* macro and macro argument list */
 stackinx stacktop, pseudotop, validtop, top;
-stackelm *parsestack;   /* parse stack          */
-boolean parsestop;   /* parser flags                       */
-long startinx, lri, start;
+stackelm *parsestack;   /* parse stack */
+boolean parsestop;   /* parser flags */
+int startinx, lri, start;
 
 
 /*--------------------------------------------------------------------*/
-
 /* include dp1.z */
 /*dp1.x---------------------------------------------------------------*/
-long Ceil(double x);
+int Ceil(double x);
 
-long Floor(double x);
+int Floor(double x);
 
 double Max(double x, double y);
 
@@ -1201,7 +1165,7 @@ boolean isthen(primitive *pr);
 
 double linlen(double x, double y);
 
-long lspec(long n);
+int lspec(int n);
 
 /*DGHM function ordp(p:pointer): integer; forward; MHGD*/
 double principal(double x, double r);
@@ -1209,22 +1173,26 @@ double principal(double x, double r);
 void checkjust(nametype *tp, boolean *A, boolean *B, boolean *L,
 		      boolean *R);
 
+void getlinespec(primitive *nd, int *lsp, primitive **lastnd);
+
 void consoleflush(void);
 
 void copyleft(fbuffer *mac, fbuffer **buf);
 
 void deletetree(primitive **p);
 
-/*D; loc: integerD*/
+/*D; loc: integer D*/
 void disposebufs(fbuffer **buf);
 
 void drawtree(double n, double s, double e, double w, primitive *eb);
 
-void fatal(long t);
+void fatal(int t);
 
 void initnesw(void);
 
-void markerror(long n);
+void doprod(int prno);
+
+void markerror(int n);
 
 void nesw(primitive *ptmp);
 
@@ -1235,12 +1203,12 @@ void newbuf(fbuffer **buf);
 #ifndef SAFE_MODE
 void pointinput(nametype *txt);
 
-void pointoutput(boolean nw, nametype *txt, long *ier);
+void pointoutput(boolean nw, nametype *txt, int *ier);
 
 #endif
-void produce(stackinx newp, long p);
+void produce(stackinx newp, int p);
 
-void readfor(fbuffer *p0, long attx, fbuffer **p2);
+void readfor(fbuffer *p0, int attx, fbuffer **p2);
 
 void skiptobrace(void);
 
@@ -1254,33 +1222,34 @@ void wpair(FILE **iou, double x, double y);
 void wpos(postype pos);
 
 /*D procedure wrbuf(p: fbufferp; job,r: integer); forward; D*/
+/*D procedure wlogfl( nm: string; v: real; cr: integer); forward; D*/
 void wstring(FILE **iou, nametype *p);
 
-long ahlex(long atyp);
+int ahlex(int atyp);
 
-long ahnum(long atyp);
+int ahnum(int atyp);
 
-long pahlex(long atyp, long alex);
+int pahlex(int atyp, int alex);
 
-long pahnum(long atyp, long anum);
+int pahnum(int atyp, int anum);
 
 postype arcstart(primitive *n);
 
 postype arcend(primitive *n);
 
+fbuffer *newinbuf(fbuffer *p);
+
 
 /*--------------------------------------------------------------------*/
-
 /* include sysdep.h */
 /*GH#include 'sysdep.h'HG*/
-
 double principal(double x, double r)
 {
   /* x,r: real): real */
   while (x > r)
-    x += -r - r;
+    x -= 2 * r;
   while (x < -r)
-    x += r + r;
+    x += 2 * r;
   return x;
 }
 
@@ -1305,7 +1274,7 @@ double Min(double x, double y)
 }
 
 
-long Floor(double x)
+int Floor(double x)
 {
   /* x: real): integer */
   if (x >= 0 || (long)x == x)
@@ -1315,7 +1284,7 @@ long Floor(double x)
 }
 
 
-long Ceil(double x)
+int Ceil(double x)
 {
   /* x: real): integer */
   if (x < 0 || (long)x == x)
@@ -1348,10 +1317,8 @@ double datan(double y, double x)
   }
   if (y < 0.0)
     r = pi / -2;
-  else {
-    /* markerror(907); */
+  else   /* markerror(907); */
     r = 0.0;
-  }
   /*D if debuglevel=2 then writeln(log,r:8:4); D*/
   return r;
 }
@@ -1362,7 +1329,7 @@ void consoleflush(void)
   /* causes immediate physical write to console, not
                                needed for most systems. */
   /*DUGHM; if debuglevel > 0 then flush(log) MHGUD*/
-  fflush(stderr_);
+  fflush(errout);
   P_ioresult = 0;
 }
 
@@ -1370,17 +1337,22 @@ void consoleflush(void)
 void epilog(void)
 {
   /* produce(0, 0); */
-  /*D if debuglevel > 0 then writeln(log,'stackhigh=',stackhigh:1);D*/
-  /* D writeln("stackhigh=",stackhigh:1); D */
+  /*D if debuglevel > 0 then begin
+        writeln(log,'stackhigh=',stackhigh:1);
+        writeln(log,'Dpic log ends');
+        writeln(log) end; D*/
+  /* Seems needed for some Cygwin machines: */
+  /* GH flush(errout);
+  flush(stdout) HG */
 }
 
 
-void currentline(long *startlin)
+void currentline(int *startlin)
 {  /* Print out the current input line */
-  long inx, j, lastinx;
+  int inx, j, lastinx;
   fbuffer *bf, *ba, *WITH;
 
-  putc('\n', stderr_);
+  putc('\n', errout);
   consoleflush();
   bf = inbuf;
   ba = NULL;
@@ -1419,7 +1391,6 @@ void currentline(long *startlin)
     else
       bf = NULL;
   }
-
   *startlin = inx;
   while (ba != NULL) {
     WITH = ba;
@@ -1430,9 +1401,9 @@ void currentline(long *startlin)
     while (inx < j) {
       inx++;
       if (WITH->carray[inx] == nlch)
-	putc('\n', stderr_);
+	putc('\n', errout);
       else if (WITH->carray[inx] != etxch)
-	putc(WITH->carray[inx], stderr_);
+	putc(WITH->carray[inx], errout);
     }
     if (ba == inbuf)
       ba = NULL;
@@ -1440,18 +1411,18 @@ void currentline(long *startlin)
       ba = ba->nextb;
     inx = 0;
   }
-  putc('\n', stderr_);
+  putc('\n', errout);
   consoleflush();
 }
 
 
-void fatal(long t)
+void fatal(int t)
 {
   /* t: integer */
-  long i;
+  int i;
 
   if (t != 0) {
-    fprintf(stderr_, " *** dpic: ");
+    fprintf(errout, " *** dpic: ");
     currentline(&i);
   }
   switch (t) {
@@ -1461,68 +1432,79 @@ void fatal(long t)
     break;
 
   case 1:
-    fprintf(stderr_, "Input file not readable\n");
+    fprintf(errout, "Input file not readable\n");
     break;
 
   case 3:
-    fprintf(stderr_, "Maximum error count exceeded\n");
+    fprintf(errout, "Maximum error count exceeded\n");
     break;
 
   case 4:
-    fprintf(stderr_, "Character buffer overflow: \"CHBUFSIZ\" exceeded\n");
+    fprintf(errout, "Character buffer overflow: \"CHBUFSIZ\" exceeded\n");
     break;
 
   case 5:
-    fprintf(stderr_, "End of file encountered on input\n");
+    fprintf(errout, "End of file encountered on input\n");
     break;
 
   case 6:
-    fprintf(stderr_,
+    fprintf(errout,
 	    "Too many pending actions, const \"STACKMAX\" exceeded,\n");
-    fprintf(stderr_, "possibly caused by infinite recursion.\n");
+    fprintf(errout, " possibly caused by infinite recursion.\n");
     break;
 
   case 7:
-    fprintf(stderr_, "Input too complex, const \"REDUMAX\" exceeded\n");
+    fprintf(errout, "Input too complex, const \"REDUMAX\" exceeded\n");
     break;
 
   case 8:
-    fprintf(stderr_, "Error recovery abandoned\n");
-    /*D; 9: writeln(stderr,'Debug special exit') D*/
+    fprintf(errout, "Error recovery abandoned\n");
+    /*D; 9: writeln(errout,'Debug special exit') D*/
     break;
   }
-
   epilog();
   if (input != NULL) fclose(input);
   if (output != NULL) fclose(output);
-  if (stderr_ != NULL) fclose(stderr_);
+  if (errout != NULL) fclose(errout);
   /*DP2CC if (log_ != NULL) fclose(log_); */
   exit(EXIT_SUCCESS);
-
 }
 
 
 /*--------------------------------------------------------------------*/
-
 /* include sysdep.h */
-/*sysdep.x Required UNIX functions */
+/* sysdep.x Required UNIX functions */
+/*H name 'access' H*/
+/*G; asmname '_p_Access' G*/
+extern int access(Char *f, int n);
 
-extern long access(Char *f, long n);
+/*H name H*/
+/*G; asmname G*/
+/*GH 'isatty' HG*/
 
-/*G asmname '_p_Access'; G*/
+/*H name H*/
+/*G; asmname G*/
+/*GH 'time' HG*/
 
-/*G asmname 'isatty'; G*/
-
-/*G asmname 'time'; G*/
 /*BXUGH real HGUXB*/
+/*H name H*/
+/*G; asmname G*/
+/*GH 'sprintf' HG*/
 
 /*BXUGH real HGUXB*/
+/*H name H*/
+/*G; asmname G*/
+/*GH 'snprintf' HG*/
 
-/*G asmname 'snprintf'; G*/
+/* function system( var s: char ): integer; */
+/*H name H*/
+/*G; asmname G*/
+/*GH 'system' HG*/
 
-/*G asmname 'system'; G*/
-
-/* These need tweaking for different operating systems:      */
+/* These need tweaking for different operating systems: */
+/*H name H*/
+/*G; asmname G*/
+/*GH 'random' HG*/
 #if defined(__MSDOS__) || defined(__CYGWIN32__) || defined(RAND) 
 #undef random
 #define random() rand()
@@ -1530,7 +1512,9 @@ extern long access(Char *f, long n);
 extern long random(void);
 #endif
 
-/*G asmname 'random'; G*/
+/*H name H*/
+/*G; asmname G*/
+/*GH 'srandom' HG*/
 #if defined(_POSIX_SOURCE) || defined(sun)
 extern void srandom(unsigned s);
 #elif defined(__MSDOS__) || defined(__CYGWIN32__) || defined(RAND) 
@@ -1538,45 +1522,39 @@ extern void srand(unsigned s);
 #define srandom(x) srand((unsigned)(x))
 #elif defined(mips)
 #elif defined(__APPLE__)
+#elif defined(__OpenBSD__)
+extern void srand(unsigned int s);
 #else
 extern void srandom(int s);
 #endif
 
 
-/*G asmname 'srandom'; G*/
-
-/*DUBX function  ordp(var p:primitivep ): integer; external; XBUD*/
+/*DUBX function ordp(var p:primitivep ): integer; external; XBUD*/
 /*-----------------------------------------------------------------*/
-
 /* include dpic1.p */
 /*BX segment dpic1; XB*/
 /* onefile */
 /* G module dpic1; G */
-
 /* include dp0.h */
 /*BXU#include 'dp0.h'UXB*/
 /* onefile */
 /* G#include 'dp0.h'G */
-
 /* include dp1.h */
 /*BXU#include 'dp1.h'UXB*/
 /* onefile */
 /* G#include 'dp1.h'G */
-
 /* include sysdep.h */
 /*BXU#include 'sysdep.h'UXB*/
 /* onefile */
 /* G#include 'sysdep.h'G */
-
 /* Recursive routines: snaptree pexit neswrec shift treedraw scaleobj */
-
-long bval(Char *buf)
+int bval(Char *buf)
 {
   return (((int) buf[0]) << 7) + (int) buf[1] ;
 }
 
 
-void putbval(Char *buf, long n)
+void putbval(Char *buf, int n)
 {
   /* D
     if debuglevel > 0 then writeln(log,'putbval[',ordp(buf):1,'](',n:1,')'); D */
@@ -1587,7 +1565,7 @@ void putbval(Char *buf, long n)
 void deletename(nametype **head)
 {
   nametype *pn, *r;
-  long j, FORLIM;
+  int j, FORLIM;
 
   while (*head != NULL) {
     pn = *head;
@@ -1633,8 +1611,7 @@ procedure setvis(var specv: integer; nonz: integer);
 begin
    specv := (specv div 32)*32 + nonz*16 + (specv mod 16)
    end; */
-
-void setspec(long *specv, long svalue)
+void setspec(int *specv, int svalue)
 {
   *specv = ((*specv) >> 3) * 8 + svalue - XLlinetype;
   /* if svalue = XLsolid then
@@ -1642,29 +1619,19 @@ void setspec(long *specv, long svalue)
 }
 
 
-void resetspec(long *specv, long svalue)
+void resetspec(int *specv, int svalue)
 {
   *specv = 0;
   setspec(specv, svalue);
 }
 
 
-void setthen(long *specv)
+void setthen(int *specv)
 {
   *specv = ((*specv) >> 4) * 16 + ((*specv) & 7) + 8;
 }
 
 
-/*DH function ordp(p:pointer): integer;
-begin
-   ordp := Integer(p)
-   end; HD*/
-/*DG function ordpGD*/
-/* p:pointer */
-/*DG: integer;
-begin
-   ordp := Integer(p)
-   end; GD*/
 /*D
 procedure prtstval(st: integer);
 begin
@@ -1679,16 +1646,14 @@ case (st mod 4) of
 if odd(st div 4) then write(log,',XL','chop');
 if odd(st div 8) then write(log,',XL','directon')
 end;
-
 procedure snapname( chbu:chbufp; inx,ll:chbufinx);
 var j: integer;
 begin
-write(log,' (',ordp(chbu):1,' inx=',inx:1,' len=',ll:1,')"');
+write(log,' (',ordp(chbu):1,' inx=',inx:1,' len=',ll:1,')|');
 if chbu = nil then write(log,'**nil string pointer**')
 else for j := inx to inx+ll-1 do write(log,chbu^[j]);
-write(log,'"'); flush(log)
+write(log,'|'); flush(log)
 end;
-
 procedure snaptype D*/
 /* var iou: text; p: integer */
 /*D;
@@ -1710,7 +1675,6 @@ begin
       end;
    flush(iou)
    end;
-
 procedure snaptree(pr: primitivep; indent: integer);
 var i: integer;
 begin
@@ -1735,7 +1699,6 @@ begin
       pr := son
       end
    end;
-
 procedure printptype(ptype: integer);
 begin
    case ptype of
@@ -1747,7 +1710,6 @@ begin
    otherwise write(log, ptype:4)
    end
    end;
-
 procedure printcorner(lexv: integer);
 begin
    case lexv of
@@ -1760,7 +1722,6 @@ begin
    otherwise writeln(log,'unknown corner lexv=',lexv:1)
    end
    end;
-
 procedure printtext(namptr: strptr);
 begin
    while namptr <> nil do with namptr^ do begin
@@ -1773,20 +1734,20 @@ write(log,' val='); wfloat(log,val); flush(log);
 snapname(segmnt,seginx,len);
 namptr := next; writeln(log) end
    end;
-
 procedure printobject(primp: primitivep);
 var
    xx,yy: real;
+   i: integer;
 begin
    if debuglevel = 0 then begin end
    else if primp = nil then writeln(log,'Object is nil')
    else while primp <> nil do with primp^ do begin
-write  (log,'Object(',ordp(primp):1,
+write (log,'Object(',ordp(primp):1,
             ') Parent(',ordp(parent):1);
 if parent<>nil then write(log,
             ') Parent^.son(',ordp(parent^.son):1);
-writeln(log,') Son(',   ordp(son):1,
-            ') Next(',  ordp(next):1, ')');
+writeln(log,') Son(', ordp(son):1,
+            ') Next(', ordp(next):1, ')');
 if name<>nil then begin write(log,' name: '); printtext(name) end;
 if outlinep<>nil then begin
    write(log,' outline:'); printtext(outlinep) end;
@@ -1794,8 +1755,8 @@ if shadedp<>nil then begin
    write(log,' shaded:'); printtext(shadedp) end;
 if textp<>nil then printtext(textp);
 write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
-write(log,' lparam='); wfloat(log,lthick);
-write(log,' lthick='); wfloat(log,lthick);
+wlogfl('lparam',lparam,0);
+wlogfl('lthick',lthick,0);
 case direction of
    XLup: write(log,' <up>');
    XLdown: write(log,' <down>');
@@ -1809,41 +1770,42 @@ writeln(log,'(',ptype:1,')' );
 flush(log);
 case ptype of
    XLbox,XLstring: begin
-      write(log,' boxfill='); wfloat(log,boxfill);
-      write(log,' boxheight,boxwidth='); wpair(log,boxheight,boxwidth);
-      write(log,' rad='); wfloat(log,boxradius) end;
+      wlogfl('boxfill',boxfill,0);
+      wlogfl('boxheight',boxheight,0); wlogfl('boxwidth',boxwidth,0);
+      wlogfl('rad',boxradius,0) end;
    XBLOCK: begin
-      write(log,' blockheight,blockwidth=');
-      wpair(log,blockheight,blockwidth);
-      write(log,' here='); wpair(log,here.xpos,here.ypos);
-      write(log,' vars=');
-         if vars = nil then write(log,'nil')
-         D*/
-/*DBUMX else write(log,ord(vars):1); XMUBD*/
-/*DGH else write(log,ordp(vars):1); HGD*/
+      wlogfl('blockheight',blockheight,0);
+      wlogfl('blockwidth',blockwidth,0);
+      write(log,' here='); wpair(log,here.xpos,here.ypos); writeln(log);
+      write(log,' vars= ');
+      for i:=0 to HASHLIM do begin
+         if vars[i] = nil then write(log,' ',i:1,' nil;') D*/
+/*DBUMX else write(log,' ',i:1,' ',ord(vars[i]):1,';'); XMUBD*/
+/*DGH else write(log,' ',i:1,' ',ordp(vars[i]):1,';'); HGD*/
 /*D
+end;
+            writeln(log);
             write(log,' env=');
-if env = nil then write(log,'nil')
-D*/
+if env = nil then write(log,'nil') D*/
 /*DBUMX else write(log,ord(env):1) XMUBD*/
 /*DGH else write(log,ordp(env):1) HGD*/
 /*D
             end;
          XLcircle: begin
-            write(log,' cfill,radius='); wpair(log,cfill,radius) end;
+            wlogfl('cfill',cfill,0); wlogfl('radius',radius,0) end;
          XLellipse: begin
-            write(log,' efill='); wfloat(log,efill);
-            write(log,' elheight,elwidth='); wpair(log,elheight,elwidth) end;
+            wlogfl('efill',efill,0);
+            wlogfl('elheight',elheight,0); wlogfl('elwidth',elwidth,0) end;
          XLline,XLarrow,XLmove,XLspline: begin
             write(log,' endpos='); wpair(log,endpos.xpos,endpos.ypos);
-            write(log,' height,width='); wpair(log,height,width);
-            write(log,' lfill,aradius='); wpair(log,lfill,aradius);
+            wlogfl('height',height,0); wlogfl('width',width,0);
+            wlogfl('lfill',lfill,0); wlogfl('aradius',aradius,0);
             write(log,' ahlex(atype)=',ahlex(atype):1);
             write(log,' ahnum(atype)=',ahnum(atype):1)
             end;
          XLarc: begin
             write(log,' lspec=',lspec(spec):1);
-            write(log,' lfill,aradius='); wpair(log,lfill,aradius);
+            wlogfl('lfill',lfill,0); wlogfl('aradius',aradius,0);
             write(log,' (|','startangle|,|','arcangle|)(deg)=');
             wpair(log,endpos.xpos*180.0/pi,endpos.ypos*180.0/pi); writeln(log);
             write(log,' (from)=');
@@ -1865,10 +1827,11 @@ D*/
       end;
    flush(log)
    end;
-
+D*/
+/*
 procedure setenvironment(n: integer);
 begin
-   chbuf^[chbufi]   := "d";
+   chbuf^[chbufi] := "d";
    chbuf^[chbufi+1] := "p";
    chbuf^[chbufi+2] := "i";
    chbuf^[chbufi+3] := "c";
@@ -1895,13 +1858,44 @@ begin
    redubuf[reduinx-1].newtop := n+1;
    reduinx := reduinx - 2
    end;
-
+*/
+/*D
+procedure prvars(np: integer);
+var lv: strptr;
+   i,x: integer;
+begin
+   with attstack^[np] do if envblock = nil then
+      write(log,' vars=nil: nil envblock')
+   else begin
+      i := 0; x := HASHLIM+1;
+      while i < x do if envblock^.vars[i]<>nil then x := i else i := i+1;
+      writeln(log,' vars=');
+      if x > HASHLIM then writeln(log,' None set') else
+      for i:=0 to HASHLIM do begin write(log,' ',i:1);
+         lv := envblock^.vars[i];
+         if lv = nil then write(log,' nil');
+         while lv <> nil do begin
+            write(log,' (',ordp(lv):1,',',ordp(lv^.next):1,')=');
+            with lv^ do begin
+               snapname(segmnt,seginx,len);
+               write(log,'='); wfloat(log,val)
+               end;
+            D*/
+/* writeln(log); */
+/*D
+            lv := lv^.next
+            end;
+         writeln(log)
+         end
+      end
+   end;
 D*/
-
 void deletetree(primitive **p)
 {
   /* var p: primitivep */
-  primitive *r, *WITH;
+  primitive *r;
+  int i;
+  primitive *WITH;
 
   if (*p != NULL)
     (*p)->parent = NULL;
@@ -1931,9 +1925,10 @@ void deletetree(primitive **p)
       break;
 
     case XBLOCK:
-      deletename(&WITH->UU.U26.vars);
-      if (WITH->UU.U26.env != NULL)
-	Free(WITH->UU.U26.env);
+      for (i = HASHLIM; i >= 0; i--)
+	deletename(&WITH->UU.Ublock.vars[i]);
+      if (WITH->UU.Ublock.env != NULL)
+	Free(WITH->UU.Ublock.env);
       Free(*p);
       break;
 
@@ -1978,7 +1973,7 @@ void setangles(double *strtang, double *arcang, postype ctr, double xs,
 }
 
 
-void eqop(double *x, long op, double y)
+void eqop(double *x, int op, double y)
 {
   switch (op) {
 
@@ -2011,7 +2006,7 @@ void eqop(double *x, long op, double y)
       markerror(852);
     else {
       *x = (long)floor(*x + 0.5) % (long)floor(y + 0.5);
-/* p2c: dpic.p, line 987:
+/* p2c: dpic.p, line 937:
  * Note: Using % for possibly-negative arguments [317] */
     }
     break;
@@ -2019,19 +2014,19 @@ void eqop(double *x, long op, double y)
 }
 
 
-void setstval(long *st, long value)
+void setstval(int *st, int value)
 {
   *st = value * 256 + ((*st) & 255);
 }
 
 
-long getstval(long st)
+int getstval(int st)
 {
   return (st >> 8);
 }
 
 
-void setstflag(long *st, long value)
+void setstflag(int *st, int value)
 {
   switch (value) {
 
@@ -2071,11 +2066,10 @@ void setstflag(long *st, long value)
     *st = ((*st) >> 8) * 256 + ((*st) & 127) + 128;
     break;
   }
-
 }
 
 
-boolean teststflag(long st, long value)
+boolean teststflag(int st, int value)
 {
   boolean b;
 
@@ -2121,18 +2115,19 @@ boolean teststflag(long st, long value)
 }
 
 
-long eqstring(Char *seg1, chbufinx inx1, chbufinx len1, Char *seg2,
-		     chbufinx inx2, chbufinx len2)
+int eqstring(Char *seg1, chbufinx inx1, chbufinx len1, Char *seg2,
+		    chbufinx inx2, chbufinx len2)
 {
-  long Result, i, j, k;
+  int i, j, k;
 
   /*D if debuglevel = 2 then begin
-     write(log,' eqstring: '); if seg1 = nil then write(log,'first arg = nil')
-     else snapname(seg1,inx1,len1);
-     write(log,' '); if seg2 = nil then write(log,'2nd arg = nil')
-     else snapname(seg2,inx2,len2); writeln(log) end; D*/
+     writeln(log,' eqstring:'); write(log,' 1st arg =');
+     if seg1 = nil then write(log,' nil') else snapname(seg1,inx1,len1);
+     writeln(log); write(log,' 2nd arg =');
+     if seg2 = nil then write(log,' nil') else snapname(seg2,inx2,len2);
+     writeln(log) end; D*/
   if (seg1 == NULL || seg2 == NULL) {
-    Result = LONG_MAX;
+    k = SHORT_MAX;
     return k;
   }
   i = 0;
@@ -2163,16 +2158,14 @@ long eqstring(Char *seg1, chbufinx inx1, chbufinx len1, Char *seg2,
 }
 
 
-long cmpstring(primitive *p1, primitive *p2)
+int cmpstring(primitive *p1, primitive *p2)
 {
   if (p1 == NULL || p2 == NULL)
-    return LONG_MAX;
-  else if (p1->textp == NULL && p2->textp == NULL)
-    return LONG_MAX;
+    return SHORT_MAX;
   else if (p1->textp == NULL)
-    return LONG_MAX;
+    return SHORT_MAX;
   else if (p2->textp == NULL)
-    return (-LONG_MAX);
+    return (-SHORT_MAX);
   else
     return (eqstring(p1->textp->segmnt, p1->textp->seginx, p1->textp->len,
 		     p2->textp->segmnt, p2->textp->seginx, p2->textp->len));
@@ -2186,7 +2179,7 @@ primitive *findplace(primitive *p, Char *chb, chbufinx inx,
   nametype *WITH;
 
   pj = NULL;
-  /*Dif debuglevel = 2 then begin
+  /*D if debuglevel = 2 then begin
      write(log,'findplace:'); snapname(chb,inx,length); writeln(log)
      end; D*/
   while (p != pj) {   /*D begin printobject(p); D*/
@@ -2215,7 +2208,7 @@ arg *findmacro(arg *p, Char *chb, chbufinx inx, chbufinx length,
 
   *last = NULL;
   pj = NULL;
-  /*Dif debuglevel = 2 then begin
+  /*D if debuglevel = 2 then begin
      write(log,'findmacro:'); snapname(chb,inx,length); writeln(log)
      end; D*/
   while (p != pj) {
@@ -2235,49 +2228,130 @@ arg *findmacro(arg *p, Char *chb, chbufinx inx, chbufinx length,
 }
 
 
-nametype *findname(nametype *p, Char *chb, chbufinx chbufx,
-			  chbufinx length, nametype **last)
+int varhash(Char *chb, chbufinx chbufx, chbufinx length)
 {
-  nametype *pj, *WITH;
+  int idx;
 
+  if (chb == NULL) {
+    idx = 0;
+    return (idx % (HASHLIM + 1));
+  }
+  idx = chb[chbufx];
+  if (length > 2)
+    idx += chb[chbufx + length - 2];
+  return (idx % (HASHLIM + 1));
+/* p2c: dpic.p, line 1057:
+ * Note: Using % for possibly-negative arguments [317] */
+}
+
+
+nametype *findname(primitive *eb, Char *chb, chbufinx chbufx,
+			  chbufinx length, nametype **last, int *k)
+{
+  nametype *leftptr, *rightptr;
+  int left, right, midpt, i, idx;
+  nametype *WITH;
+
+  idx = varhash(chb, chbufx, length);
+  /*D if debuglevel > 0 then begin
+      write(log,' findname|');
+      for i:= chbufx to chbufx-1+length do write(log,chb^[i]);
+      write(log,'|:');
+      if eb=nil then write(log,' eb=nil')
+      else write(log,' nvars[',idx:1,']=',eb^.nvars[idx]:1);
+      if debuglevel > 1 then writeln(log)
+      end; D*/
+  *k = 1;
   *last = NULL;
-  pj = NULL;
-  while (p != pj) {
-    WITH = p;
-    if (eqstring(WITH->segmnt, WITH->seginx, WITH->len, chb, chbufx, length) == 0)
-      pj = p;
-    else {
-      *last = p;
-      p = p->next_;
+  rightptr = NULL;
+  if (eb == NULL)
+    leftptr = NULL;
+  else {
+    leftptr = eb->UU.Ublock.vars[idx];
+    *last = leftptr;
+  }
+  /* Check the first (highest) name */
+  if (leftptr != NULL) {
+    *k = eqstring(chb, chbufx, length, leftptr->segmnt, leftptr->seginx,
+		  leftptr->len);
+    if (*k < 0) {
+      left = 2;
+      leftptr = leftptr->next_;
+      right = eb->UU.Ublock.nvars[idx] + 1;
+    } else
+      rightptr = leftptr;
+  }
+  while (leftptr != rightptr) {
+    midpt = (left + right) >> 1;
+    /*D if debuglevel > 0 then
+                       write(log,' midpt=',midpt:1); D*/
+    *last = leftptr;
+    for (i = left + 1; i <= midpt; i++)
+      *last = (*last)->next_;
+    WITH = *last;
+    *k = eqstring(chb, chbufx, length, WITH->segmnt, WITH->seginx, WITH->len);
+    /*D if debuglevel > 0 then write(log,' k=',k:1); D*/
+    if (*k < 0) {
+      left = midpt + 1;
+      leftptr = (*last)->next_;
+      continue;
+    }
+    if (*k == 0) {
+      leftptr = *last;
+      rightptr = leftptr;
+    } else {
+      right = midpt;
+      rightptr = *last;
     }
   }
-  return p;
+  if (*k == 0)
+    return leftptr;
+  else {
+    return NULL;
+    /*D; if debuglevel > 0 then writeln(log) D*/
+  }
+}
+
+
+void marknotfound(int eno, Char *chb, chbufinx inx, chbufinx len)
+{
+  int i;
+
+  /*D if debuglevel > 0 then begin write(log,'Search failure ',eno:1);
+      if chb <> nil then begin write(log,' for "');
+         for i := inx to inx+len-1 do write(log,chb^[i]); write(log,'"') end;
+      writeln(log) end; D*/
+  markerror(eno);
+  fprintf(errout, "\nSearch failure");
+  if (chb != NULL) {
+    fprintf(errout, " for \"");
+    for (i = inx; i < inx + len; i++)
+      putc(chb[i], errout);
+    putc('"', errout);
+  }
+  putc('\n', errout);
 }
 
 
 nametype *glfindname(primitive *eb, Char *chb, chbufinx chbufx,
-			    chbufinx length, nametype **last)
+			    chbufinx length, nametype **last, int *k)
 {
   nametype *np;
   primitive *pp;
-  long i;
 
   pp = NULL;
   np = NULL;
+  *k = 1;
   while (eb != pp) {
-    np = findname(eb->UU.U26.vars, chb, chbufx, length, last);
+    /* np := findname(eb^.vars,chb,chbufx,length,last); */
+    np = findname(eb, chb, chbufx, length, last, k);
     if (np != NULL)
       pp = eb;
     else
       eb = eb->parent;
   }
-  if (eb != NULL)
-    return np;
-  fprintf(stderr_, "\nSearch failure for \"");
-  for (i = chbufx; i < chbufx + length; i++)
-    putc(chb[i], stderr_);
-  fprintf(stderr_, "\"\n");
-  markerror(851);
+  if (eb == NULL)
+    marknotfound(851, chb, chbufx, length);
   return np;
 }
 
@@ -2296,15 +2370,14 @@ void newstr(nametype **sp)
 }
 
 
-void addstring(Char **outbuf, nametype *outstr, Char *srcbuf,
-		      chbufinx psrc, chbufinx lsrc)
+/* copy a string into the current freeseg */
+void storestring(Char **outbuf, nametype *outstr, Char *srcbuf,
+			chbufinx psrc, chbufinx lsrc)
 {
-  /* outbuf is freeseg */
-  long i, j;
+  int i, j;
   boolean newseg;
-  long FORLIM;
 
-  if (*outbuf == NULL || freex + lsrc - 1 > CHBUFSIZ)
+  if (*outbuf == NULL || lsrc > CHBUFSIZ - freex + 1)
     newseg = true;
   else if (bval(*outbuf) >= maxbval)
     newseg = true;
@@ -2316,11 +2389,10 @@ void addstring(Char **outbuf, nametype *outstr, Char *srcbuf,
     freex = 3;
     freeseg = *outbuf;
   }
-  /* for i := 0 to lsrc-1 do outbuf^[freex+i] := srcbuf^[psrc+i]; */
-  j = psrc - freex;
-  FORLIM = freex + lsrc;
-  for (i = freex; i < FORLIM; i++)
-    (*outbuf)[i] = srcbuf[j + i];
+  for (i = 0; i < lsrc; i++)
+    (*outbuf)[freex + i] = srcbuf[psrc + i];
+  /* j := psrc-freex;
+     for i := freex to freex+lsrc-1 do outbuf^[i] := srcbuf^[j+i]; */
   outstr->segmnt = *outbuf;
   outstr->seginx = freex;
   outstr->len = lsrc;
@@ -2328,7 +2400,7 @@ void addstring(Char **outbuf, nametype *outstr, Char *srcbuf,
   putbval(*outbuf, j + 1);
   freex += lsrc;
   /*D; if debuglevel > 0 then begin writeln(log,
-     'addstring to strptr ',ordp(outstr):1,': segmnt=',ordp(freeseg):1,
+     'storestring to strptr ',ordp(outstr):1,': segmnt=',ordp(freeseg):1,
      ' seginx= ',outstr^.seginx:1, ' links= ', bval(outbuf):1,
      ' freex=',freex:1 );
      snapname(outbuf,outstr^.seginx,outstr^.len);
@@ -2337,30 +2409,33 @@ void addstring(Char **outbuf, nametype *outstr, Char *srcbuf,
 }
 
 
-/* outbuf is always freeseg: */
+/* outbuf is always the current freeseg: */
 void copystr(Char **outbuf, nametype **sp, nametype *ip)
 {
   if (ip == NULL)
     *sp = NULL;
   else {
     newstr(sp);
-    addstring(outbuf, *sp, ip->segmnt, ip->seginx, ip->len);
+    storestring(outbuf, *sp, ip->segmnt, ip->seginx, ip->len);
   }
 }
 
 
 void appendstring(nametype *sp, Char *buf, chbufinx px, chbufinx ll)
 {  /*D k := 0; D*/
-  long i;
-  /*D,kD*/
-  long j;
+  int i;
+  /*D,k D*/
+  int j;
   Char *tmpseg;
-  long FORLIM;
+  int FORLIM;
 
   if (sp == NULL || buf == NULL)
     return;
   if (sp->segmnt == freeseg && sp->seginx + sp->len == freex &&
       freex + ll - 1 <= CHBUFSIZ) {
+    /*D if debuglevel > 0 then begin
+        write(log,' appending |');
+        for i:=0 to ll-1 do write(log,buf^[px+i]); writeln(log,'|') end; D*/
     for (i = 0; i < ll; i++)   /*D k := 1; D*/
       freeseg[freex + i] = buf[px + i];
     sp->len += ll;
@@ -2406,18 +2481,21 @@ void appendstring(nametype *sp, Char *buf, chbufinx px, chbufinx ll)
   sp->seginx = 3;
   sp->len += ll;
   /*D; if debuglevel > 0 then if sp<>nil then with sp^ do begin
-     write(log,'appendstring: seginx:seginx+len-1= ',
-       seginx:1,':',seginx+len-1:1,' len= ',len:1, ' k=',k:1);
+     writeln(log,
+      'appendstring to strptr ',ordp(sp):1,': segmnt=',ordp(freeseg):1,
+      ' seginx:seginx+len-1= ',seginx:1,':',seginx+len-1:1);
+     writeln(log,
+      ' len= ',len:1, ' branch k=',k:1);
      snapname(segmnt,seginx,len); writeln( log )
      end D*/
 }
 
 
-long putstring(long ix, nametype *sp, Char *buf, chbufinx px,
-		      chbufinx ll)
+int putstring(int ix, nametype *sp, Char *buf, chbufinx px,
+		     chbufinx ll)
 {
   if (ix <= 0)
-    addstring(&freeseg, sp, buf, px, ll);
+    storestring(&freeseg, sp, buf, px, ll);
   else
     appendstring(sp, buf, px, ll);
   return (ix + 1);
@@ -2436,25 +2514,25 @@ double pheight(primitive *pr)
 
   case XLbox:
   case XLstring:
-    ph = pr->UU.U157.boxheight;
+    ph = pr->UU.Ubox.boxheight;
     break;
 
   case XBLOCK:
-    ph = pr->UU.U26.blockheight;
+    ph = pr->UU.Ublock.blockheight;
     break;
 
   case XLellipse:
-    ph = pr->UU.U159.elheight;
+    ph = pr->UU.Uellipse.elheight;
     break;
 
   case XLcircle:
-    ph = 2.0 * pr->UU.U158.radius;
+    ph = 2.0 * pr->UU.Ucircle.radius;
     break;
 
   case XLline:
   case XLarrow:
   case XLmove:
-    ph = fabs(pr->UU.U161.endpos.ypos - pr->aat.ypos);
+    ph = fabs(pr->UU.Uline.endpos.ypos - pr->aat.ypos);
     break;
 
   default:
@@ -2477,25 +2555,25 @@ double pwidth(primitive *pr)
 
   case XLbox:
   case XLstring:
-    ph = pr->UU.U157.boxwidth;
+    ph = pr->UU.Ubox.boxwidth;
     break;
 
   case XBLOCK:
-    ph = pr->UU.U26.blockwidth;
+    ph = pr->UU.Ublock.blockwidth;
     break;
 
   case XLellipse:
-    ph = pr->UU.U159.elwidth;
+    ph = pr->UU.Uellipse.elwidth;
     break;
 
   case XLcircle:
-    ph = 2.0 * pr->UU.U158.radius;
+    ph = 2.0 * pr->UU.Ucircle.radius;
     break;
 
   case XLline:
   case XLarrow:
   case XLmove:
-    ph = fabs(pr->UU.U161.endpos.xpos - pr->aat.xpos);
+    ph = fabs(pr->UU.Uline.endpos.xpos - pr->aat.xpos);
     break;
 
   default:
@@ -2551,19 +2629,19 @@ void pexit(primitive *pr, postype *pe)
     switch (pr->direction) {
 
     case XLup:
-      pe->ypos = pr->aat.ypos + pr->UU.U157.boxheight * 0.5;
+      pe->ypos = pr->aat.ypos + pr->UU.Ubox.boxheight * 0.5;
       break;
 
     case XLdown:
-      pe->ypos = pr->aat.ypos - pr->UU.U157.boxheight * 0.5;
+      pe->ypos = pr->aat.ypos - pr->UU.Ubox.boxheight * 0.5;
       break;
 
     case XLleft:
-      pe->xpos = pr->aat.xpos - pr->UU.U157.boxwidth * 0.5;
+      pe->xpos = pr->aat.xpos - pr->UU.Ubox.boxwidth * 0.5;
       break;
 
     case XLright:
-      pe->xpos = pr->aat.xpos + pr->UU.U157.boxwidth * 0.5;
+      pe->xpos = pr->aat.xpos + pr->UU.Ubox.boxwidth * 0.5;
       break;
     }
     break;
@@ -2581,19 +2659,19 @@ void pexit(primitive *pr, postype *pe)
     switch (pr->direction) {
 
     case XLup:
-      pe->ypos = pr->aat.ypos + pr->UU.U26.blockheight * 0.5;
+      pe->ypos = pr->aat.ypos + pr->UU.Ublock.blockheight * 0.5;
       break;
 
     case XLdown:
-      pe->ypos = pr->aat.ypos - pr->UU.U26.blockheight * 0.5;
+      pe->ypos = pr->aat.ypos - pr->UU.Ublock.blockheight * 0.5;
       break;
 
     case XLleft:
-      pe->xpos = pr->aat.xpos - pr->UU.U26.blockwidth * 0.5;
+      pe->xpos = pr->aat.xpos - pr->UU.Ublock.blockwidth * 0.5;
       break;
 
     case XLright:
-      pe->xpos = pr->aat.xpos + pr->UU.U26.blockwidth * 0.5;
+      pe->xpos = pr->aat.xpos + pr->UU.Ublock.blockwidth * 0.5;
       break;
     }
     break;
@@ -2602,19 +2680,19 @@ void pexit(primitive *pr, postype *pe)
     switch (pr->direction) {
 
     case XLup:
-      pe->ypos = pr->aat.ypos + pr->UU.U158.radius;
+      pe->ypos = pr->aat.ypos + pr->UU.Ucircle.radius;
       break;
 
     case XLdown:
-      pe->ypos = pr->aat.ypos - pr->UU.U158.radius;
+      pe->ypos = pr->aat.ypos - pr->UU.Ucircle.radius;
       break;
 
     case XLleft:
-      pe->xpos = pr->aat.xpos - pr->UU.U158.radius;
+      pe->xpos = pr->aat.xpos - pr->UU.Ucircle.radius;
       break;
 
     case XLright:
-      pe->xpos = pr->aat.xpos + pr->UU.U158.radius;
+      pe->xpos = pr->aat.xpos + pr->UU.Ucircle.radius;
       break;
     }
     break;
@@ -2623,19 +2701,19 @@ void pexit(primitive *pr, postype *pe)
     switch (pr->direction) {
 
     case XLup:
-      pe->ypos = pr->aat.ypos + pr->UU.U159.elheight * 0.5;
+      pe->ypos = pr->aat.ypos + pr->UU.Uellipse.elheight * 0.5;
       break;
 
     case XLdown:
-      pe->ypos = pr->aat.ypos - pr->UU.U159.elheight * 0.5;
+      pe->ypos = pr->aat.ypos - pr->UU.Uellipse.elheight * 0.5;
       break;
 
     case XLleft:
-      pe->xpos = pr->aat.xpos - pr->UU.U159.elwidth * 0.5;
+      pe->xpos = pr->aat.xpos - pr->UU.Uellipse.elwidth * 0.5;
       break;
 
     case XLright:
-      pe->xpos = pr->aat.xpos + pr->UU.U159.elwidth * 0.5;
+      pe->xpos = pr->aat.xpos + pr->UU.Uellipse.elwidth * 0.5;
       break;
     }
     break;
@@ -2648,7 +2726,7 @@ void pexit(primitive *pr, postype *pe)
   case XLarrow:
   case XLmove:
   case XLspline:
-    *pe = pr->UU.U161.endpos;
+    *pe = pr->UU.Uline.endpos;
     break;
 
   case XLabel:
@@ -2659,8 +2737,9 @@ void pexit(primitive *pr, postype *pe)
 }
 
 
-void newprim(primitive **pr, long primtype, primitive *envblk)
+void newprim(primitive **pr, int primtype, primitive *envblk)
 {
+  int i;
   primitive *WITH;
 
   switch (primtype) {
@@ -2711,7 +2790,7 @@ void newprim(primitive **pr, long primtype, primitive *envblk)
     if (envblk->son == NULL)
       envblk->son = *pr;
     WITH->parent = envblk;
-    WITH->aat = envblk->UU.U26.here;
+    WITH->aat = envblk->UU.Ublock.here;
     WITH->direction = envblk->direction;
   }
   WITH->lparam = mdistmax;
@@ -2730,29 +2809,32 @@ void newprim(primitive **pr, long primtype, primitive *envblk)
 
   case XLbox:
   case XLstring:
-    WITH->UU.U157.boxfill = -1.0;
-    WITH->UU.U157.boxheight = 0.0;
-    WITH->UU.U157.boxwidth = 0.0;
-    WITH->UU.U157.boxradius = 0.0;
+    WITH->UU.Ubox.boxfill = -1.0;
+    WITH->UU.Ubox.boxheight = 0.0;
+    WITH->UU.Ubox.boxwidth = 0.0;
+    WITH->UU.Ubox.boxradius = 0.0;
     break;
 
   case XBLOCK:
-    WITH->UU.U26.blockheight = 0.0;
-    WITH->UU.U26.blockwidth = 0.0;
-    WITH->UU.U26.here = WITH->aat;
-    WITH->UU.U26.vars = NULL;
-    WITH->UU.U26.env = NULL;
+    WITH->UU.Ublock.blockheight = 0.0;
+    WITH->UU.Ublock.blockwidth = 0.0;
+    WITH->UU.Ublock.here = WITH->aat;
+    for (i = 0; i <= HASHLIM; i++) {
+      WITH->UU.Ublock.vars[i] = NULL;
+      WITH->UU.Ublock.nvars[i] = 0;
+    }
+    WITH->UU.Ublock.env = NULL;
     break;
 
   case XLcircle:
-    WITH->UU.U158.cfill = -1.0;
-    WITH->UU.U158.radius = 0.0;
+    WITH->UU.Ucircle.cfill = -1.0;
+    WITH->UU.Ucircle.radius = 0.0;
     break;
 
   case XLellipse:
-    WITH->UU.U159.efill = -1.0;
-    WITH->UU.U159.elheight = 0.0;
-    WITH->UU.U159.elwidth = 0.0;
+    WITH->UU.Uellipse.efill = -1.0;
+    WITH->UU.Uellipse.elheight = 0.0;
+    WITH->UU.Uellipse.elwidth = 0.0;
     break;
 
   case XLline:
@@ -2760,13 +2842,13 @@ void newprim(primitive **pr, long primtype, primitive *envblk)
   case XLmove:
   case XLarc:
   case XLspline:
-    WITH->UU.U161.endpos.xpos = 0.0;
-    WITH->UU.U161.endpos.ypos = 0.0;
-    WITH->UU.U161.height = 0.0;
-    WITH->UU.U161.width = 0.0;
-    WITH->UU.U161.lfill = -1.0;
-    WITH->UU.U161.aradius = mdistmax;
-    WITH->UU.U161.atype = pahlex(0, XEMPTY);
+    WITH->UU.Uline.endpos.xpos = 0.0;
+    WITH->UU.Uline.endpos.ypos = 0.0;
+    WITH->UU.Uline.height = 0.0;
+    WITH->UU.Uline.width = 0.0;
+    WITH->UU.Uline.lfill = -1.0;
+    WITH->UU.Uline.aradius = mdistmax;
+    WITH->UU.Uline.atype = pahlex(0, XEMPTY);
     break;
 
   case XLabel:
@@ -2774,12 +2856,12 @@ void newprim(primitive **pr, long primtype, primitive *envblk)
     /* blank case */
     break;
   }
-}
+}  /* newprim */
 
 
 void arcenddir(primitive *pr)
 {
-  if (pr->UU.U161.endpos.ypos > 0.0) {
+  if (pr->UU.Uline.endpos.ypos > 0.0) {
     switch (pr->direction) {
 
     case 0:
@@ -2839,8 +2921,8 @@ void shift(primitive *pr, double x, double y)
     WITH->aat.ypos += y;
     if (WITH->ptype == XLspline || WITH->ptype == XLmove ||
 	WITH->ptype == XLarrow || WITH->ptype == XLline) {
-      WITH->UU.U161.endpos.xpos += x;
-      WITH->UU.U161.endpos.ypos += y;
+      WITH->UU.Uline.endpos.xpos += x;
+      WITH->UU.Uline.endpos.ypos += y;
     }
     if (WITH->son != NULL)
       shift(WITH->son, x, y);
@@ -2858,23 +2940,23 @@ void scaleobj(primitive *pr, double s)
     WITH->aat.xpos *= s;
     WITH->aat.ypos *= s;
     if (WITH->ptype == XLbox) {
-      WITH->UU.U157.boxheight *= s;
-      WITH->UU.U157.boxwidth *= s;
-      WITH->UU.U157.boxradius *= s;
+      WITH->UU.Ubox.boxheight *= s;
+      WITH->UU.Ubox.boxwidth *= s;
+      WITH->UU.Ubox.boxradius *= s;
     } else if (WITH->ptype == XBLOCK) {
-      WITH->UU.U26.blockheight *= s;
-      WITH->UU.U26.blockwidth *= s;
+      WITH->UU.Ublock.blockheight *= s;
+      WITH->UU.Ublock.blockwidth *= s;
     } else if (WITH->ptype == XLcircle)
-      WITH->UU.U158.radius *= s;
+      WITH->UU.Ucircle.radius *= s;
     else if (WITH->ptype == XLellipse) {
-      WITH->UU.U159.elheight *= s;
-      WITH->UU.U159.elwidth *= s;
+      WITH->UU.Uellipse.elheight *= s;
+      WITH->UU.Uellipse.elwidth *= s;
     } else if (WITH->ptype == XLarc)
-      WITH->UU.U161.aradius *= s;
+      WITH->UU.Uline.aradius *= s;
     else if (WITH->ptype == XLspline || WITH->ptype == XLmove ||
 	     WITH->ptype == XLarrow || WITH->ptype == XLline) {
-      WITH->UU.U161.endpos.xpos *= s;
-      WITH->UU.U161.endpos.ypos *= s;
+      WITH->UU.Uline.endpos.xpos *= s;
+      WITH->UU.Uline.endpos.ypos *= s;
     }
     if (WITH->son != NULL)
       scaleobj(WITH->son, s);
@@ -2883,9 +2965,9 @@ void scaleobj(primitive *pr, double s)
 }
 
 
-/*        corner(prim,<corner>,xval,yval);
-                           Put the corner coordinates into xval,yval   */
-void corner(primitive *pr, long lexv, double *x, double *y)
+/* corner(prim,<corner>,xval,yval);
+                           Put the corner coordinates into xval,yval */
+void corner(primitive *pr, int lexv, double *x, double *y)
 {
   primitive *pe;
   boolean sb;
@@ -2903,8 +2985,8 @@ void corner(primitive *pr, long lexv, double *x, double *y)
        pr->ptype == XLline)) {
     while (pe->son != NULL)
       pe = pe->son;
-    *x = 0.5 * (pr->aat.xpos + pe->UU.U161.endpos.xpos);
-    *y = 0.5 * (pr->aat.ypos + pe->UU.U161.endpos.ypos);
+    *x = 0.5 * (pr->aat.xpos + pe->UU.Uline.endpos.xpos);
+    *y = 0.5 * (pr->aat.ypos + pe->UU.Uline.endpos.ypos);
     return;
   }
   if (lexv == XEMPTY && pr->ptype != XLaTeX)
@@ -2921,7 +3003,7 @@ void corner(primitive *pr, long lexv, double *x, double *y)
     *y = pr->aat.ypos;
     initnesw();
     nesw(pr);
-    /*Dif debuglevel>0 then begin
+    /*D if debuglevel>0 then begin
         write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
         write(log,' n,s'); wpair(log,north,south);
         write(log,' w,e'); wpair(log,west,east)
@@ -2932,24 +3014,24 @@ void corner(primitive *pr, long lexv, double *x, double *y)
       switch (pr->ptype) {
 
       case XLbox:
-	*y = Min(pr->UU.U157.boxradius, Min(fabs(pr->UU.U157.boxheight),
-		     fabs(pr->UU.U157.boxwidth)) / 2) * (1 - 1 / sqrt(2.0));
-	*x = pr->UU.U157.boxwidth / 2 - *y;
-	*y = pr->UU.U157.boxheight / 2 - *y;
+	*y = Min(pr->UU.Ubox.boxradius, Min(fabs(pr->UU.Ubox.boxheight),
+		     fabs(pr->UU.Ubox.boxwidth)) / 2) * (1 - 1 / sqrt(2.0));
+	*x = pr->UU.Ubox.boxwidth / 2 - *y;
+	*y = pr->UU.Ubox.boxheight / 2 - *y;
 	break;
 
       case XLellipse:
-	*x = pr->UU.U159.elwidth * (0.5 / sqrt(2.0));
-	*y = pr->UU.U159.elheight * (0.5 / sqrt(2.0));
+	*x = pr->UU.Uellipse.elwidth * (0.5 / sqrt(2.0));
+	*y = pr->UU.Uellipse.elheight * (0.5 / sqrt(2.0));
 	break;
 
       case XLarc:
-	*x = pr->UU.U161.aradius / sqrt(2.0);
+	*x = pr->UU.Uline.aradius / sqrt(2.0);
 	*y = *x;
 	break;
 
       case XLcircle:
-	*x = pr->UU.U158.radius / sqrt(2.0);
+	*x = pr->UU.Ucircle.radius / sqrt(2.0);
 	*y = *x;
 	break;
       }
@@ -2978,19 +3060,19 @@ void corner(primitive *pr, long lexv, double *x, double *y)
       switch (lexv) {
 
       case XDn:
-	*y = pr->aat.ypos + pr->UU.U161.aradius;
+	*y = pr->aat.ypos + pr->UU.Uline.aradius;
 	break;
 
       case XDs:
-	*y = pr->aat.ypos - pr->UU.U161.aradius;
+	*y = pr->aat.ypos - pr->UU.Uline.aradius;
 	break;
 
       case XDe:
-	*x = pr->aat.xpos + pr->UU.U161.aradius;
+	*x = pr->aat.xpos + pr->UU.Uline.aradius;
 	break;
 
       case XDw:
-	*x = pr->aat.xpos - pr->UU.U161.aradius;
+	*x = pr->aat.xpos - pr->UU.Uline.aradius;
 	break;
 
       case XDc:
@@ -2998,15 +3080,15 @@ void corner(primitive *pr, long lexv, double *x, double *y)
 	break;
 
       case XDstart:
-	*x = pr->aat.xpos + pr->UU.U161.aradius * cos(pr->UU.U161.endpos.xpos);
-	*y = pr->aat.ypos + pr->UU.U161.aradius * sin(pr->UU.U161.endpos.xpos);
+	*x = pr->aat.xpos + pr->UU.Uline.aradius * cos(pr->UU.Uline.endpos.xpos);
+	*y = pr->aat.ypos + pr->UU.Uline.aradius * sin(pr->UU.Uline.endpos.xpos);
 	break;
 
       case XDend:
-	*x = pr->aat.xpos + pr->UU.U161.aradius *
-	       cos(pr->UU.U161.endpos.xpos + pr->UU.U161.endpos.ypos);
-	*y = pr->aat.ypos + pr->UU.U161.aradius *
-	       sin(pr->UU.U161.endpos.xpos + pr->UU.U161.endpos.ypos);
+	*x = pr->aat.xpos + pr->UU.Uline.aradius *
+	       cos(pr->UU.Uline.endpos.xpos + pr->UU.Uline.endpos.ypos);
+	*y = pr->aat.ypos + pr->UU.Uline.aradius *
+	       sin(pr->UU.Uline.endpos.xpos + pr->UU.Uline.endpos.ypos);
 	break;
       }
     } else {
@@ -3069,64 +3151,64 @@ void corner(primitive *pr, long lexv, double *x, double *y)
       if (lexv == XDend) {
 	while (pe->son != NULL)
 	  pe = pe->son;
-	*x = pe->UU.U161.endpos.xpos;
-	*y = pe->UU.U161.endpos.ypos;
+	*x = pe->UU.Uline.endpos.xpos;
+	*y = pe->UU.Uline.endpos.ypos;
       } else if (lexv == XDc) {
 	while (pe->son != NULL)
 	  pe = pe->son;
-	*x = 0.5 * (*x + pe->UU.U161.endpos.xpos);
-	*y = 0.5 * (*y + pe->UU.U161.endpos.ypos);
+	*x = 0.5 * (*x + pe->UU.Uline.endpos.xpos);
+	*y = 0.5 * (*y + pe->UU.Uline.endpos.ypos);
       } else {
 	do {
 	  switch (lexv) {
 
 	  case XDn:
-	    sb = (pe->UU.U161.endpos.ypos > *y);
+	    sb = (pe->UU.Uline.endpos.ypos > *y);
 	    break;
 
 	  case XDs:
-	    sb = (pe->UU.U161.endpos.ypos < *y);
+	    sb = (pe->UU.Uline.endpos.ypos < *y);
 	    break;
 
 	  case XDe:
-	    sb = (pe->UU.U161.endpos.xpos > *x);
+	    sb = (pe->UU.Uline.endpos.xpos > *x);
 	    break;
 
 	  case XDw:
-	    sb = (pe->UU.U161.endpos.xpos < *x);
+	    sb = (pe->UU.Uline.endpos.xpos < *x);
 	    break;
 
 	  case XDne:
-	    sb = ((pe->UU.U161.endpos.ypos > *y &&
-		   pe->UU.U161.endpos.xpos >= *x) ||
-		  (pe->UU.U161.endpos.ypos >= *y &&
-		   pe->UU.U161.endpos.xpos > *x));
+	    sb = ((pe->UU.Uline.endpos.ypos > *y &&
+		   pe->UU.Uline.endpos.xpos >= *x) ||
+		  (pe->UU.Uline.endpos.ypos >= *y &&
+		   pe->UU.Uline.endpos.xpos > *x));
 	    break;
 
 	  case XDse:
-	    sb = ((pe->UU.U161.endpos.ypos < *y &&
-		   pe->UU.U161.endpos.xpos >= *x) ||
-		  (pe->UU.U161.endpos.ypos <= *y &&
-		   pe->UU.U161.endpos.xpos > *x));
+	    sb = ((pe->UU.Uline.endpos.ypos < *y &&
+		   pe->UU.Uline.endpos.xpos >= *x) ||
+		  (pe->UU.Uline.endpos.ypos <= *y &&
+		   pe->UU.Uline.endpos.xpos > *x));
 	    break;
 
 	  case XDsw:
-	    sb = ((pe->UU.U161.endpos.ypos < *y &&
-		   pe->UU.U161.endpos.xpos <= *x) ||
-		  (pe->UU.U161.endpos.ypos <= *y &&
-		   pe->UU.U161.endpos.xpos < *x));
+	    sb = ((pe->UU.Uline.endpos.ypos < *y &&
+		   pe->UU.Uline.endpos.xpos <= *x) ||
+		  (pe->UU.Uline.endpos.ypos <= *y &&
+		   pe->UU.Uline.endpos.xpos < *x));
 	    break;
 
 	  case XDnw:
-	    sb = ((pe->UU.U161.endpos.ypos > *y &&
-		   pe->UU.U161.endpos.xpos <= *x) ||
-		  (pe->UU.U161.endpos.ypos >= *y &&
-		   pe->UU.U161.endpos.xpos < *x));
+	    sb = ((pe->UU.Uline.endpos.ypos > *y &&
+		   pe->UU.Uline.endpos.xpos <= *x) ||
+		  (pe->UU.Uline.endpos.ypos >= *y &&
+		   pe->UU.Uline.endpos.xpos < *x));
 	    break;
 	  }
 	  if (sb) {
-	    *x = pe->UU.U161.endpos.xpos;
-	    *y = pe->UU.U161.endpos.ypos;
+	    *x = pe->UU.Uline.endpos.xpos;
+	    *y = pe->UU.Uline.endpos.ypos;
 	  }
 	  pe = pe->son;
 	} while (pe != NULL);
@@ -3147,10 +3229,10 @@ void corner(primitive *pr, long lexv, double *x, double *y)
 }
 
 
-primitive *nthprimobj(primitive *primp, long nth, long objtype)
+primitive *nthprimobj(primitive *primp, int nth, int objtype)
 {
   primitive *prp, *pp;
-  long i;
+  int i;
 
   /*D if debuglevel = 2 then writeln(log,'nthprimobj nth=',nth:1,' type=',
      objtype:1); D*/
@@ -3161,7 +3243,7 @@ primitive *nthprimobj(primitive *primp, long nth, long objtype)
          printobject(primp);
          if primp^.ptype = objtype then begin
             prp := primp;
-            writeln(log,'found') end;
+            writeln(log,'found[nth=',nth:1,'](',ordp(prp):1,')') end;
          primp := primp^.next
          end
       else D*/
@@ -3193,14 +3275,15 @@ primitive *nthprimobj(primitive *primp, long nth, long objtype)
       prp = primp;
     else {
       primp = primp->next_;
-      /*D;if (debuglevel = 2) and (i = nth) then writeln(log,'found') D*/
+      /*D;if (debuglevel = 2) and (i = nth) then
+         writeln(log,'found[nth=',nth:1,'](',ordp(prp):1,')') D*/
     }
   }
   return prp;
 }
 
 
-void resetenv(long envval, primitive *envbl)
+void resetenv(int envval, primitive *envbl)
 {
   environx i, last;
 
@@ -3211,105 +3294,105 @@ void resetenv(long envval, primitive *envbl)
     last = XLlastenv;
   } else
     last = envval;
-  if (envbl->UU.U26.env == NULL)
-    envbl->UU.U26.env = Malloc(sizeof(envarray));
+  if (envbl->UU.Ublock.env == NULL)
+    envbl->UU.Ublock.env = Malloc(sizeof(envarray));
   for (i = envval - 1; i < last; i++) {
     switch (i + 1) {
 
-    case XLarcrad:   /* scaled environmental vars */
-      envbl->UU.U26.env[i - XLenvvar] = 0.25;
+    case XLarcrad:   /* scaled environment vars (in) */
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.25;
       break;
 
     case XLarrowht:
-      envbl->UU.U26.env[i - XLenvvar] = 0.1;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.1;
       break;
 
     case XLarrowwid:
-      envbl->UU.U26.env[i - XLenvvar] = 0.05;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.05;
       break;
 
     case XLboxht:
-      envbl->UU.U26.env[i - XLenvvar] = 0.5;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.5;
       break;
 
     case XLboxrad:
-      envbl->UU.U26.env[i - XLenvvar] = 0.0;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.0;
       break;
 
     case XLboxwid:
-      envbl->UU.U26.env[i - XLenvvar] = 0.75;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.75;
       break;
 
     case XLcirclerad:
-      envbl->UU.U26.env[i - XLenvvar] = 0.25;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.25;
       break;
 
     case XLdashwid:
-      envbl->UU.U26.env[i - XLenvvar] = 0.05;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.05;
       break;
 
     case XLellipseht:
-      envbl->UU.U26.env[i - XLenvvar] = 0.5;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.5;
       break;
 
     case XLellipsewid:
-      envbl->UU.U26.env[i - XLenvvar] = 0.75;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.75;
       break;
 
     case XLlineht:
-      envbl->UU.U26.env[i - XLenvvar] = 0.5;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.5;
       break;
 
     case XLlinewid:
-      envbl->UU.U26.env[i - XLenvvar] = 0.5;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.5;
       break;
 
     case XLmoveht:
-      envbl->UU.U26.env[i - XLenvvar] = 0.5;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.5;
       break;
 
     case XLmovewid:
-      envbl->UU.U26.env[i - XLenvvar] = 0.5;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.5;
       break;
 
     case XLtextht:
       if (drawmode == SVG)
-	envbl->UU.U26.env[i - XLenvvar] = DFONT / 72.0;
+	envbl->UU.Ublock.env[i - XLenvvar] = DFONT / 72.0;
       else
-	envbl->UU.U26.env[i - XLenvvar] = 0.0;
+	envbl->UU.Ublock.env[i - XLenvvar] = 0.0;
       break;
 
     case XLtextoffset:
-      envbl->UU.U26.env[i - XLenvvar] = 2.5 / 72;   /*.27*/
+      envbl->UU.Ublock.env[i - XLenvvar] = 2.5 / 72;   /*.27*/
       break;
 
     case XLtextwid:
-      envbl->UU.U26.env[i - XLenvvar] = 0.0;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.0;
       break;
 
     /* The following are unscaled */
     case XLarrowhead:
-      envbl->UU.U26.env[i - XLenvvar] = 2.0;
+      envbl->UU.Ublock.env[i - XLenvvar] = 1.0;
       break;
 
     case XLfillval:
-      envbl->UU.U26.env[i - XLenvvar] = 0.3;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.5;
       break;
 
     case XLlinethick:   /* points */
-      envbl->UU.U26.env[i - XLenvvar] = 0.8;
+      envbl->UU.Ublock.env[i - XLenvvar] = 0.8;
       break;
 
-    case XLmaxpsht:
-      envbl->UU.U26.env[i - XLenvvar] = 11.0;
+    case XLmaxpsht:   /* in */
+      envbl->UU.Ublock.env[i - XLenvvar] = 11.0;
       break;
 
     case XLmaxpswid:
-      envbl->UU.U26.env[i - XLenvvar] = 8.5;
+      envbl->UU.Ublock.env[i - XLenvvar] = 8.5;
       break;
 
     case XLscale:
-      envbl->UU.U26.env[i - XLenvvar] = 1.0;
+      envbl->UU.Ublock.env[i - XLenvvar] = 1.0;
       break;
     }
   }
@@ -3326,23 +3409,23 @@ void inheritenv(primitive *envbl)
     resetenv(0, envbl);
     return;
   }
-  envbl->UU.U26.env = Malloc(sizeof(envarray));
+  envbl->UU.Ublock.env = Malloc(sizeof(envarray));
   for (i = XLenvvar; i < XLlastenv; i++)
-    envbl->UU.U26.env[i - XLenvvar] = pr->UU.U26.env[i - XLenvvar];
+    envbl->UU.Ublock.env[i - XLenvvar] = pr->UU.Ublock.env[i - XLenvvar];
 }
 
 
-void resetscale(double x, long opr, primitive *envbl)
+void resetscale(double x, int opr, primitive *envbl)
 {
   double r, s;
-  long i;
+  int i;
 
   resetenv(0, envbl);
-  r = envbl->UU.U26.env[XLscale - XLenvvar - 1];
-  eqop(&envbl->UU.U26.env[XLscale - XLenvvar - 1], opr, x);
-  s = envbl->UU.U26.env[XLscale - XLenvvar - 1];
+  r = envbl->UU.Ublock.env[XLscale - XLenvvar - 1];
+  eqop(&envbl->UU.Ublock.env[XLscale - XLenvvar - 1], opr, x);
+  s = envbl->UU.Ublock.env[XLscale - XLenvvar - 1];
   if (s == 0.0) {
-    envbl->UU.U26.env[XLscale - XLenvvar - 1] = r;
+    envbl->UU.Ublock.env[XLscale - XLenvvar - 1] = r;
     s = 1.0;
     markerror(870);
   } else if (r == 0.0)
@@ -3350,25 +3433,25 @@ void resetscale(double x, long opr, primitive *envbl)
   else
     s /= r;
   for (i = XLenvvar; i < XLlastsc; i++)
-    eqop(&envbl->UU.U26.env[i - XLenvvar], XLmulteq, s);
+    eqop(&envbl->UU.Ublock.env[i - XLenvvar], XLmulteq, s);
 }
 
 
 void inittwo(void)
 {
   /* performed for each input diagram */
-  freebuf = NULL;
+  freeinbuf = NULL;
   freeseg = NULL;
   freex = 0;
-
   lastfillval = mdistmax;
   lastthick = mdistmax;
   newprim(&envblock, XBLOCK, NULL);
+  /*D; if debuglevel > 0 then printobject(envblock) D*/
   resetenv(0, envblock);
 }
 
 
-void deletebufs(fbuffer **p)
+void deleteinbufs(fbuffer **p)
 {
   fbuffer *q;
 
@@ -3380,7 +3463,7 @@ void deletebufs(fbuffer **p)
 }
 
 
-double intpow(double x, long k)
+double intpow(double x, int k)
 {
   /* 0^(-k) does not occur */
   if (k == 0) {
@@ -3415,7 +3498,7 @@ void getscale(double xv, double yv, primitive *lp, double *sfact,
      xsc = effective scale factor to achieve correct max picture size
      ie (size in inches)/(desired size in inches) */
   double gs;
-  long erno;
+  int erno;
   primitive *qp;
 
   erno = 0;
@@ -3424,23 +3507,25 @@ void getscale(double xv, double yv, primitive *lp, double *sfact,
   if (lp != NULL) {
     if (lp->ptype == XBLOCK) {
       qp = findenv(lp);
-      if (qp->UU.U26.env[XLscale - XLenvvar - 1] > 0.0)
-	*sfact = qp->UU.U26.env[XLscale - XLenvvar - 1];
+      if (qp->UU.Ublock.env[XLscale - XLenvvar - 1] > 0.0)
+	*sfact = qp->UU.Ublock.env[XLscale - XLenvvar - 1];
       /*D if debuglevel > 0 then begin
-         write(log,'getscale: sfact=');
-         wfloat(log,sfact); writeln(log) end; D*/
+        write(log,'getscale: sfact='); wfloat(log,sfact);
+        write(log,' maxpswid='); wfloat(log,qp^.env^[XLmaxpswid]);
+        write(log,' maxpsht='); wfloat(log,qp^.env^[XLmaxpsht]);
+        writeln(log) end; D*/
       if (east > west &&
-	  (east - west) / *sfact > qp->UU.U26.env[XLmaxpswid - XLenvvar - 1] &&
-	  qp->UU.U26.env[XLmaxpswid - XLenvvar - 1] > 0.0) {
+	  (east - west) / *sfact > qp->UU.Ublock.env[XLmaxpswid - XLenvvar - 1] &&
+	  qp->UU.Ublock.env[XLmaxpswid - XLenvvar - 1] > 0.0) {
 	erno = 903;
-	gs = (east - west) / qp->UU.U26.env[XLmaxpswid - XLenvvar - 1];
+	gs = (east - west) / qp->UU.Ublock.env[XLmaxpswid - XLenvvar - 1];
       }
       if (north > south &&
-	  (north - south) / *sfact > qp->UU.U26.env[XLmaxpsht - XLenvvar - 1] &&
-	  qp->UU.U26.env[XLmaxpsht - XLenvvar - 1] > 0.0) {
+	  (north - south) / *sfact > qp->UU.Ublock.env[XLmaxpsht - XLenvvar - 1] &&
+	  qp->UU.Ublock.env[XLmaxpsht - XLenvvar - 1] > 0.0) {
 	erno = 904;
 	gs = Max(gs,
-		 (north - south) / qp->UU.U26.env[XLmaxpsht - XLenvvar - 1]);
+		 (north - south) / qp->UU.Ublock.env[XLmaxpsht - XLenvvar - 1]);
       }
     }
   }
@@ -3491,7 +3576,7 @@ void addelem(primitive *prold, primitive *prnew)
 void copyprim(primitive *prin, primitive **prout)
 {
   /* Needed because assignment of variant records is unreliable */
-  long i;
+  int i;
 
   if (prin == NULL)
     return;
@@ -3513,33 +3598,36 @@ void copyprim(primitive *prin, primitive **prout)
 
   case XLbox:
   case XLstring:
-    (*prout)->UU.U157.boxfill = prin->UU.U157.boxfill;
-    (*prout)->UU.U157.boxheight = prin->UU.U157.boxheight;
-    (*prout)->UU.U157.boxwidth = prin->UU.U157.boxwidth;
-    (*prout)->UU.U157.boxradius = prin->UU.U157.boxradius;
+    (*prout)->UU.Ubox.boxfill = prin->UU.Ubox.boxfill;
+    (*prout)->UU.Ubox.boxheight = prin->UU.Ubox.boxheight;
+    (*prout)->UU.Ubox.boxwidth = prin->UU.Ubox.boxwidth;
+    (*prout)->UU.Ubox.boxradius = prin->UU.Ubox.boxradius;
     break;
 
   case XBLOCK:
-    (*prout)->UU.U26.blockheight = prin->UU.U26.blockheight;
-    (*prout)->UU.U26.blockwidth = prin->UU.U26.blockwidth;
-    (*prout)->UU.U26.here = prin->UU.U26.here;
-    (*prout)->UU.U26.vars = prin->UU.U26.vars;
-    if (prin->UU.U26.env != NULL) {
-      (*prout)->UU.U26.env = Malloc(sizeof(envarray));
+    (*prout)->UU.Ublock.blockheight = prin->UU.Ublock.blockheight;
+    (*prout)->UU.Ublock.blockwidth = prin->UU.Ublock.blockwidth;
+    (*prout)->UU.Ublock.here = prin->UU.Ublock.here;
+    for (i = 0; i <= HASHLIM; i++) {
+      (*prout)->UU.Ublock.vars[i] = prin->UU.Ublock.vars[i];
+      (*prout)->UU.Ublock.nvars[i] = prin->UU.Ublock.nvars[i];
+    }
+    if (prin->UU.Ublock.env != NULL) {
+      (*prout)->UU.Ublock.env = Malloc(sizeof(envarray));
       for (i = XLenvvar; i < XLlastenv; i++)
-	(*prout)->UU.U26.env[i - XLenvvar] = prin->UU.U26.env[i - XLenvvar];
+	(*prout)->UU.Ublock.env[i - XLenvvar] = prin->UU.Ublock.env[i - XLenvvar];
     }
     break;
 
   case XLcircle:
-    (*prout)->UU.U158.cfill = prin->UU.U158.cfill;
-    (*prout)->UU.U158.radius = prin->UU.U158.radius;
+    (*prout)->UU.Ucircle.cfill = prin->UU.Ucircle.cfill;
+    (*prout)->UU.Ucircle.radius = prin->UU.Ucircle.radius;
     break;
 
   case XLellipse:
-    (*prout)->UU.U159.efill = prin->UU.U159.efill;
-    (*prout)->UU.U159.elheight = prin->UU.U159.elheight;
-    (*prout)->UU.U159.elwidth = prin->UU.U159.elwidth;
+    (*prout)->UU.Uellipse.efill = prin->UU.Uellipse.efill;
+    (*prout)->UU.Uellipse.elheight = prin->UU.Uellipse.elheight;
+    (*prout)->UU.Uellipse.elwidth = prin->UU.Uellipse.elwidth;
     break;
 
   case XLline:
@@ -3547,12 +3635,12 @@ void copyprim(primitive *prin, primitive **prout)
   case XLmove:
   case XLarc:
   case XLspline:
-    (*prout)->UU.U161.endpos = prin->UU.U161.endpos;
-    (*prout)->UU.U161.height = prin->UU.U161.height;
-    (*prout)->UU.U161.width = prin->UU.U161.width;
-    (*prout)->UU.U161.lfill = prin->UU.U161.lfill;
-    (*prout)->UU.U161.aradius = prin->UU.U161.aradius;
-    (*prout)->UU.U161.atype = prin->UU.U161.atype;
+    (*prout)->UU.Uline.endpos = prin->UU.Uline.endpos;
+    (*prout)->UU.Uline.height = prin->UU.Uline.height;
+    (*prout)->UU.Uline.width = prin->UU.Uline.width;
+    (*prout)->UU.Uline.lfill = prin->UU.Uline.lfill;
+    (*prout)->UU.Uline.aradius = prin->UU.Uline.aradius;
+    (*prout)->UU.Uline.atype = prin->UU.Uline.atype;
     break;
 
   case XLabel:
@@ -3585,37 +3673,27 @@ void deletestringbox(primitive **pr)
 }
 
 
-void marknotfound(Char *chb, chbufinx inx, chbufinx len)
-{
-  long i;
-
-  markerror(855);
-  fprintf(stderr_, "\nSearch failure for \"");
-  for (i = inx; i < inx + len; i++)
-    putc(chb[i], stderr_);
-  fprintf(stderr_, "\"\n");
-}
-
-
-/*        addsuffix(chbuf,chbufx,length,attstack^[newp+1].xval); */
-void addsuffix(Char *buf, chbufinx *inx, long *len, double suff)
-{   /*DBUMX writeln(log,ord(buf),inx,len,' ',suff); XMUBD*/
-  long i, j, FORLIM;
+/* addsuffix(chbuf,chbufx,length,attstack^[newp+1].xval); */
+void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
+{   /*DGH ordp HGD*/
+  int i, j, FORLIM;
 
   /*D if debuglevel <> 0 then begin writeln(log,
-     'addsuffix(buf: chbufp; var inx:chbufinx; var len:integer; suff: real)');
-     D*/
-  /*DGH writeln(log,ordp(buf),inx,len,' ',suff); HGD*/
-  /*D
-  snapname(buf,inx,len); writeln(log)
-  end; D*/
+    'addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; suff:real)');
+     write(log,D*/
+  /*DBUMX ord XMUBD*/
+  /*D(buf):1,
+         ' inx=',inx:1,' len=',len:1,' suff=');
+        wfloat(log,suff); write(log,' chbufi=',chbufi:1);
+        snapname(buf,inx,len); writeln(log) end; D*/
   if (chbufi + *len - 1 > CHBUFSIZ)
     fatal(4);
-  /* for i:=0 to len-1 do buf^[chbufi+i] := buf^[inx+i]; */
-  j = *inx - chbufi;
-  FORLIM = chbufi + *len;
-  for (i = chbufi; i < FORLIM; i++)
-    buf[i] = buf[j + i];
+  if (*inx + *len != chbufi) {
+    FORLIM = *len;
+    for (i = 0; i < FORLIM; i++)
+      buf[chbufi + i] = buf[*inx + i];
+    *inx = chbufi;
+  }
   i = (long)floor(suff + 0.5);
   if (i < 0) {
     (*len)++;
@@ -3626,26 +3704,26 @@ void addsuffix(Char *buf, chbufinx *inx, long *len, double suff)
     i /= 10;
   } while (i != 0);
   *len += 2;
-  if (chbufi + *len - 1 > CHBUFSIZ)
+  if (*inx + *len - 1 > CHBUFSIZ)
     fatal(4);
-  buf[chbufi + *len - 1] = ']';
+  buf[*inx + *len - 1] = ']';
   j = *len - 2;
   i = (long)floor(suff + 0.5);
   if (i < 0)
     i = -i;
   do {
-    buf[chbufi + j] = (Char)(i % 10 + '0');
-/* p2c: dpic.p, line 1876:
+    buf[*inx + j] = i % 10 + '0';
+/* p2c: dpic.p, line 1853:
  * Note: Using % for possibly-negative arguments [317] */
     j--;
     i /= 10;
   } while (i != 0);
   if ((long)floor(suff + 0.5) < 0) {
-    buf[chbufi + j] = '-';
+    buf[*inx + j] = '-';
     j--;
   }
-  buf[chbufi + j] = '[';
-  *inx = chbufi;
+  buf[*inx + j] = '[';
+  chbufi = *inx + *len;   /* ?? */
   /*D ; if debuglevel <> 0 then begin
      snapname(buf,inx,len); writeln(log) end D*/
 }  /* addsuffix */
@@ -3670,33 +3748,33 @@ void appendthen(primitive **pr)
 }
 
 
-void lineardir(primitive *pr, double dy, double dx, long *state)
+void lineardir(primitive *pr, double dy, double dx, int *state)
 {
   if (!(teststflag(*state, XLto) | teststflag(*state, XLdirecton)))
-    pr->UU.U161.endpos = pr->aat;
+    pr->UU.Uline.endpos = pr->aat;
   switch (pr->direction) {
 
   case XLup:
-    pr->UU.U161.endpos.ypos += dy;
+    pr->UU.Uline.endpos.ypos += dy;
     break;
 
   case XLdown:
-    pr->UU.U161.endpos.ypos -= dy;
+    pr->UU.Uline.endpos.ypos -= dy;
     break;
 
   case XLleft:
-    pr->UU.U161.endpos.xpos -= dx;
+    pr->UU.Uline.endpos.xpos -= dx;
     break;
 
   case XLright:
-    pr->UU.U161.endpos.xpos += dx;
+    pr->UU.Uline.endpos.xpos += dx;
     break;
   }
   setstflag(state, XLdirecton);
 }
 
 
-boolean hasoutline(long lx, boolean warn)
+boolean hasoutline(int lx, boolean warn)
 {
   boolean hs;
 
@@ -3710,7 +3788,7 @@ boolean hasoutline(long lx, boolean warn)
 }
 
 
-boolean hasshade(long lx, boolean warn)
+boolean hasshade(int lx, boolean warn)
 {
   boolean hs;
 
@@ -3724,58 +3802,43 @@ boolean hasshade(long lx, boolean warn)
 	  (lx == XLspline || lx == XLarrow || lx == XLline || lx == XLarc));
   if (drawmode == SVG)
     hs = (hs || lx == XLstring);
-
   if (!hs && warn)
     markerror(858);
   return hs;
 }
 
 
-/*                   This is the syntactic action routine. */
-void produce(stackinx newp, long p)
+/* This is the syntactic action routine. */
+void produce(stackinx newp, int p)
 {
   /* newp: stackinx; p: integer */
   Char lastc;
-  nametype *lastn, *namptr;
+  nametype *lastvar, *namptr;
   fbuffer *lastm;
   arg *macp, *lastp;
   primitive *primp, *prp, *eb;
-  long i, j, k, kk, lj, ll, nexprs;
+  int i, j, k, kk, lj, ll, nexprs;
   double r, s, t, x1, y1, dx, dy, ts;
   boolean bswitch;
   attribute *WITH, *WITH1;
   primitive *WITH2;
   attribute *WITH3;
   nametype *WITH4;
-  long FORLIM;
+  int FORLIM;
   fbuffer *WITH5;
   postype *WITH6;
 
-  /* D if (debuglevel > 0) then begin
-        writeln(     'Production(newp=',newp:1,
-                     ',lexval=',attstack^[newp].lexval:1,
-                     ',prod=',p:1,')' )
-        end; D */
-  /*D if (debuglevel > 0) then begin
-     writeln(log, 'Production(newp=',newp:1,
-                  ',lexval=',attstack^[newp].lexval:1,
-                  ',prod=',p:1,')' );
-     flush(log)
-     end; D*/
-  /* Dwriteln('Produce Step 1, debuglevel=',debuglevel);
-     writeln(log,'Produce Step 1'); D */
-
   WITH = &attstack[newp];
-
   /*D with attstack^[newp] do if (debuglevel = 2) and (
      ((p >= block1) and (p <= block3)) or
      ((p > object1) and (p <= object23))
-     or (p in [sprintf2,string2,element5,element11,namedbox2]))
+     or (p in [sprintf2,string2,element5,element11,namedobj2]))
        then printobject(prim);
   if debuglevel > 0 then with attstack^[newp] do
      if p in [ assignment1..assignment4,
                expression1..expression5,
                logexpr2,
+               ncount2,
                term2..term4,
                factor2,factor3,
                logprod2,
@@ -3783,15 +3846,33 @@ void produce(stackinx newp, long p)
                lcompare3,lcompare4,
                primary1..primary11
                ] then begin
-           write(log,'value='); wfloat(log,xval);
-           writeln(log) end
+           write(log,'(After prod=',p:1,')');
+           write(log,' value='); wfloat(log,xval);
+           write(log,' chbufx='); wfloat(log,chbufx);
+           write(log,' chbufi='); wfloat(log,chbufi);
+           writeln(log);
+           prvars(newp)
+           end
      else if p in [position1..position3,
         location1,location2,shift2,shift3,place1..place3] then begin
         write(log,'location:');
         with attstack^[newp] do wpair(log,xval,yval);
         writeln(log); flush(log); end D*/
   /*D;if (linesignal > 0) and (p=input2) then begin
-      writeln(stderr,'bottom:'); flush(stderr); end D*/
+      writeln(errout,'bottom:'); flush(errout); end D*/
+  /* D if (debuglevel > 0) then begin
+        writeln( 'Production(newp=',newp:1,
+                     ',lexval=',attstack^[newp].lexval:1,
+                     ',prod=',p:1,')' )
+        end; D */
+  /*D if (debuglevel > 0) then begin
+        writeln(log, 'Production(newp=',newp:1,
+                     ',lexval=',attstack^[newp].lexval:1,
+                     ',prod=',p:1,')' );
+        flush(log)
+        end; D*/
+  /* D writeln('Produce Step 1, debuglevel=',debuglevel);
+       writeln(log,'Produce Step 1'); D */
   switch (p) {
 
   case -2:
@@ -3805,35 +3886,32 @@ void produce(stackinx newp, long p)
     inbuf = NULL;
     break;
 
-  /*      METAGOAL = input "<EOF>"   */
-
+  /* METAGOAL = input "<EOF>" */
   case METAGOAL1:
     break;
 
-  /*      input = "<EMPTY>"   */
-  /*            | input picture NL   */
+  /* input = "<EMPTY>" */
+  /* | input picture NL */
   case input1:
     break;
 
   case input2:
     /*D if debuglevel > 0 then writeln(log,'deletetree:');
-        if linesignal > 0 then writeln(stderr,'deletetree:');flush(stderr);D*/
+        if linesignal > 0 then writeln(errout,'deletetree:');flush(errout);D*/
     deletetree(&envblock);
-
-    /*D if debuglevel > 0 then writeln(log,'deletebufs:');
-        if linesignal > 0 then writeln(stderr,'deletebufs:');flush(stderr);D*/
-    deletebufs(&freebuf);
-
+    /*D if debuglevel > 0 then writeln(log,'deleteinbufs:');
+        if linesignal > 0 then writeln(errout,'deleteinbufs:');
+        flush(errout);D*/
+    deleteinbufs(&freeinbuf);
     /*D if debuglevel > 0 then writeln(log,'inittwo:');
-        if linesignal > 0 then writeln(stderr,'inittwo:'); flush(stderr); D*/
+        if linesignal > 0 then writeln(errout,'inittwo:'); flush(errout); D*/
     inittwo();
-
     if (envblock != NULL)
       envblock->direction = XLright;
     break;
 
-  /*      picture = start NL elementlist "<END>"   */
-  /*              | start NL elementlist NL "<END>"   */
+  /* picture = start NL elementlist "<END>" */
+  /* | start NL elementlist NL "<END>" */
   case picture1:
   case picture2:
     if (WITH->prim != NULL)
@@ -3850,8 +3928,8 @@ void produce(stackinx newp, long p)
       WITH2 = envblock;
       WITH2->aat.xpos = (east + west) * 0.5;
       WITH2->aat.ypos = (north + south) * 0.5;
-      WITH2->UU.U26.blockheight = north - south;
-      WITH2->UU.U26.blockwidth = east - west;
+      WITH2->UU.Ublock.blockheight = north - south;
+      WITH2->UU.Ublock.blockwidth = east - west;
     }
     if (((1L << ((long)drawmode)) &
 	 ((1L << ((long)xfig)) | (1L << ((long)SVG)))) != 0) {
@@ -3859,8 +3937,8 @@ void produce(stackinx newp, long p)
       if (drawmode == xfig)
 	shift(envblock, -west, -south);
       else {
-	r = envblock->UU.U26.env[XLlinethick - XLenvvar - 1] / 2 / 72 *
-	    envblock->UU.U26.env[XLscale - XLenvvar - 1];
+	r = envblock->UU.Ublock.env[XLlinethick - XLenvvar - 1] / 2 / 72 *
+	    envblock->UU.Ublock.env[XLscale - XLenvvar - 1];
 	/*D if debuglevel > 0 then begin
 	   write(log,' west='); wfloat(log,west);
 	   write(log,' south='); wfloat(log,south);
@@ -3885,27 +3963,30 @@ void produce(stackinx newp, long p)
     WITH3 = &attstack[newp];
     getscale(WITH3->xval, WITH3->yval, envblock, &scale, &fsc);
     /*D if debuglevel > 0 then begin
+       write(log,'Starting drawtree ================= ');
        with attstack^[newp] do if (xval > 0.0) and (east > west) then
-          begin write( log,'fsc='); wfloat(log, fsc ); writeln(log) end;
-       writeln(log,' ================='); flush(log) end; D*/
+          begin write( log,'fsc='); wfloat(log, fsc ) end;
+       writeln(log);
+       snaptree(envblock,0);
+       writeln(log); flush(log) end; D*/
     drawtree(north, south, east, west, envblock);
     break;
 
-  /*      NL = ["^M"]"<NL>"   */
-  /*         | "<ERROR>"   */
+  /* NL = ["^M"]"<NL>" */
+  /* | "<ERROR>" */
   case NL1:
   case NL2:
     break;
 
-  /*      start = "<START>"   */
-  /*            | "<START>" term   */
-  /*            | "<START>" term term   */
-  case start1:
+  /* start = "<START>" */
+  /* | "<START>" term */
+  /* | "<START>" term term */
+  case start1:   /*D if debuglevel > 0 then begin writeln(log,'.PS'); D*/
     break;
 
-  /*D if debuglevel > 0 then begin writeln(log,'.PS');
-     setenvironment(newp);
-     flush(log) end D*/
+  /* setenvironment(newp); */
+  /*D
+  flush(log) end D*/
   case start2:
     WITH->xval = attstack[newp + 1].xval;
     break;
@@ -3915,73 +3996,71 @@ void produce(stackinx newp, long p)
     WITH->yval = attstack[newp + 2].xval;
     break;
 
-  /*      elementlist = "<EMPTY>"   */
+  /* elementlist = "<EMPTY>" */
   case elementlist1:
     WITH->state = 0;
     break;
 
-  /*                  | element   */
+  /* | element */
   case elementlist2:
     WITH->state = 0;
     if (WITH->prim != NULL && WITH->lexval != XLcontinue) {
       i = newp - 1;
-      j = 0;
-      /*D if debuglevel>0 then
-          writeln(log,' Elementlist2: Searching for last drawn element'); D*/
+      j = 1;
+      /*D if debuglevel>0 then writeln(log,
+         ' Elementlist2: Searching for last drawn element'); D*/
       while (i > j) {
-	if ((attstack[i].lexval == XFOR || attstack[i].lexval == XLBRACE ||
+	if ((attstack[i].lexval == XLendfor || attstack[i].lexval == XFOR ||
+	     attstack[i].lexval == XLBRACE ||
 	     attstack[i].lexval == XSEMICOLON ||
-	     attstack[i].lexval == XNL) && attstack[i].prim == NULL) {
-	  /*repeat ,Xrepeat */
-	  i--;
-	  continue;
-	}
-	/*D if debuglevel > 0 then begin
-	   writeln(log,' Found: newp= ',newp:1,
-	      ', attstack^[',i:1,'].lexval= ',attstack^[i].lexval:1);
-	   if attstack^[i].prim<>nil then begin
-	      writeln(log,'attstack^[',i:1,'].prim= ');
-	      snaptype(log,attstack^[i].prim^.ptype)
-	      end
-	   end; D*/
-	j = i;
-	if (attstack[i].prim != NULL) {
-	  addelem(attstack[i].prim, WITH->prim);
-	  /*D if debuglevel > 0  then printobject(attstack^[i].prim); D*/
-	  WITH->state = i - newp;
-	  continue;
-	}
-	if (attstack[i].lexval == XLBRACKET) {
-	  attstack[i + 1].prim = WITH->prim;
-	  /*D if debuglevel > 0  then printobject(attstack^[i+1].prim); D*/
-	  WITH->state = i - newp + 1;
-	} else {
-	  attstack[i].prim = WITH->prim;
-	  /*D if debuglevel > 0  then printobject(attstack^[i].prim); D*/
-	  WITH->state = i - newp;
-	}
+	     attstack[i].lexval == XNL) && attstack[i].prim == NULL)
+	      /*repeat ,Xrepeat */
+		i--;
+	else
+	  j = i;
+      }
+      /*D if debuglevel > 0 then begin
+         if i = 1 then write(log,' Not found') else write(log,' Found:');
+         writeln(log,' newp= ',newp:1,
+            ', attstack^[',i:1,'].lexval= ',attstack^[i].lexval:1);
+         if attstack^[i].prim<>nil then begin
+            writeln(log,'attstack^[',i:1,'].prim= ');
+            snaptype(log,attstack^[i].prim^.ptype)
+            end
+         end; D*/
+      if (attstack[i].prim != NULL) {
+	addelem(attstack[i].prim, WITH->prim);
+	/*D if debuglevel > 0 then printobject(attstack^[i].prim); D*/
+	WITH->state = i - newp;
+      } else if (attstack[i].lexval == XLBRACKET) {
+	attstack[i + 1].prim = WITH->prim;
+	/*D if debuglevel > 0 then printobject(attstack^[i+1].prim); D*/
+	WITH->state = i - newp + 1;
+      } else {
+	attstack[i].prim = WITH->prim;
+	/*D if debuglevel > 0 then printobject(attstack^[i].prim); D*/
+	WITH->state = i - newp;
       }
     }
     break;
 
-  /*                  | elementlist NL element */
+  /* | elementlist NL element */
   case elementlist3:
     if (attstack[newp + 2].prim != NULL) {
       if (attstack[newp + 2].lexval != XLcontinue) {
 	if (WITH->prim == NULL) {
 	  attstack[newp] = attstack[newp + 2];
-	  redubuf[reduinx + REDUMAX].prod_ = elementlist2;
-	  reduinx--;
+	  doprod(elementlist2);
 	} else
 	  addelem(attstack[newp + WITH->state].prim, attstack[newp + 2].prim);
       }
     }
     break;
 
-  /*      term = factor   */
-  /*           | term "*" factor   */
-  /*           | term "/" factor   */
-  /*           | term "%" factor   */
+  /* term = factor */
+  /* | term "*" factor */
+  /* | term "/" factor */
+  /* | term "%" factor */
   case term1:
     break;
 
@@ -4004,23 +4083,23 @@ void produce(stackinx newp, long p)
     } else {
       WITH->xval = (long)floor(WITH->xval + 0.5) %
 		   (long)floor(attstack[newp + 2].xval + 0.5);
-/* p2c: dpic.p, line 2132:
+/* p2c: dpic.p, line 2089:
  * Note: Using % for possibly-negative arguments [317] */
     }
     break;
 
-  /*      element = namedbox   */
-  /*              | "<Label>" suffix ":" position   */
-  /*              | assignlist   */
-  /*              | "<directon>"   */
-  /*              | "<LaTeX>"   */
-  /*              | command   */
-  /*              | lbrace "lbrace" elementlist optnl "rbrace"   */
-  /*              | ifpart   */
-  /*              | elsehead "lbrace" elementlist optnl "rbrace"   */
-  /*              | for "rbrace"   */
-  /*              | "command" stringexpr   */
-  /*              | "exec" stringexpr   */
+  /* element = namedobj */
+  /* | "<Label>" suffix ":" position */
+  /* | assignlist */
+  /* | "<directon>" */
+  /* | "<LaTeX>" */
+  /* | command */
+  /* | lbrace "lbrace" elementlist optnl "rbrace" */
+  /* | ifpart */
+  /* | elsehead "lbrace" elementlist optnl "rbrace" */
+  /* | for "rbrace" */
+  /* | "command" stringexpr */
+  /* | "exec" stringexpr */
   case element1:
     if (WITH->prim != NULL) {
       prp = WITH->prim;
@@ -4028,8 +4107,8 @@ void produce(stackinx newp, long p)
 	  WITH->prim->ptype == XLarrow || WITH->prim->ptype == XLline) {
 	if (WITH->startchop != 0.0) {
 	  WITH2 = WITH->prim;
-	  dx = WITH2->UU.U161.endpos.xpos - WITH2->aat.xpos;
-	  dy = WITH2->UU.U161.endpos.ypos - WITH2->aat.ypos;
+	  dx = WITH2->UU.Uline.endpos.xpos - WITH2->aat.xpos;
+	  dy = WITH2->UU.Uline.endpos.ypos - WITH2->aat.ypos;
 	  s = linlen(dx, dy);
 	  /*D if debuglevel = 2 then begin
 	     write(log,' element1 startchop='); wfloat(log,startchop);
@@ -4044,8 +4123,8 @@ void produce(stackinx newp, long p)
 	while (prp->son != NULL)
 	  prp = prp->son;
 	if (WITH->endchop != 0.0) {
-	  dx = prp->UU.U161.endpos.xpos - prp->aat.xpos;
-	  dy = prp->UU.U161.endpos.ypos - prp->aat.ypos;
+	  dx = prp->UU.Uline.endpos.xpos - prp->aat.xpos;
+	  dy = prp->UU.Uline.endpos.ypos - prp->aat.ypos;
 	  s = linlen(dx, dy);
 	  /*D if debuglevel = 2 then begin
 	     write(log,' element1 endchop='); wfloat(log,endchop);
@@ -4053,8 +4132,8 @@ void produce(stackinx newp, long p)
 	     write(log,' s='); wfloat(log,s); writeln(log) end; D*/
 	  if (s != 0.0) {
 	    t = WITH->endchop / s;
-	    prp->UU.U161.endpos.xpos -= t * dx;
-	    prp->UU.U161.endpos.ypos -= t * dy;
+	    prp->UU.Uline.endpos.xpos -= t * dx;
+	    prp->UU.Uline.endpos.ypos -= t * dy;
 	  }
 	}
       }
@@ -4063,11 +4142,11 @@ void produce(stackinx newp, long p)
          with envblock^ do wpair(log,here.xpos,here.ypos); writeln(log);
          printobject(prim)
          end D*/
-      pexit(prp, &envblock->UU.U26.here);
+      pexit(prp, &envblock->UU.Ublock.here);
     }
     break;
 
-  /*              | "<Label>" suffix ":" position   */
+  /* | "<Label>" suffix ":" position */
   case element2:
     if (attstack[newp + 1].lexval != XEMPTY)
       addsuffix(chbuf, &WITH->chbufx, &WITH->length, attstack[newp + 1].xval);
@@ -4075,7 +4154,8 @@ void produce(stackinx newp, long p)
     if (prp == NULL) {
       newprim(&WITH->prim, XLabel, envblock);
       newstr(&WITH->prim->name);
-      addstring(&freeseg, WITH->prim->name, chbuf, WITH->chbufx, WITH->length);
+      storestring(&freeseg, WITH->prim->name, chbuf, WITH->chbufx,
+		  WITH->length);
       prp = WITH->prim;
     } else if (prp->ptype != XLabel) {
       newprim(&WITH->prim, XLabel, envblock);
@@ -4088,33 +4168,34 @@ void produce(stackinx newp, long p)
     /*D; if (debuglevel > 0) and (prim<>nil) then printobject(prim)D*/
     break;
 
-  /*              | assignlist   */
+  /* | assignlist */
   case element3:
     WITH->lexval = XLBRACE;
     break;
 
-  /*              | "<directon>"   */
+  /* | "<directon>" */
   case element4:
     envblock->direction = WITH->lexval;
     WITH->lexval = XLBRACE;
     break;
 
-  /*              | "<LaTeX>"   */
+  /* | "<LaTeX>" */
   case element5:
     newprim(&WITH->prim, XLaTeX, envblock);
     newstr(&WITH->prim->textp);
-    addstring(&freeseg, WITH->prim->textp, chbuf, WITH->chbufx, WITH->length);
+    storestring(&freeseg, WITH->prim->textp, chbuf, WITH->chbufx,
+		WITH->length);
     break;
 
-  /*              | command   */
+  /* | command */
   case element6:
     WITH->lexval = XLBRACE;
     break;
 
-  /*              | lbrace "lbrace" elementlist optnl "rbrace"   */
+  /* | lbrace "lbrace" elementlist optnl "rbrace" */
   case element7:
-    envblock->UU.U26.here.xpos = WITH->xval;
-    envblock->UU.U26.here.ypos = WITH->yval;
+    envblock->UU.Ublock.here.xpos = WITH->xval;
+    envblock->UU.Ublock.here.ypos = WITH->yval;
     if (WITH->state == XLright || WITH->state == XLleft ||
 	WITH->state == XLdown || WITH->state == XLup)
       envblock->direction = WITH->state;
@@ -4122,19 +4203,19 @@ void produce(stackinx newp, long p)
       attstack[newp] = attstack[newp + 2];
     break;
 
-  /*              | ifpart   */
+  /* | ifpart */
   case element8:
     break;
 
-  /*              | elsehead "lbrace" elementlist optnl "rbrace"   */
+  /* | elsehead "lbrace" elementlist optnl "rbrace" */
   case element9:
     break;
 
-  /*              | for "rbrace"   */
+  /* | for "rbrace" */
   case element10:
     break;
 
-  /*              | "command" stringexpr   */
+  /* | "command" stringexpr */
   case element11:
     if (attstack[newp + 1].prim != NULL) {
       newprim(&WITH->prim, XLaTeX, envblock);
@@ -4146,7 +4227,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*              | "exec" stringexpr   */
+  /* | "exec" stringexpr */
   case element12:
     if (attstack[newp + 1].prim != NULL) {
       if (attstack[newp + 1].prim->textp != NULL) {
@@ -4169,20 +4250,21 @@ void produce(stackinx newp, long p)
 	}
       }
     }
+    WITH->lexval = XLBRACE;
     break;
-    /*              | loop "}" */
-    /*              | break */
-    /*repeat element13,element14: ; */
 
-  /*      lbrace = "<EMPTY>"   */
+  /* | loop "}" */
+  /* | break */
+  /*repeat element13,element14: ; */
+  /* lbrace = "<EMPTY>" */
   case lbrace1:
-    WITH->xval = envblock->UU.U26.here.xpos;
-    WITH->yval = envblock->UU.U26.here.ypos;
+    WITH->xval = envblock->UU.Ublock.here.xpos;
+    WITH->yval = envblock->UU.Ublock.here.ypos;
     WITH->state = envblock->direction;
     break;
 
-  /*      namedbox = object   */
-  case namedbox1:
+  /* namedobj = object */
+  case namedobj1:
     if (WITH->prim != NULL) {  /* then, arc, deferred shift */
       prp = WITH->prim;
       while (isthen(WITH->prim))
@@ -4209,25 +4291,25 @@ void produce(stackinx newp, long p)
 	  shift(WITH->prim, WITH->xval - dx, WITH->yval - dy);
 	else {
 	  x1 = WITH2->aat.xpos +
-	       WITH2->UU.U161.aradius * cos(WITH2->UU.U161.endpos.xpos);
+	       WITH2->UU.Uline.aradius * cos(WITH2->UU.Uline.endpos.xpos);
 	      /* from */
 	  y1 = WITH2->aat.ypos +
-	       WITH2->UU.U161.aradius * sin(WITH2->UU.U161.endpos.xpos);
+	       WITH2->UU.Uline.aradius * sin(WITH2->UU.Uline.endpos.xpos);
 	  if (teststflag(WITH->state, XLto)) {
 		/* to X from Here|Y implied */
 		  if (i != XEMPTY && i != XDc)
 	      markerror(858);
-	    r = WITH2->aat.xpos + WITH2->UU.U161.aradius * cos(
-		    WITH2->UU.U161.endpos.xpos + WITH2->UU.U161.endpos.ypos);
+	    r = WITH2->aat.xpos + WITH2->UU.Uline.aradius * cos(
+		    WITH2->UU.Uline.endpos.xpos + WITH2->UU.Uline.endpos.ypos);
 		/* to */
-	    s = WITH2->aat.ypos + WITH2->UU.U161.aradius * sin(
-		    WITH2->UU.U161.endpos.xpos + WITH2->UU.U161.endpos.ypos);
+	    s = WITH2->aat.ypos + WITH2->UU.Uline.aradius * sin(
+		    WITH2->UU.Uline.endpos.xpos + WITH2->UU.Uline.endpos.ypos);
 	    WITH2->aat.xpos = WITH->xval;
 	    WITH2->aat.ypos = WITH->yval;
-	    WITH2->UU.U161.aradius = linlen(r - WITH2->aat.xpos,
+	    WITH2->UU.Uline.aradius = linlen(r - WITH2->aat.xpos,
 					    s - WITH2->aat.ypos);
-	    setangles(&WITH2->UU.U161.endpos.xpos,
-		      &WITH2->UU.U161.endpos.ypos, WITH2->aat, x1, y1, r, s);
+	    setangles(&WITH2->UU.Uline.endpos.xpos,
+		      &WITH2->UU.Uline.endpos.ypos, WITH2->aat, x1, y1, r, s);
 	  } else if (teststflag(WITH->state, XLfrom)) {
 	    if (i != XEMPTY && i != XDc)
 	      markerror(858);
@@ -4235,13 +4317,13 @@ void produce(stackinx newp, long p)
 	    WITH2->aat.ypos = WITH->yval;
 	    t = datan(y1 - WITH2->aat.ypos, x1 - WITH2->aat.xpos);
 	    r = WITH2->aat.xpos +
-		WITH2->UU.U161.aradius * cos(t + WITH2->UU.U161.endpos.ypos);
+		WITH2->UU.Uline.aradius * cos(t + WITH2->UU.Uline.endpos.ypos);
 	    s = WITH2->aat.ypos +
-		WITH2->UU.U161.aradius * sin(t + WITH2->UU.U161.endpos.ypos);
-	    WITH2->UU.U161.aradius = linlen(x1 - WITH2->aat.xpos,
+		WITH2->UU.Uline.aradius * sin(t + WITH2->UU.Uline.endpos.ypos);
+	    WITH2->UU.Uline.aradius = linlen(x1 - WITH2->aat.xpos,
 					    y1 - WITH2->aat.ypos);
-	    setangles(&WITH2->UU.U161.endpos.xpos,
-		      &WITH2->UU.U161.endpos.ypos, WITH2->aat, x1, y1, r, s);
+	    setangles(&WITH2->UU.Uline.endpos.xpos,
+		      &WITH2->UU.Uline.endpos.ypos, WITH2->aat, x1, y1, r, s);
 	  } else
 	    shift(WITH->prim, WITH->xval - dx, WITH->yval - dy);
 	}
@@ -4249,8 +4331,8 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*               | "<Label>" suffix ":" object   */
-  case namedbox2:
+  /* | "<Label>" suffix ":" object */
+  case namedobj2:
     if (attstack[newp + 3].prim != NULL) {
       if (attstack[newp + 1].lexval != XEMPTY)
 	addsuffix(chbuf, &WITH->chbufx, &WITH->length,
@@ -4264,16 +4346,15 @@ void produce(stackinx newp, long p)
 	/*D if debuglevel = 2 then
 	   writeln(log,'Label not found, creating it'); D*/
 	newstr(&WITH2->name);
-	addstring(&freeseg, WITH2->name, chbuf, WITH->chbufx, WITH->length);
+	storestring(&freeseg, WITH2->name, chbuf, WITH->chbufx, WITH->length);
       }
       attstack[newp] = attstack[newp + 3];
-      redubuf[reduinx + REDUMAX].prod_ = namedbox1;
-      reduinx--;
+      doprod(namedobj1);
     }
     break;
 
-  /*      suffix = "<EMPTY>"   */
-  /*             | "[" expression "]"   */
+  /* suffix = "<EMPTY>" */
+  /* | "[" expression "]" */
   case suffix1:
     WITH->lexval = XEMPTY;
     break;
@@ -4282,12 +4363,12 @@ void produce(stackinx newp, long p)
     WITH->xval = attstack[newp + 1].xval;
     break;
 
-  /*      position = pair   */
+  /* position = pair */
   case position1:
     break;
 
-  /*               | expression "between" position "and" position   */
-  /*               | expression "<" position "," position "<compare>" shift   */
+  /* | expression "between" position "and" position */
+  /* | expression "<" position "," position "<compare>" shift */
   case position2:
   case position4:
     r = WITH->xval;
@@ -4305,7 +4386,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*             | expression "of" "the" "way" "between" position "and" position*/
+  /* | expression "of" "the" "way" "between" position "and" position*/
   case position3:
     r = WITH->xval;
     WITH->xval = attstack[newp + 5].xval +
@@ -4314,8 +4395,8 @@ void produce(stackinx newp, long p)
 		 r * (attstack[newp + 7].yval - attstack[newp + 5].yval);
     break;
 
-  /*      assignlist = assignment   */
-  /*                 | assignlist "," assignment   */
+  /* assignlist = assignment */
+  /* | assignlist "," assignment */
   case assignlist1:
     break;
 
@@ -4323,9 +4404,9 @@ void produce(stackinx newp, long p)
     WITH->xval = attstack[newp + 2].xval;
     break;
 
-  /*      command = "print" expression redirect   */
-  /*              | "print" position redirect   */
-  /*              | "print" stringexpr redirect   */
+  /* command = "print" expression redirect */
+  /* | "print" position redirect */
+  /* | "print" stringexpr redirect */
   case command1:
   case command2:
   case command3:
@@ -4334,19 +4415,19 @@ void produce(stackinx newp, long p)
       switch (p) {
 
       case command1:
-	wfloat(&stderr_, WITH1->xval);
+	wfloat(&errout, WITH1->xval);
 	break;
 
       case command2:
-	wpair(&stderr_, WITH1->xval, WITH1->yval);
+	wpair(&errout, WITH1->xval, WITH1->yval);
 	break;
 
       case command3:
 	if (WITH1->prim != NULL)
-	  wstring(&stderr_, WITH1->prim->textp);
+	  wstring(&errout, WITH1->prim->textp);
 	break;
       }
-      putc('\n', stderr_);
+      putc('\n', errout);
       consoleflush();
     } else if (attstack[newp + 2].state == 0) {
 #ifndef SAFE_MODE
@@ -4375,16 +4456,16 @@ void produce(stackinx newp, long p)
       deletestringbox(&WITH1->prim);
     break;
 
-  /*              | "reset"   */
+  /* | "reset" */
   case command4:
     resetenv(0, envblock);
     break;
 
-  /*              | "reset" resetlist   */
+  /* | "reset" resetlist */
   case command5:
     break;
 
-  /*              | "sh" stringexpr   */
+  /* | "sh" stringexpr */
   case command6:
     WITH1 = &attstack[newp + 1];
     if (WITH1->prim != NULL) {
@@ -4410,7 +4491,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*              | "copy" stringexpr   */
+  /* | "copy" stringexpr */
   case command7:
     WITH1 = &attstack[newp + 1];
     if (WITH1->prim != NULL) {
@@ -4423,12 +4504,12 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*              | defhead optnl "lbrace" "rbrace"   */
+  /* | defhead optnl "lbrace" "rbrace" */
   case command8:
     break;
 
-  /*              | "undefine" "<name>"   */
-  /*              | "undefine" "<Label>"   */
+  /* | "undefine" "<name>" */
+  /* | "undefine" "<Label>" */
   case command9:
   case command10:
     attstack[newp] = attstack[newp + 1];
@@ -4443,17 +4524,17 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*      optnl = "<EMPTY>"   */
-  /*            | NL   */
+  /* optnl = "<EMPTY>" */
+  /* | NL */
   case optnl1:
   case optnl2:
     break;
 
-  /*      ifpart = ifhead "lbrace" elementlist optnl "rbrace"   */
+  /* ifpart = ifhead "lbrace" elementlist optnl "rbrace" */
   case ifpart1:
     break;
 
-  /*      elsehead = ifpart "else"   */
+  /* elsehead = ifpart "else" */
   case elsehead1:
     if (WITH->xval == 0.0) {
       attstack[newp + 1].lexval = XLBRACE;
@@ -4462,29 +4543,33 @@ void produce(stackinx newp, long p)
       skiptobrace();
     break;
 
-  /*      for = forhead "lbrace" elementlist optnl   */
-  /*          | forincr elementlist optnl   */
+  /* for = forhead "lbrace" elementlist optnl */
+  /* | for forincr "<endfor>" elementlist optnl */
   case for1:
   case for2:
     break;
 
-  /*      stringexpr = string   */
+  /* stringexpr = string */
   case stringexpr1:
     break;
 
-  /*                 | stringexpr "+" string   */
+  /* | stringexpr "+" string */
   case stringexpr2:
     if (attstack[newp + 2].prim != NULL) {
       WITH2 = WITH->prim;
       prp = attstack[newp + 2].prim;
-      WITH2->UU.U157.boxwidth += prp->UU.U157.boxwidth;
-      WITH2->UU.U157.boxheight = Max(WITH2->UU.U157.boxheight,
-				     prp->UU.U157.boxheight);
+      WITH2->UU.Ubox.boxwidth += prp->UU.Ubox.boxwidth;
+      WITH2->UU.Ubox.boxheight = Max(WITH2->UU.Ubox.boxheight,
+				     prp->UU.Ubox.boxheight);
       if (prp->textp != NULL) {
 	if (WITH2->textp == NULL) {
 	  WITH2->textp = prp->textp;
 	  prp->textp = NULL;
-	} else if (WITH2->textp->segmnt == prp->textp->segmnt) {
+	} else if (WITH2->textp->segmnt == prp->textp->segmnt &&
+	    WITH2->textp->seginx + WITH2->textp->len == prp->textp->seginx) {
+	  /*D if debuglevel > 0 then writeln(log,' stringexpr2 branch 1,',
+	     ' seginx,length=',textp^.seginx:1,',',textp^.len:1,
+	     ' seginx,length=',prp^.textp^.seginx:1,',',prp^.textp^.len:1); D*/
 	  WITH2->textp->len += prp->textp->len;
 	  putbval(WITH2->textp->segmnt, bval(WITH2->textp->segmnt) - 1);
 	  prp->textp->segmnt = NULL;
@@ -4496,74 +4581,98 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*      break = "break" */
-  /*repeat break1: if inbuf = nil then begin end
+  /* break = "break" */
+  /*repeat break1:
+     if inbuf = nil then begin end
      else if inbuf^.attrib <= 0 then begin end
      else if attstack^[inbuf^.attrib].lexval <> Xrepeat then markerror(858)
      else begin
         while inbuf^.nextb <> nil do inbuf := inbuf^.nextb ;
         inbuf^.attrib := -1 ;
         inbuf^.readx := inbuf^.savedlen+1
-        end; */
-
-  /*      string = "<string>"   */
+        end;
+     */
+  /* string = "<string>" */
   case string1:
     newprim(&WITH->prim, XLstring, envblock);
     eb = findenv(envblock);
     WITH2 = WITH->prim;
-    WITH2->UU.U157.boxheight = eb->UU.U26.env[XLtextht - XLenvvar - 1];
-    WITH2->UU.U157.boxwidth = eb->UU.U26.env[XLtextwid - XLenvvar - 1];
-    if (drawmode == xfig && WITH2->UU.U157.boxwidth == 0.0) {
+    WITH2->UU.Ubox.boxheight = eb->UU.Ublock.env[XLtextht - XLenvvar - 1];
+    WITH2->UU.Ubox.boxwidth = eb->UU.Ublock.env[XLtextwid - XLenvvar - 1];
+    if (drawmode == xfig && WITH2->UU.Ubox.boxwidth == 0.0) {
       /* To keep xfig from crashing, assume text height is 0.1
          and a character is 0.1*0.75 wide */
       eb = findenv(envblock);
-      if (WITH2->UU.U157.boxheight == 0.0)
-	WITH2->UU.U157.boxheight = 0.1 * eb->UU.U26.env[XLscale - XLenvvar - 1];
-      WITH2->UU.U157.boxwidth = WITH2->UU.U157.boxheight * WITH->length * 0.75;
+      if (WITH2->UU.Ubox.boxheight == 0.0)
+	WITH2->UU.Ubox.boxheight = 0.1 * eb->UU.Ublock.env[XLscale - XLenvvar - 1];
+      WITH2->UU.Ubox.boxwidth = WITH2->UU.Ubox.boxheight * WITH->length * 0.75;
     }
-    WITH2->UU.U157.boxradius = 0.0;
+    WITH2->UU.Ubox.boxradius = 0.0;
     newstr(&WITH2->textp);
-    addstring(&freeseg, WITH2->textp, chbuf, WITH->chbufx, WITH->length);
+    storestring(&freeseg, WITH2->textp, chbuf, WITH->chbufx, WITH->length);
     break;
 
-  /*             | sprintf ")"   */
+  /* | sprintf ")" */
   case string2:
     break;
 
-  /*      assignment = "<name>" suffix "=" expression   */
-  /*                 | "<name>" suffix "=" assignment   */
-  /*                 | "<envvar>" "=" expression   */
-  /*                 | "<envvar>" "=" assignment   */
+  /* assignment = "<name>" suffix "=" expression */
+  /* | "<name>" suffix "=" assignment */
   case assignment1:
   case assignment2:
     if (attstack[newp + 1].lexval != XEMPTY)
       addsuffix(chbuf, &WITH->chbufx, &WITH->length, attstack[newp + 1].xval);
-    if (attstack[newp + 2].lexval == XEQ) {
-      WITH->varname = findname(envblock->UU.U26.vars, chbuf, WITH->chbufx,
-			       WITH->length, &lastn);
-      if (WITH->varname == NULL) {
-	newstr(&WITH->varname);
-	addstring(&freeseg, WITH->varname, chbuf, WITH->chbufx, WITH->length);
-	if (lastn == NULL)
-	  envblock->UU.U26.vars = WITH->varname;
-	else
-	  lastn->next_ = WITH->varname;
+    WITH->varname = findname(envblock, chbuf, WITH->chbufx, WITH->length,
+			     &lastvar, &k);
+    if (WITH->varname == NULL && attstack[newp + 2].lexval != XEQ)
+      WITH->varname = glfindname(envblock->parent, chbuf, WITH->chbufx,
+				 WITH->length, &namptr, &kk);
+    if (WITH->varname == NULL) {
+      newstr(&WITH->varname);
+      j = varhash(chbuf, WITH->chbufx, WITH->length);
+      storestring(&freeseg, WITH->varname, chbuf, WITH->chbufx, WITH->length);
+      WITH2 = envblock;
+      /*D if debuglevel > 1 then begin
+          writeln(log,'assignment1: envblock=',ordp(envblock):1,
+                  ' eqstr val=',k:1);
+          write(log,' lastvar=',ordp(lastvar):1);
+                  if lastvar<>nil then with lastvar^ do
+                    snapname(segmnt,seginx,len); writeln(log) end; D*/
+      /*D if debuglevel > 1 then begin writeln(log,
+                   ' varname=',ordp(varname):1); prvars(newp) end; D*/
+      if (lastvar == NULL)
+	WITH2->UU.Ublock.vars[j] = WITH->varname;
+      else if (k < 0) {
+	if (WITH2->UU.Ublock.vars[j]->next_ == NULL)
+	  WITH2->UU.Ublock.vars[j]->next_ = WITH->varname;
+	else {
+	  WITH->varname->next_ = lastvar->next_;
+	  lastvar->next_ = WITH->varname;
+	}
+      } else if (lastvar == WITH2->UU.Ublock.vars[j]) {
+	WITH->varname->next_ = WITH2->UU.Ublock.vars[j];
+	WITH2->UU.Ublock.vars[j] = WITH->varname;
+      } else {
+	namptr = WITH2->UU.Ublock.vars[j];
+	/* while (namptr^.next<>nil) and (namptr^.next<>lastvar) do */
+	while (namptr->next_ != lastvar)
+	  namptr = namptr->next_;
+	namptr->next_ = WITH->varname;
+	WITH->varname->next_ = lastvar;
       }
+      WITH2->UU.Ublock.nvars[j]++;
+      WITH->varname->val = 0.0;
+    }
+    if (attstack[newp + 2].lexval == XEQ)
       WITH->varname->val = attstack[newp + 3].xval;
-    } else {
-      WITH->varname = glfindname(envblock, chbuf, WITH->chbufx, WITH->length,
-				 &lastn);
-      if (WITH->varname != NULL)
-	eqop(&WITH->varname->val, attstack[newp + 2].lexval,
-	     attstack[newp + 3].xval);
-    }
-    if (WITH->varname != NULL) {
-      WITH->xval = WITH->varname->val;
-      /*D; if debuglevel > 0 then
-         writeln(log,' varname <> nil=',varname <> nil:1) D*/
-    }
+    else
+      eqop(&WITH->varname->val, attstack[newp + 2].lexval,
+	   attstack[newp + 3].xval);
+    WITH->xval = WITH->varname->val;
     break;
 
+  /* | "<envvar>" "=" expression */
+  /* | "<envvar>" "=" assignment */
   case assignment3:
   case assignment4:
     if (envblock != NULL) {
@@ -4574,15 +4683,15 @@ void produce(stackinx newp, long p)
 	       attstack[newp + 2].xval == 0.0)
 	markerror(858);
       else {
-	if (envblock->UU.U26.env == NULL)
+	if (envblock->UU.Ublock.env == NULL)
 	  inheritenv(envblock);
-	eqop(&envblock->UU.U26.env[WITH->lexval - XLenvvar - 1],
+	eqop(&envblock->UU.Ublock.env[WITH->lexval - XLenvvar - 1],
 	     attstack[newp + 1].lexval, attstack[newp + 2].xval);
       }
-      WITH->xval = envblock->UU.U26.env[WITH->lexval - XLenvvar - 1];
+      WITH->xval = envblock->UU.Ublock.env[WITH->lexval - XLenvvar - 1];
       /*D if debuglevel > 0 then begin
          write(log,
-         ' Assignment3,4 envblock[',ordp(envblock),']: lexval=',lexval:1,
+         ' Assignment3or4 envblock[',ordp(envblock),']: lexval=',lexval:1,
          ' value='); wfloat(log,envblock^.env^[lexval]); writeln(log) end; D*/
       WITH->startchop = WITH->lexval;
       if (WITH->lexval == XLdashwid || WITH->lexval == XLlinethick) {
@@ -4596,11 +4705,11 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*      expression = term   */
-  /*                 | "+" term   */
-  /*                 | "-" term   */
-  /*                 | expression "+" term   */
-  /*                 | expression "-" term   */
+  /* expression = term */
+  /* | "+" term */
+  /* | "-" term */
+  /* | expression "+" term */
+  /* | expression "-" term */
   case expression1:
     break;
 
@@ -4620,7 +4729,7 @@ void produce(stackinx newp, long p)
     WITH->xval -= attstack[newp + 2].xval;
     break;
 
-  /*      ifhead = setlogic "if" logexpr "then"   */
+  /* ifhead = setlogic "if" logexpr "then" */
   case ifhead1:
     inlogic = false;
     WITH->xval = attstack[newp + 2].xval;
@@ -4634,13 +4743,13 @@ void produce(stackinx newp, long p)
       skiptobrace();
     break;
 
-  /*      setlogic = "<EMPTY>"   */
+  /* setlogic = "<EMPTY>" */
   case setlogic1:
     inlogic = true;
     break;
 
-  /*      logexpr = logprod   */
-  /*              | logexpr "||" logprod   */
+  /* logexpr = logprod */
+  /* | logexpr "||" logprod */
   case logexpr1:
     break;
 
@@ -4651,92 +4760,116 @@ void produce(stackinx newp, long p)
       WITH->xval = 0.0;
     break;
 
-  /*      forhead = "for" assignlist "to" expression do   */
+  /* forhead = "for" assignlist "to" expression do */
   case forhead1:
-    if (attstack[newp + 1].startchop == 0.0)
-      WITH->varname = attstack[newp + 1].varname;
-    else
-      WITH->startchop = attstack[newp + 1].startchop;
-    WITH->xval = attstack[newp + 1].xval;   /* initial value  */
+    WITH->xval = attstack[newp + 1].xval;   /* initial value */
     WITH->yval = attstack[newp + 4].xval;   /* increment */
-    r = attstack[newp + 3].xval;   /* final value */
+    WITH->endchop = attstack[newp + 3].xval;   /* final value */
     WITH->length = 0;
-    if (WITH->xval == r)
-      WITH->length = 1;
-    else if (attstack[newp + 4].lexval == XSTAR && WITH->xval == 0.0)
-      markerror(860);
-    else if (attstack[newp + 4].lexval == XSTAR) {
-      t = r / WITH->xval;
-      if (t <= 0.0 || WITH->yval < 0.0)
-	markerror(862);
-      else if (WITH->yval == 0.0 && t > 1.0)
-	markerror(860);
-      else if (WITH->yval == 0.0)
+    if (WITH->xval == WITH->endchop) {
+      WITH->length = -1;
+      WITH->yval = 1.0;
+    } else if (attstack[newp + 4].lexval == XSTAR) {
+      t = 0.0;
+      if (WITH->xval == 0.0)
+	WITH->length = 860;
+      else
+	t = WITH->endchop * WITH->xval;
+      if (t < 0.0)   /* or (yval < 0.0) */
+	WITH->length = 862;
+      else if (t == 0.0 && fabs(WITH->yval * WITH->xval) != 0.0)
+	WITH->length = 860;
+      else if (WITH->yval == 0.0 && t != 0.0)
+	WITH->length = 860;
+      else if (fabs(WITH->yval) == 1 &&
+	       fabs(WITH->xval) != fabs(WITH->endchop))
+	WITH->length = 860;
+      else
 	WITH->length = 1;
-      else {
-	r = log(t) / log(WITH->yval);
-	if (r < 0.0)
-	  markerror(860);
-	else
-	  WITH->length = (long)r + 1;
-      }
     } else if (WITH->yval == 0.0)
-      markerror(860);
-    else {
-      r = (r - WITH->xval) / WITH->yval;
-      if (r >= 0.0)
-	WITH->length = -((long)r + 1);
+      WITH->length = 860;
+    else if ((WITH->endchop - WITH->xval) * WITH->yval > 0)
+      WITH->length = -1;
+    if (WITH->length > 800) {
+      markerror(WITH->length);
+      WITH->length = 0;
     }
-    if (WITH->length == 0)
-      skiptobrace();
-    else {
-      for (i = 0; i <= 4; i++) {
-	attstack[newp + i].lexval = XLBRACE;
-
-	/*D; if debuglevel > 0 then begin
-	   write(log,'for: initial='); wfloat(log,xval);
-	   write(log,' final='); wfloat(log,attstack^[newp+3].xval);
-	   write(log,' incr='); wfloat(log,yval);
-	   writeln(log,' count=',length:1); end; D*/
-      }
-    }
-    break;
-
-  /*      forincr = for ":"   */
-  case forincr1:
-    /* compute loop variable */
-    if (WITH->length < 0)
-      WITH->xval += WITH->yval;
-    else
-      WITH->xval *= WITH->yval;
-    /*D if debuglevel > 0 then begin write(log,'forincr: xval=');
-        wfloat(log,xval) end; D*/
     /* store loop variable */
-    if (WITH->varname != NULL) {
+    WITH->startchop = attstack[newp + 1].startchop;
+    if (WITH->startchop == 0.0) {
+      WITH->varname = attstack[newp + 1].varname;
       WITH->varname->val = WITH->xval;
-      /* loop variable is an env variable */
     } else if ((long)floor(WITH->startchop + 0.5) != XLscale) {
-      if (envblock->UU.U26.env == NULL)
+      if (envblock->UU.Ublock.env == NULL)
 	inheritenv(envblock);
-      envblock->UU.U26.env[(int)((long)floor(WITH->startchop + 0.5)) -
+      envblock->UU.Ublock.env[(int)((long)floor(WITH->startchop + 0.5)) -
 			   XLenvvar - 1] = WITH->xval;
     } else
       resetscale(WITH->xval, XEQ, envblock);
-
-    /*D if debuglevel > 0 then begin writeln(log,' varname <> nil=',
-       varname <> nil:1) end; D*/
-    /*D if debuglevel = 2 then begin prtstval(state); writeln(log,
-             ' xval ', xval:7:4 ); flush(log) end; D*/
-    for (i = 0; i <= 1; i++)
-      attstack[newp + i].lexval = XLBRACE;
+    if (WITH->length == 0)
+      skiptobrace();
+    else {
+      for (i = 0; i <= 4; i++)
+	attstack[newp + i].lexval = XLBRACE;
+      readfor(NULL, newp, &inbuf);
+    }
     break;
 
-  /*      loop = loophead "{" elementlist optnl */
-  /*           | loopincr elementlist optnl */
-  /*repeat loop1,loop2: ; */
+  /* forincr = "<EMPTY>" */
+  case forincr1:
+    WITH->lexval = XLBRACE;
+    WITH1 = &attstack[newp - 1];
+    if (WITH1->varname != NULL)
+      WITH1->xval = WITH1->varname->val;
+    else
+      WITH1->xval = envblock->UU.Ublock.env[(int)((long)floor(WITH1->startchop + 0.5)) -
+					 XLenvvar - 1];
+    bswitch = false;
+    if (WITH1->length < 0) {
+      if (WITH1->yval == 0)
+	bswitch = true;
+      else {
+	WITH1->xval += WITH1->yval;
+	if (WITH1->yval > 0 && WITH1->xval > WITH1->endchop ||
+	    WITH1->yval < 0 && WITH1->xval < WITH1->endchop)
+	  bswitch = true;
+      }
+    } else if (WITH1->xval == 0)
+      bswitch = true;
+    else {
+      WITH1->xval *= WITH1->yval;
+      if (fabs(WITH1->yval) >= 1.0 && fabs(WITH1->xval) > fabs(WITH1->endchop) ||
+	  fabs(WITH1->yval) < 1.0 && fabs(WITH1->xval) < fabs(WITH1->endchop))
+	bswitch = true;
+    }
+    if (WITH1->varname != NULL)
+      WITH1->varname->val = WITH1->xval;
+    else if ((long)floor(WITH1->startchop + 0.5) != XLscale)
+      envblock->UU.Ublock.env[(int)((long)floor(WITH1->startchop + 0.5)) -
+			   XLenvvar - 1] = WITH1->xval;
+    else
+      resetscale(WITH1->xval, XEQ, envblock);
+    /*D if debuglevel > 0 then begin write(log,'forincr1: xval=');
+        wfloat(log,xval); writeln(log,' bswitch=',bswitch) end; D*/
+    if (bswitch) {
+      while (inbuf->attrib < 0) {
+	lastm = inbuf;
+	inbuf = newinbuf(inbuf->higherb);   /*D,4D*/
+	/*D; if debuglevel > 0 then wrbuf(inbuf,3,0) D*/
+	disposebufs(&lastm);
+      }
+      lastm = inbuf;
+      inbuf = newinbuf(inbuf->higherb);   /*D,4D*/
+      /*D; if debuglevel > 0 then wrbuf(inbuf,3,0) D*/
+      disposebufs(&lastm);
+    }
+    break;
 
-  /*      do = "do"   */
-  /*         | by expression "do"   */
+  /* loop = loophead "{" elementlist optnl */
+  /* | loopincr elementlist optnl */
+  /*repeat loop1,loop2: ; */
+  /* do = "do" */
+  /* | by expression "do" */
   case do1:
     WITH->xval = 1.0;
     break;
@@ -4745,14 +4878,13 @@ void produce(stackinx newp, long p)
     WITH->xval = attstack[newp + 1].xval;
     break;
 
-  /*      loophead = "repeat" */
+  /* loophead = "repeat" */
   /*repeat loophead1: ; */
-
-  /*      loopincr = loop ":" */
+  /* Do not enter into nullprod file */
+  /* loopincr = loop "~" */
   /*repeat loopincr1: attstack^[newp+1].lexval := XLBRACE ; */
-
-  /*      by = "by"   */
-  /*         | "by" "*"   */
+  /* by = "by" */
+  /* | "by" "*" */
   case by1:
     break;
 
@@ -4760,12 +4892,12 @@ void produce(stackinx newp, long p)
     WITH->lexval = attstack[newp + 1].lexval;
     break;
 
-  /*      redirect = "<EMPTY>" */
+  /* redirect = "<EMPTY>" */
   case redirect1:
     WITH->lexval = XEMPTY;
     break;
 
-  /*               | "<compare>" stringexpr  */
+  /* | "<compare>" stringexpr */
   case redirect2:
     WITH1 = &attstack[newp + 1];
     attstack[newp].state = 1;
@@ -4790,7 +4922,7 @@ void produce(stackinx newp, long p)
     deletestringbox(&WITH1->prim);
     break;
 
-  /*               | "<compare>" "<compare>" stringexpr   */
+  /* | "<compare>" "<compare>" stringexpr */
   case redirect3:
     WITH1 = &attstack[newp + 2];
     attstack[newp].state = 1;
@@ -4816,8 +4948,8 @@ void produce(stackinx newp, long p)
     deletestringbox(&WITH1->prim);
     break;
 
-  /*      resetlist = "<envvar>"   */
-  /*                | resetlist "," "<envvar>"   */
+  /* resetlist = "<envvar>" */
+  /* | resetlist "," "<envvar>" */
   case resetlist1:
     resetenv(WITH->lexval, envblock);
     break;
@@ -4826,8 +4958,8 @@ void produce(stackinx newp, long p)
     resetenv(attstack[newp + 2].lexval, envblock);
     break;
 
-  /*      defhead = "define" "<name>"   */
-  /*              | "define" "<Label>"   */
+  /* defhead = "define" "<name>" */
+  /* | "define" "<Label>" */
   case defhead1:
   case defhead2:
     attstack[newp] = attstack[newp + 1];
@@ -4860,8 +4992,8 @@ void produce(stackinx newp, long p)
        end D*/
     break;
 
-  /*      sprintf = "sprintf" "(" stringexpr   */
-  /*              | "sprintf" "(" stringexpr "," exprlist   */
+  /* sprintf = "sprintf" "(" stringexpr */
+  /* | "sprintf" "(" stringexpr "," exprlist */
   case sprintf1:
   case sprintf2:
     newprim(&WITH->prim, XLstring, envblock);
@@ -4870,9 +5002,9 @@ void produce(stackinx newp, long p)
     /*D if debuglevel <= 0 then begin end
         else if eb=nil then writeln(log,' ! sprintf2: eb=nil')
         else if eb^.env=nil then writeln(log,' ! sprintf2: env=nil'); D*/
-    WITH2->UU.U157.boxheight = eb->UU.U26.env[XLtextht - XLenvvar - 1];
-    WITH2->UU.U157.boxwidth = eb->UU.U26.env[XLtextwid - XLenvvar - 1];
-    WITH2->UU.U157.boxradius = 0.0;
+    WITH2->UU.Ubox.boxheight = eb->UU.Ublock.env[XLtextht - XLenvvar - 1];
+    WITH2->UU.Ubox.boxwidth = eb->UU.Ublock.env[XLtextwid - XLenvvar - 1];
+    WITH2->UU.Ubox.boxradius = 0.0;
     newstr(&WITH2->textp);
     if (p == sprintf1)
       nexprs = 0;   /* no of expression args */
@@ -4932,7 +5064,6 @@ void produce(stackinx newp, long p)
 	    else
 	      j = k;
 	  }
-
 	  if (k == WITH4->len) {
 	    markerror(865);
 	    continue;
@@ -4941,7 +5072,7 @@ void produce(stackinx newp, long p)
 	  /*D if debuglevel > 0 then begin write(log,'format="');
 	    for k := lj to j-1 do write(log,segmnt^[seginx+k]);
 	    write(log, '" nexprs=',nexprs:2,' Numerical print value=');
-	    write(log,attstack^[newp+4+2*i].xval); writeln(log);
+	    wfloat(log,attstack^[newp+4+2*i].xval); writeln(log);
 	    flush(log) end; D*/
 	  /* Write the expression to tmpbuf */
 #ifdef NO_SNPRINTF
@@ -5017,10 +5148,10 @@ void produce(stackinx newp, long p)
       markerror(864);
     if (drawmode == xfig) {
       WITH2 = WITH->prim;
-      if (WITH2->UU.U157.boxwidth == 0.0) {
-	if (WITH2->UU.U157.boxheight == 0.0)
-	  WITH2->UU.U157.boxheight = 0.1 * eb->UU.U26.env[XLscale - XLenvvar - 1];
-	WITH2->UU.U157.boxwidth = WITH2->UU.U157.boxheight *
+      if (WITH2->UU.Ubox.boxwidth == 0.0) {
+	if (WITH2->UU.Ubox.boxheight == 0.0)
+	  WITH2->UU.Ubox.boxheight = 0.1 * eb->UU.Ublock.env[XLscale - XLenvvar - 1];
+	WITH2->UU.Ubox.boxwidth = WITH2->UU.Ubox.boxheight *
 				  WITH2->textp->len * 0.75;
       }
     }
@@ -5029,48 +5160,47 @@ void produce(stackinx newp, long p)
     deletestringbox(&attstack[newp + 2].prim);
     break;
 
-  /*      exprlist = expression   */
+  /* exprlist = expression */
   case exprlist1:
     WITH->state = 1;
     break;
 
-  /*               | expression "," exprlist   */
+  /* | expression "," exprlist */
   case exprlist2:
     WITH->state = attstack[newp + 2].state + 1;
     break;
 
-  /*      object = block  */
-  /*             | object "height" expression  */
-  /*             | object "width" expression  */
-  /*             | object "radius" expression  */
-  /*             | object "diameter" expression  */
-  /*             | object "thickness" expression  */
-  /*             | object "scaled" expression  */
-  /*             | object "<directon>" optexp  */
-  /*             | object "by" pair  */
-  /*             | object "then"  */
-  /*             | object "<linetype>" optexp  */
-  /*             | object "chop" optexp  */
-  /*             | object "filled" optexp  */
-  /*             | object "<arrowhd>"  */
-  /*             | object "cw"  */
-  /*             | object "ccw"  */
-  /*             | object "same"  */
-  /*             | object stringexpr  */
-  /*             | object "from" position  */
-  /*             | object "to" position  */
-  /*             | object "at" position  */
-  /*             | object "<textpos>"  */
-  /*             | object "<colrspec>" stringexpr  */
-  /*             | objectwith "<corner>" "at" position  */
-  /*             | objectwith pair "at" position  */
-  /*             | objectwith "at" position  */
-  /*             | "continue"  */
-
+  /* object = block */
+  /* | object "height" expression */
+  /* | object "width" expression */
+  /* | object "radius" expression */
+  /* | object "diameter" expression */
+  /* | object "thickness" expression */
+  /* | object "scaled" expression */
+  /* | object "<directon>" optexp */
+  /* | object "<linetype>" optexp */
+  /* | object "chop" optexp */
+  /* | object "filled" optexp */
+  /* | object "<arrowhd>" optexp */
+  /* | object "then" */
+  /* | object "cw" */
+  /* | object "ccw" */
+  /* | object "same" */
+  /* | object stringexpr */
+  /* | object "by" position */
+  /* | object "from" position */
+  /* | object "to" position */
+  /* | object "at" position */
+  /* | object "<textpos>" */
+  /* | object "<colrspec>" stringexpr */
+  /* | objectwith "at" position */
+  /* | objectwith "<corner>" "at" position */
+  /* | objectwith pair "at" position */
+  /* | "continue" */
   case object1:
     break;
 
-  /*                          | object "height" expression    */
+  /* | object "height" expression */
   case object2:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
@@ -5079,11 +5209,11 @@ void produce(stackinx newp, long p)
       case XLbox:
       case XBLOCK:
 	if (WITH2->ptype == XBLOCK) {
-	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.U26.blockheight);
-	  WITH2->UU.U26.blockheight = attstack[newp + 2].xval;
+	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.Ublock.blockheight);
+	  WITH2->UU.Ublock.blockheight = attstack[newp + 2].xval;
 	} else {
-	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.U157.boxheight);
-	  WITH2->UU.U157.boxheight = attstack[newp + 2].xval;
+	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.Ubox.boxheight);
+	  WITH2->UU.Ubox.boxheight = attstack[newp + 2].xval;
 	}
 	if (!teststflag(WITH->state, XLat)) {
 	  switch (WITH2->direction) {
@@ -5105,7 +5235,7 @@ void produce(stackinx newp, long p)
 	break;
 
       case XLstring:
-	WITH2->UU.U157.boxheight = attstack[newp + 2].xval;
+	WITH2->UU.Ubox.boxheight = attstack[newp + 2].xval;
 	break;
 
       case XLcircle:
@@ -5118,15 +5248,15 @@ void produce(stackinx newp, long p)
 	    break;
 
 	  case XLup:
-	    WITH2->aat.ypos += 0.5 * attstack[newp + 2].xval - WITH2->UU.U158.radius;
+	    WITH2->aat.ypos += 0.5 * attstack[newp + 2].xval - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLdown:
-	    WITH2->aat.ypos += WITH2->UU.U158.radius - 0.5 * attstack[newp + 2].xval;
+	    WITH2->aat.ypos += WITH2->UU.Ucircle.radius - 0.5 * attstack[newp + 2].xval;
 	    break;
 	  }
 	}
-	WITH2->UU.U158.radius = attstack[newp + 2].xval * 0.5;
+	WITH2->UU.Ucircle.radius = attstack[newp + 2].xval * 0.5;
 	break;
 
       case XLellipse:
@@ -5140,16 +5270,16 @@ void produce(stackinx newp, long p)
 
 	  case XLup:
 	    WITH2->aat.ypos +=
-	      0.5 * (attstack[newp + 2].xval - WITH2->UU.U159.elheight);
+	      0.5 * (attstack[newp + 2].xval - WITH2->UU.Uellipse.elheight);
 	    break;
 
 	  case XLdown:
 	    WITH2->aat.ypos +=
-	      0.5 * (WITH2->UU.U159.elheight - attstack[newp + 2].xval);
+	      0.5 * (WITH2->UU.Uellipse.elheight - attstack[newp + 2].xval);
 	    break;
 	  }
 	}
-	WITH2->UU.U159.elheight = attstack[newp + 2].xval;
+	WITH2->UU.Uellipse.elheight = attstack[newp + 2].xval;
 	break;
 
       case XLline:
@@ -5159,7 +5289,7 @@ void produce(stackinx newp, long p)
       case XLspline:
 	prp = WITH->prim;
 	while (prp != NULL) {
-	  prp->UU.U161.height = attstack[newp + 2].xval;
+	  prp->UU.Uline.height = attstack[newp + 2].xval;
 	  if (isthen(prp))
 	    prp = prp->parent;
 	  else
@@ -5175,7 +5305,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "width" expression    */
+  /* | object "width" expression */
   case object3:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
@@ -5184,11 +5314,11 @@ void produce(stackinx newp, long p)
       case XLbox:
       case XBLOCK:
 	if (WITH2->ptype == XBLOCK) {
-	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.U26.blockwidth);
-	  WITH2->UU.U26.blockwidth = attstack[newp + 2].xval;
+	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.Ublock.blockwidth);
+	  WITH2->UU.Ublock.blockwidth = attstack[newp + 2].xval;
 	} else {
-	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.U157.boxwidth);
-	  WITH2->UU.U157.boxwidth = attstack[newp + 2].xval;
+	  r = 0.5 * (attstack[newp + 2].xval - WITH2->UU.Ubox.boxwidth);
+	  WITH2->UU.Ubox.boxwidth = attstack[newp + 2].xval;
 	}
 	if (!teststflag(WITH->state, XLat)) {
 	  switch (WITH2->direction) {
@@ -5210,7 +5340,7 @@ void produce(stackinx newp, long p)
 	break;
 
       case XLstring:
-	WITH2->UU.U157.boxwidth = attstack[newp + 2].xval;
+	WITH2->UU.Ubox.boxwidth = attstack[newp + 2].xval;
 	break;
 
       case XLcircle:
@@ -5223,15 +5353,15 @@ void produce(stackinx newp, long p)
 	    break;
 
 	  case XLright:
-	    WITH2->aat.xpos += 0.5 * attstack[newp + 2].xval - WITH2->UU.U158.radius;
+	    WITH2->aat.xpos += 0.5 * attstack[newp + 2].xval - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLleft:
-	    WITH2->aat.xpos += WITH2->UU.U158.radius - 0.5 * attstack[newp + 2].xval;
+	    WITH2->aat.xpos += WITH2->UU.Ucircle.radius - 0.5 * attstack[newp + 2].xval;
 	    break;
 	  }
 	}
-	WITH2->UU.U158.radius = attstack[newp + 2].xval * 0.5;
+	WITH2->UU.Ucircle.radius = attstack[newp + 2].xval * 0.5;
 	break;
 
       case XLellipse:
@@ -5245,16 +5375,16 @@ void produce(stackinx newp, long p)
 
 	  case XLright:
 	    WITH2->aat.xpos +=
-	      0.5 * (attstack[newp + 2].xval - WITH2->UU.U159.elwidth);
+	      0.5 * (attstack[newp + 2].xval - WITH2->UU.Uellipse.elwidth);
 	    break;
 
 	  case XLleft:
 	    WITH2->aat.xpos +=
-	      0.5 * (WITH2->UU.U159.elwidth - attstack[newp + 2].xval);
+	      0.5 * (WITH2->UU.Uellipse.elwidth - attstack[newp + 2].xval);
 	    break;
 	  }
 	}
-	WITH2->UU.U159.elwidth = attstack[newp + 2].xval;
+	WITH2->UU.Uellipse.elwidth = attstack[newp + 2].xval;
 	break;
 
       case XLline:
@@ -5264,7 +5394,7 @@ void produce(stackinx newp, long p)
       case XLspline:
 	prp = WITH->prim;
 	while (prp != NULL) {
-	  prp->UU.U161.width = attstack[newp + 2].xval;
+	  prp->UU.Uline.width = attstack[newp + 2].xval;
 	  if (isthen(prp))
 	    prp = prp->parent;
 	  else
@@ -5280,35 +5410,34 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "radius" expression    */
+  /* | object "radius" expression */
   case object4:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
       switch (WITH2->ptype) {
 
       case XLbox:
-	WITH2->UU.U157.boxradius = attstack[newp + 2].xval;
+	WITH2->UU.Ubox.boxradius = attstack[newp + 2].xval;
 	break;
 
       case XLarc:
 	t = attstack[newp + 2].xval;
 	if (WITH2->direction == 0) {
-	  attstack[newp + 2].xval = WITH2->aat.xpos + WITH2->UU.U161.aradius *
-		cos(WITH2->UU.U161.endpos.xpos + WITH2->UU.U161.endpos.ypos);
-	  attstack[newp + 2].yval = WITH2->aat.ypos + WITH2->UU.U161.aradius *
-		sin(WITH2->UU.U161.endpos.xpos + WITH2->UU.U161.endpos.ypos);
-	  /*D if debuglevel = 2 then writeln(log, 'to ',
-	     attstack^[newp+2].xval:7:4, attstack^[newp+2].yval:7:4); D*/
-	  redubuf[reduinx + REDUMAX].prod_ = object20;
-	  reduinx--;
+	  attstack[newp + 2].xval = WITH2->aat.xpos + WITH2->UU.Uline.aradius *
+		cos(WITH2->UU.Uline.endpos.xpos + WITH2->UU.Uline.endpos.ypos);
+	  attstack[newp + 2].yval = WITH2->aat.ypos + WITH2->UU.Uline.aradius *
+		sin(WITH2->UU.Uline.endpos.xpos + WITH2->UU.Uline.endpos.ypos);
+	  /*D if debuglevel = 2 then begin write(log, 'to ');
+	    with attstack^[newp+2] do wpair(log,xval,yval) end; D*/
+	  doprod(object20);
 	}
-	r = cos(WITH2->UU.U161.endpos.xpos);
-	s = sin(WITH2->UU.U161.endpos.xpos);
-	WITH2->aat.xpos += WITH2->UU.U161.aradius * r;
-	WITH2->aat.ypos += WITH2->UU.U161.aradius * s;
-	WITH2->UU.U161.aradius = t;
-	WITH2->aat.xpos -= WITH2->UU.U161.aradius * r;
-	WITH2->aat.ypos -= WITH2->UU.U161.aradius * s;
+	r = cos(WITH2->UU.Uline.endpos.xpos);
+	s = sin(WITH2->UU.Uline.endpos.xpos);
+	WITH2->aat.xpos += WITH2->UU.Uline.aradius * r;
+	WITH2->aat.ypos += WITH2->UU.Uline.aradius * s;
+	WITH2->UU.Uline.aradius = t;
+	WITH2->aat.xpos -= WITH2->UU.Uline.aradius * r;
+	WITH2->aat.ypos -= WITH2->UU.Uline.aradius * s;
 	setstflag(&WITH->state, XLradius);
 	break;
 
@@ -5317,23 +5446,23 @@ void produce(stackinx newp, long p)
 	  switch (WITH2->direction) {
 
 	  case XLleft:
-	    WITH2->aat.xpos += WITH2->UU.U158.radius - attstack[newp + 2].xval;
+	    WITH2->aat.xpos += WITH2->UU.Ucircle.radius - attstack[newp + 2].xval;
 	    break;
 
 	  case XLright:
-	    WITH2->aat.xpos += attstack[newp + 2].xval - WITH2->UU.U158.radius;
+	    WITH2->aat.xpos += attstack[newp + 2].xval - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLup:
-	    WITH2->aat.ypos += attstack[newp + 2].xval - WITH2->UU.U158.radius;
+	    WITH2->aat.ypos += attstack[newp + 2].xval - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLdown:
-	    WITH2->aat.ypos += WITH2->UU.U158.radius - attstack[newp + 2].xval;
+	    WITH2->aat.ypos += WITH2->UU.Ucircle.radius - attstack[newp + 2].xval;
 	    break;
 	  }
 	}
-	WITH2->UU.U158.radius = attstack[newp + 2].xval;
+	WITH2->UU.Ucircle.radius = attstack[newp + 2].xval;
 	setstflag(&WITH->state, XLradius);
 	break;
 
@@ -5344,7 +5473,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "diameter" expression    */
+  /* | object "diameter" expression */
   case object5:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
@@ -5354,40 +5483,41 @@ void produce(stackinx newp, long p)
 	  switch (WITH2->direction) {
 
 	  case XLleft:
-	    WITH2->aat.xpos += WITH2->UU.U158.radius - r;
+	    WITH2->aat.xpos += WITH2->UU.Ucircle.radius - r;
 	    break;
 
 	  case XLright:
-	    WITH2->aat.xpos += r - WITH2->UU.U158.radius;
+	    WITH2->aat.xpos += r - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLup:
-	    WITH2->aat.ypos += r - WITH2->UU.U158.radius;
+	    WITH2->aat.ypos += r - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLdown:
-	    WITH2->aat.ypos += WITH2->UU.U158.radius - r;
+	    WITH2->aat.ypos += WITH2->UU.Ucircle.radius - r;
 	    break;
 	  }
 	}
-	WITH2->UU.U158.radius = r;
+	WITH2->UU.Ucircle.radius = r;
       } else
 	markerror(858);
     }
     break;
 
-  /*                          | object "thickness" expression    */
+  /* | object "thickness" expression */
   case object6:
     if (WITH->prim != NULL) {
+      WITH2 = WITH->prim;
       if (attstack[newp + 2].xval < 0.0) {
-	markerror(905);
-	WITH->prim->lthick = -attstack[newp + 2].xval;
+	eb = findenv(envblock);
+	WITH2->lthick = eb->UU.Ublock.env[XLlinethick - XLenvvar - 1];
       } else
-	WITH->prim->lthick = attstack[newp + 2].xval;
+	WITH2->lthick = attstack[newp + 2].xval;
     }
     break;
 
-  /*                          | object "scaled" expression    */
+  /* | object "scaled" expression */
   case object7:
     if (WITH->prim != NULL && attstack[newp + 2].lexval != XEMPTY) {
       WITH2 = WITH->prim;
@@ -5402,11 +5532,11 @@ void produce(stackinx newp, long p)
 	  dx = 0.0;
 	  dy = 0.0;
 	} else if (WITH2->ptype == XBLOCK) {
-	  dx = WITH2->UU.U26.blockwidth * r / 2;
-	  dy = WITH2->UU.U26.blockheight * r / 2;
+	  dx = WITH2->UU.Ublock.blockwidth * r / 2;
+	  dy = WITH2->UU.Ublock.blockheight * r / 2;
 	} else {
-	  dx = WITH2->UU.U157.boxwidth * r / 2;
-	  dy = WITH2->UU.U157.boxheight * r / 2;
+	  dx = WITH2->UU.Ubox.boxwidth * r / 2;
+	  dy = WITH2->UU.Ubox.boxheight * r / 2;
 	}
 	scaleobj(WITH->prim, attstack[newp + 2].xval);
 	switch (WITH2->direction) {
@@ -5430,27 +5560,27 @@ void produce(stackinx newp, long p)
 	break;
 
       case XLcircle:
-	WITH2->UU.U158.radius = attstack[newp + 2].xval * WITH2->UU.U158.radius;
+	WITH2->UU.Ucircle.radius = attstack[newp + 2].xval * WITH2->UU.Ucircle.radius;
 	if (!teststflag(WITH->state, XLat)) {
 	  switch (WITH2->direction) {
 
 	  case XLup:
 	    WITH2->aat.xpos = x1;
-	    WITH2->aat.ypos = y1 + WITH2->UU.U158.radius;
+	    WITH2->aat.ypos = y1 + WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLdown:
 	    WITH2->aat.xpos = x1;
-	    WITH2->aat.ypos = y1 - WITH2->UU.U158.radius;
+	    WITH2->aat.ypos = y1 - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLright:
-	    WITH2->aat.xpos = x1 + WITH2->UU.U158.radius;
+	    WITH2->aat.xpos = x1 + WITH2->UU.Ucircle.radius;
 	    WITH2->aat.ypos = y1;
 	    break;
 
 	  case XLleft:
-	    WITH2->aat.xpos = x1 - WITH2->UU.U158.radius;
+	    WITH2->aat.xpos = x1 - WITH2->UU.Ucircle.radius;
 	    WITH2->aat.ypos = y1;
 	    break;
 	  }
@@ -5458,28 +5588,28 @@ void produce(stackinx newp, long p)
 	break;
 
       case XLellipse:
-	WITH2->UU.U159.elwidth *= attstack[newp + 2].xval;
-	WITH2->UU.U159.elheight *= attstack[newp + 2].xval;
+	WITH2->UU.Uellipse.elwidth *= attstack[newp + 2].xval;
+	WITH2->UU.Uellipse.elheight *= attstack[newp + 2].xval;
 	if (!teststflag(WITH->state, XLat)) {
 	  switch (WITH2->direction) {
 
 	  case XLup:
 	    WITH2->aat.xpos = x1;
-	    WITH2->aat.ypos = y1 + WITH2->UU.U159.elheight / 2;
+	    WITH2->aat.ypos = y1 + WITH2->UU.Uellipse.elheight / 2;
 	    break;
 
 	  case XLdown:
 	    WITH2->aat.xpos = x1;
-	    WITH2->aat.ypos = y1 - WITH2->UU.U159.elheight / 2;
+	    WITH2->aat.ypos = y1 - WITH2->UU.Uellipse.elheight / 2;
 	    break;
 
 	  case XLright:
-	    WITH2->aat.xpos = x1 + WITH2->UU.U159.elwidth / 2;
+	    WITH2->aat.xpos = x1 + WITH2->UU.Uellipse.elwidth / 2;
 	    WITH2->aat.ypos = y1;
 	    break;
 
 	  case XLleft:
-	    WITH2->aat.xpos = x1 - WITH2->UU.U159.elwidth / 2;
+	    WITH2->aat.xpos = x1 - WITH2->UU.Uellipse.elwidth / 2;
 	    WITH2->aat.ypos = y1;
 	    break;
 	  }
@@ -5504,7 +5634,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "<directon>" optexp */
+  /* | object "<directon>" optexp */
   case object8:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
@@ -5517,24 +5647,24 @@ void produce(stackinx newp, long p)
 	switch (WITH2->ptype) {
 
 	case XLarc:
-	  r = cos(WITH2->UU.U161.endpos.xpos);
-	  s = sin(WITH2->UU.U161.endpos.xpos);
-	  WITH2->aat.xpos += WITH2->UU.U161.aradius * r;
-	  WITH2->aat.ypos += WITH2->UU.U161.aradius * s;
+	  r = cos(WITH2->UU.Uline.endpos.xpos);
+	  s = sin(WITH2->UU.Uline.endpos.xpos);
+	  WITH2->aat.xpos += WITH2->UU.Uline.aradius * r;
+	  WITH2->aat.ypos += WITH2->UU.Uline.aradius * s;
 	  if (WITH2->direction == XLup && i == XLleft ||
 	      WITH2->direction == XLdown && i == XLright ||
 	      WITH2->direction == XLright && i == XLup ||
 	      WITH2->direction == XLleft && i == XLdown)
-	    WITH2->UU.U161.endpos.ypos = pi * 0.5;
+	    WITH2->UU.Uline.endpos.ypos = pi * 0.5;
 	  else if (WITH2->direction == XLup && i == XLright ||
 		   WITH2->direction == XLdown && i == XLleft ||
 		   WITH2->direction == XLright && i == XLdown ||
 		   WITH2->direction == XLleft && i == XLup)
-	    WITH2->UU.U161.endpos.ypos = -pi * 0.5;
+	    WITH2->UU.Uline.endpos.ypos = -pi * 0.5;
 	  if (attstack[newp + 2].lexval != XEMPTY)
-	    WITH2->UU.U161.aradius = attstack[newp + 2].lexval;
-	  WITH2->aat.xpos -= WITH2->UU.U161.aradius * r;
-	  WITH2->aat.ypos -= WITH2->UU.U161.aradius * s;
+	    WITH2->UU.Uline.aradius = attstack[newp + 2].lexval;
+	  WITH2->aat.xpos -= WITH2->UU.Uline.aradius * r;
+	  WITH2->aat.ypos -= WITH2->UU.Uline.aradius * s;
 	  WITH2->direction = i;
 	  break;
 
@@ -5552,13 +5682,13 @@ void produce(stackinx newp, long p)
 	    case XLline:
 	    case XLarrow:
 	    case XLspline:
-	      r = eb->UU.U26.env[XLlineht - XLenvvar - 1];
-	      s = eb->UU.U26.env[XLlinewid - XLenvvar - 1];
+	      r = eb->UU.Ublock.env[XLlineht - XLenvvar - 1];
+	      s = eb->UU.Ublock.env[XLlinewid - XLenvvar - 1];
 	      break;
 
 	    case XLmove:
-	      r = eb->UU.U26.env[XLmoveht - XLenvvar - 1];
-	      s = eb->UU.U26.env[XLmovewid - XLenvvar - 1];
+	      r = eb->UU.Ublock.env[XLmoveht - XLenvvar - 1];
+	      s = eb->UU.Ublock.env[XLmovewid - XLenvvar - 1];
 	      break;
 	    }
 	  }
@@ -5570,41 +5700,8 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "by" pair    */
+  /* | object "<linetype>" optexp */
   case object9:
-    if (WITH->prim != NULL) {
-      if (WITH->prim->ptype == XLmove || WITH->prim->ptype == XLspline ||
-	  WITH->prim->ptype == XLarrow ||
-	  WITH->prim->ptype == XLline || WITH->prim->ptype == XLarc) {
-	WITH2 = WITH->prim;
-	x1 = attstack[newp + 2].xval + WITH2->aat.xpos;
-	y1 = attstack[newp + 2].yval + WITH2->aat.ypos;
-	if (WITH2->ptype == XLarc) {
-	  x1 += WITH2->UU.U161.aradius * cos(WITH2->UU.U161.endpos.xpos);
-	  y1 += WITH2->UU.U161.aradius * sin(WITH2->UU.U161.endpos.xpos);
-	}
-	attstack[newp + 2].xval = x1;
-	attstack[newp + 2].yval = y1;
-	redubuf[reduinx + REDUMAX].prod_ = object20;
-	reduinx--;
-      } else
-	markerror(858);
-    }
-    break;
-
-  /*                          | object "then"    */
-  case object10:
-    if (WITH->prim != NULL) {
-      /*D if debuglevel > 0 then begin write(log,'lexical "then" found, ');
-          prtstval(state); writeln(log) end; D*/
-      appendthen(&WITH->prim);
-      if (WITH->prim->ptype != XLarc)
-	setstflag(&WITH->state, XEMPTY);
-    }
-    break;
-
-  /*                          | object "<linetype>" optexp    */
-  case object11:
     if (WITH->prim != NULL) {
       if (attstack[newp + 1].lexval == XLpath && drawmode != PSTricks) {
 	/* (not (drawmode in [PSTricks,PS,PSfrag,PSmps])) */
@@ -5631,8 +5728,8 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "chop" optexp    */
-  case object12:
+  /* | object "chop" optexp */
+  case object10:
     if (WITH->prim != NULL) {
       if (WITH->prim->ptype != XLspline && WITH->prim->ptype != XLmove &&
 	  WITH->prim->ptype != XLarrow && WITH->prim->ptype != XLline)
@@ -5643,7 +5740,7 @@ void produce(stackinx newp, long p)
 	  r = attstack[newp + 2].xval;
 	else {
 	  eb = findenv(envblock);
-	  r = eb->UU.U26.env[XLcirclerad - XLenvvar - 1];
+	  r = eb->UU.Ublock.env[XLcirclerad - XLenvvar - 1];
 	}
 	if (teststflag(WITH->state, XLchop))
 	  WITH->endchop = r;
@@ -5656,40 +5753,35 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "fill" optexp    */
-  case object13:
+  /* | object "fill" optexp */
+  case object11:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
       if (attstack[newp + 2].lexval != XEMPTY)
 	s = attstack[newp + 2].xval;
       else {
 	eb = findenv(envblock);
-	s = eb->UU.U26.env[XLfillval - XLenvvar - 1];
+	s = eb->UU.Ublock.env[XLfillval - XLenvvar - 1];
       }
       prp = WITH->prim;
       while (prp != NULL) {
 	switch (WITH2->ptype) {
 
 	case XLbox:
-	  prp->UU.U157.boxfill = s;
+	  prp->UU.Ubox.boxfill = s;
 	  break;
 
 	case XLcircle:
-	  prp->UU.U158.cfill = s;
+	  prp->UU.Ucircle.cfill = s;
 	  break;
 
 	case XLellipse:
-	  prp->UU.U159.efill = s;
+	  prp->UU.Uellipse.efill = s;
 	  break;
 
-	default:   /*,PSmps*/
-	  if (((1L << ((long)drawmode)) &
-	       ((1L << ((long)xfig)) | (1L << ((long)PGF)) |
-		(1L << ((long)PSfrag)) | (1L << ((long)PSTricks)) |
-		(1L << ((long)MPost)) | (1L << ((long)MFpic)) |
-		(1L << ((long)PS)) | (1L << ((long)SVG)))) == 0)
-/* p2c: dpic.p, line 4059: 
- * Note: Line breaker spent 0.0 seconds, 5000 tries on line 5260 [251] */
+	default:
+	  if (((1L << ((long)drawmode)) & ((1L << ((long)TeX)) |
+		 (1L << ((long)tTeX)) | (1L << ((long)pict2e)))) != 0)
 	    markerror(858);
 	  else {
 	    switch (WITH2->ptype) {
@@ -5699,7 +5791,7 @@ void produce(stackinx newp, long p)
 	    case XLmove:
 	    case XLspline:
 	    case XLarc:
-	      prp->UU.U161.lfill = s;
+	      prp->UU.Uline.lfill = s;
 	      break;
 
 	    default:
@@ -5717,25 +5809,40 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "<arrowhd>"    */
-  case object14:
+  /* | object "<arrowhd>" optexp */
+  case object12:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
       if (WITH2->ptype != XLspline && WITH2->ptype != XLarc &&
 	  WITH2->ptype != XLarrow && WITH2->ptype != XLline)
 	markerror(858);
       else {
-	WITH2->UU.U161.atype = pahlex(WITH2->UU.U161.atype,
+	WITH2->UU.Uline.atype = pahlex(WITH2->UU.Uline.atype,
 				      attstack[newp + 1].lexval);
-	eb = findenv(envblock);
-	lj = (long)floor(eb->UU.U26.env[XLarrowhead - XLenvvar - 1] + 0.5);
-	WITH2->UU.U161.atype = pahnum(WITH2->UU.U161.atype, lj);
+	if (attstack[newp + 2].lexval != XEMPTY)
+	  lj = (long)floor(attstack[newp + 2].xval + 0.5);
+	else {
+	  eb = findenv(envblock);
+	  lj = (long)floor(eb->UU.Ublock.env[XLarrowhead - XLenvvar - 1] + 0.5);
+	}
+	WITH2->UU.Uline.atype = pahnum(WITH2->UU.Uline.atype, lj);
       }
     }
     break;
 
-  /*                          | object "cw"    */
-  case object15:
+  /* | object "then" */
+  case object13:
+    if (WITH->prim != NULL) {
+      /*D if debuglevel > 0 then begin write(log,'lexical "then" found, ');
+          prtstval(state); writeln(log) end; D*/
+      appendthen(&WITH->prim);
+      if (WITH->prim->ptype != XLarc)
+	setstflag(&WITH->state, XEMPTY);
+    }
+    break;
+
+  /* | object "cw" */
+  case object14:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
       if (WITH2->ptype != XLarc)
@@ -5753,41 +5860,41 @@ void produce(stackinx newp, long p)
 	   if endpos.ypos>0.0 then endpos.ypos := endpos.ypos-2*pi
 	   end
 	else */
-	if (WITH2->UU.U161.endpos.ypos > 0.0 && WITH2->direction == 0)
-	  WITH2->UU.U161.endpos.ypos = -fabs(
-	      principal(2.0 * pi - WITH2->UU.U161.endpos.ypos, 2.0 * pi));
+	if (WITH2->UU.Uline.endpos.ypos > 0.0 && WITH2->direction == 0)
+	  WITH2->UU.Uline.endpos.ypos = -fabs(
+	      principal(2.0 * pi - WITH2->UU.Uline.endpos.ypos, 2.0 * pi));
 	else if (WITH2->direction != 0) {
 	  WITH2->aat = arcstart(WITH->prim);
 	  switch (WITH2->direction) {
 
 	  case XLup:
-	    WITH2->aat.xpos += WITH2->UU.U161.aradius;
+	    WITH2->aat.xpos += WITH2->UU.Uline.aradius;
 	    break;
 
 	  case XLdown:
-	    WITH2->aat.xpos -= WITH2->UU.U161.aradius;
+	    WITH2->aat.xpos -= WITH2->UU.Uline.aradius;
 	    break;
 
 	  case XLleft:
-	    WITH2->aat.ypos += WITH2->UU.U161.aradius;
+	    WITH2->aat.ypos += WITH2->UU.Uline.aradius;
 	    break;
 
 	  case XLright:
-	    WITH2->aat.ypos -= WITH2->UU.U161.aradius;
+	    WITH2->aat.ypos -= WITH2->UU.Uline.aradius;
 	    break;
 	  }
-	  if (WITH2->UU.U161.endpos.ypos > 0.0)
-	    WITH2->UU.U161.endpos.xpos = principal(
-		WITH2->UU.U161.endpos.xpos + pi, pi);
-	  WITH2->UU.U161.endpos.ypos = -fabs(WITH2->UU.U161.endpos.ypos);
+	  if (WITH2->UU.Uline.endpos.ypos > 0.0)
+	    WITH2->UU.Uline.endpos.xpos = principal(
+		WITH2->UU.Uline.endpos.xpos + pi, pi);
+	  WITH2->UU.Uline.endpos.ypos = -fabs(WITH2->UU.Uline.endpos.ypos);
 	}
 	setstflag(&WITH->state, XLcw);
       }
     }
     break;
 
-  /*                          | object "ccw"    */
-  case object16:
+  /* | object "ccw" */
+  case object15:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
       if (WITH2->ptype != XLarc)
@@ -5797,41 +5904,41 @@ void produce(stackinx newp, long p)
 	   if endpos.ypos<0.0 then endpos.ypos := 2*pi+endpos.ypos
 	   end
 	else */
-	if (WITH2->UU.U161.endpos.ypos < 0.0 && WITH2->direction == 0)
-	  WITH2->UU.U161.endpos.ypos = fabs(
-	      principal(WITH2->UU.U161.endpos.ypos - 2.0 * pi, 2.0 * pi));
+	if (WITH2->UU.Uline.endpos.ypos < 0.0 && WITH2->direction == 0)
+	  WITH2->UU.Uline.endpos.ypos = fabs(
+	      principal(WITH2->UU.Uline.endpos.ypos - 2.0 * pi, 2.0 * pi));
 	else if (WITH2->direction != 0) {
 	  WITH2->aat = arcstart(WITH->prim);
 	  switch (WITH2->direction) {
 
 	  case XLup:
-	    WITH2->aat.xpos -= WITH2->UU.U161.aradius;
+	    WITH2->aat.xpos -= WITH2->UU.Uline.aradius;
 	    break;
 
 	  case XLdown:
-	    WITH2->aat.xpos += WITH2->UU.U161.aradius;
+	    WITH2->aat.xpos += WITH2->UU.Uline.aradius;
 	    break;
 
 	  case XLleft:
-	    WITH2->aat.ypos -= WITH2->UU.U161.aradius;
+	    WITH2->aat.ypos -= WITH2->UU.Uline.aradius;
 	    break;
 
 	  case XLright:
-	    WITH2->aat.ypos += WITH2->UU.U161.aradius;
+	    WITH2->aat.ypos += WITH2->UU.Uline.aradius;
 	    break;
 	  }
-	  if (WITH2->UU.U161.endpos.ypos < 0.0)
-	    WITH2->UU.U161.endpos.xpos = principal(
-		WITH2->UU.U161.endpos.xpos + pi, pi);
-	  WITH2->UU.U161.endpos.ypos = fabs(WITH2->UU.U161.endpos.ypos);
+	  if (WITH2->UU.Uline.endpos.ypos < 0.0)
+	    WITH2->UU.Uline.endpos.xpos = principal(
+		WITH2->UU.Uline.endpos.xpos + pi, pi);
+	  WITH2->UU.Uline.endpos.ypos = fabs(WITH2->UU.Uline.endpos.ypos);
 	}
 	setstflag(&WITH->state, XLccw);
       }
     }
     break;
 
-  /*                          | object "same"    */
-  case object17:
+  /* | object "same" */
+  case object16:
     if (WITH->prim != NULL) {
       prp = nthprimobj(envblock->son, 0, WITH->prim->ptype);
       if (prp == NULL)
@@ -5858,29 +5965,29 @@ void produce(stackinx newp, long p)
 
 	    case XLup:
 	      WITH2->aat.ypos +=
-		0.5 * (prp->UU.U157.boxheight - WITH2->UU.U157.boxheight);
+		0.5 * (prp->UU.Ubox.boxheight - WITH2->UU.Ubox.boxheight);
 	      break;
 
 	    case XLdown:
 	      WITH2->aat.ypos -=
-		0.5 * (prp->UU.U157.boxheight - WITH2->UU.U157.boxheight);
+		0.5 * (prp->UU.Ubox.boxheight - WITH2->UU.Ubox.boxheight);
 	      break;
 
 	    case XLleft:
 	      WITH2->aat.xpos -=
-		0.5 * (prp->UU.U157.boxwidth - WITH2->UU.U157.boxwidth);
+		0.5 * (prp->UU.Ubox.boxwidth - WITH2->UU.Ubox.boxwidth);
 	      break;
 
 	    case XLright:
 	      WITH2->aat.xpos +=
-		0.5 * (prp->UU.U157.boxwidth - WITH2->UU.U157.boxwidth);
+		0.5 * (prp->UU.Ubox.boxwidth - WITH2->UU.Ubox.boxwidth);
 	      break;
 	    }
 	  }
-	  WITH2->UU.U157.boxfill = prp->UU.U157.boxfill;
-	  WITH2->UU.U157.boxheight = prp->UU.U157.boxheight;
-	  WITH2->UU.U157.boxwidth = prp->UU.U157.boxwidth;
-	  WITH2->UU.U157.boxradius = prp->UU.U157.boxradius;
+	  WITH2->UU.Ubox.boxfill = prp->UU.Ubox.boxfill;
+	  WITH2->UU.Ubox.boxheight = prp->UU.Ubox.boxheight;
+	  WITH2->UU.Ubox.boxwidth = prp->UU.Ubox.boxwidth;
+	  WITH2->UU.Ubox.boxradius = prp->UU.Ubox.boxradius;
 	  break;
 
 	case XBLOCK:
@@ -5891,23 +5998,23 @@ void produce(stackinx newp, long p)
 	  switch (WITH2->direction) {
 
 	  case XLup:
-	    WITH2->aat.ypos += prp->UU.U158.radius - WITH2->UU.U158.radius;
+	    WITH2->aat.ypos += prp->UU.Ucircle.radius - WITH2->UU.Ucircle.radius;
 	    break;
 
 	  case XLdown:
-	    WITH2->aat.ypos += WITH2->UU.U158.radius - prp->UU.U158.radius;
+	    WITH2->aat.ypos += WITH2->UU.Ucircle.radius - prp->UU.Ucircle.radius;
 	    break;
 
 	  case XLleft:
-	    WITH2->aat.xpos += WITH2->UU.U158.radius - prp->UU.U158.radius;
+	    WITH2->aat.xpos += WITH2->UU.Ucircle.radius - prp->UU.Ucircle.radius;
 	    break;
 
 	  case XLright:
-	    WITH2->aat.xpos += prp->UU.U158.radius - WITH2->UU.U158.radius;
+	    WITH2->aat.xpos += prp->UU.Ucircle.radius - WITH2->UU.Ucircle.radius;
 	    break;
 	  }
-	  WITH2->UU.U158.cfill = prp->UU.U158.cfill;
-	  WITH2->UU.U158.radius = prp->UU.U158.radius;
+	  WITH2->UU.Ucircle.cfill = prp->UU.Ucircle.cfill;
+	  WITH2->UU.Ucircle.radius = prp->UU.Ucircle.radius;
 	  break;
 
 	case XLellipse:
@@ -5915,52 +6022,52 @@ void produce(stackinx newp, long p)
 
 	  case XLup:
 	    WITH2->aat.ypos +=
-	      0.5 * (prp->UU.U159.elheight - WITH2->UU.U159.elheight);
+	      0.5 * (prp->UU.Uellipse.elheight - WITH2->UU.Uellipse.elheight);
 	    break;
 
 	  case XLdown:
 	    WITH2->aat.ypos -=
-	      0.5 * (prp->UU.U159.elheight - WITH2->UU.U159.elheight);
+	      0.5 * (prp->UU.Uellipse.elheight - WITH2->UU.Uellipse.elheight);
 	    break;
 
 	  case XLleft:
-	    WITH2->aat.xpos -= 0.5 * (prp->UU.U159.elwidth - WITH2->UU.U159.elwidth);
+	    WITH2->aat.xpos -= 0.5 * (prp->UU.Uellipse.elwidth - WITH2->UU.Uellipse.elwidth);
 	    break;
 
 	  case XLright:
-	    WITH2->aat.xpos += 0.5 * (prp->UU.U159.elwidth - WITH2->UU.U159.elwidth);
+	    WITH2->aat.xpos += 0.5 * (prp->UU.Uellipse.elwidth - WITH2->UU.Uellipse.elwidth);
 	    break;
 	  }
-	  WITH2->UU.U159.efill = prp->UU.U159.efill;
-	  WITH2->UU.U159.elheight = prp->UU.U159.elheight;
-	  WITH2->UU.U159.elwidth = prp->UU.U159.elwidth;
+	  WITH2->UU.Uellipse.efill = prp->UU.Uellipse.efill;
+	  WITH2->UU.Uellipse.elheight = prp->UU.Uellipse.elheight;
+	  WITH2->UU.Uellipse.elwidth = prp->UU.Uellipse.elwidth;
 	  break;
 
 	case XLarc:
 	  x1 = WITH2->aat.xpos +
-	       WITH2->UU.U161.aradius * cos(WITH2->UU.U161.endpos.xpos);
+	       WITH2->UU.Uline.aradius * cos(WITH2->UU.Uline.endpos.xpos);
 	  y1 = WITH2->aat.ypos +
-	       WITH2->UU.U161.aradius * sin(WITH2->UU.U161.endpos.xpos);
-	  WITH2->UU.U161.aradius = prp->UU.U161.aradius;
-	  WITH2->UU.U161.endpos.xpos = prp->UU.U161.endpos.xpos;
+	       WITH2->UU.Uline.aradius * sin(WITH2->UU.Uline.endpos.xpos);
+	  WITH2->UU.Uline.aradius = prp->UU.Uline.aradius;
+	  WITH2->UU.Uline.endpos.xpos = prp->UU.Uline.endpos.xpos;
 	  WITH2->aat.xpos =
-	    x1 - WITH2->UU.U161.aradius * cos(WITH2->UU.U161.endpos.xpos);
+	    x1 - WITH2->UU.Uline.aradius * cos(WITH2->UU.Uline.endpos.xpos);
 	  WITH2->aat.ypos =
-	    y1 - WITH2->UU.U161.aradius * sin(WITH2->UU.U161.endpos.xpos);
-	  WITH2->UU.U161.endpos.ypos = prp->UU.U161.endpos.ypos;
+	    y1 - WITH2->UU.Uline.aradius * sin(WITH2->UU.Uline.endpos.xpos);
+	  WITH2->UU.Uline.endpos.ypos = prp->UU.Uline.endpos.ypos;
 	  break;
 
 	case XLline:
 	case XLarrow:
 	case XLmove:
 	case XLspline:
-	  WITH2->UU.U161.endpos.xpos =
-	    WITH2->aat.xpos + prp->UU.U161.endpos.xpos - prp->aat.xpos;
-	  WITH2->UU.U161.endpos.ypos =
-	    WITH2->aat.ypos + prp->UU.U161.endpos.ypos - prp->aat.ypos;
-	  WITH2->UU.U161.height = prp->UU.U161.height;
-	  WITH2->UU.U161.width = prp->UU.U161.width;
-	  WITH2->UU.U161.atype = prp->UU.U161.atype;
+	  WITH2->UU.Uline.endpos.xpos =
+	    WITH2->aat.xpos + prp->UU.Uline.endpos.xpos - prp->aat.xpos;
+	  WITH2->UU.Uline.endpos.ypos =
+	    WITH2->aat.ypos + prp->UU.Uline.endpos.ypos - prp->aat.ypos;
+	  WITH2->UU.Uline.height = prp->UU.Uline.height;
+	  WITH2->UU.Uline.width = prp->UU.Uline.width;
+	  WITH2->UU.Uline.atype = prp->UU.Uline.atype;
 	  break;
 
 	case XLabel:
@@ -5972,8 +6079,8 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                            | object stringexpr */
-  case object18:
+  /* | object stringexpr */
+  case object17:
     if (attstack[newp + 1].prim != NULL) {
       if (WITH->prim != NULL) {
 	WITH2 = WITH->prim;
@@ -5988,7 +6095,7 @@ void produce(stackinx newp, long p)
 	  }
 	  namptr->next_ = attstack[newp + 1].prim->textp;
 	  if (WITH2->ptype == XLstring)
-	    WITH2->UU.U157.boxheight = WITH2->UU.U157.boxheight * (i + 1) / i;
+	    WITH2->UU.Ubox.boxheight = WITH2->UU.Ubox.boxheight * (i + 1) / i;
 	}
 	if (((1L << ((long)drawmode)) &
 	     ((1L << ((long)PS)) | (1L << ((long)PSfrag)))) != 0)
@@ -6001,7 +6108,28 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                            | object "from" position       */
+  /* | object "by" position */
+  case object18:
+    if (WITH->prim != NULL) {
+      if (WITH->prim->ptype == XLmove || WITH->prim->ptype == XLspline ||
+	  WITH->prim->ptype == XLarrow || WITH->prim->ptype == XLline ||
+	  WITH->prim->ptype == XLarc) {
+	WITH2 = WITH->prim;
+	x1 = attstack[newp + 2].xval + WITH2->aat.xpos;
+	y1 = attstack[newp + 2].yval + WITH2->aat.ypos;
+	if (WITH2->ptype == XLarc) {
+	  x1 += WITH2->UU.Uline.aradius * cos(WITH2->UU.Uline.endpos.xpos);
+	  y1 += WITH2->UU.Uline.aradius * sin(WITH2->UU.Uline.endpos.xpos);
+	}
+	attstack[newp + 2].xval = x1;
+	attstack[newp + 2].yval = y1;
+	doprod(object20);
+      } else
+	markerror(858);
+    }
+    break;
+
+  /* | object "from" position */
   case object19:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
@@ -6013,18 +6141,17 @@ void produce(stackinx newp, long p)
 	  s = attstack[newp + 2].yval;
 	  if (teststflag(WITH->state, XLto)) {
 	    attstack[newp + 2].xval = WITH2->aat.xpos +
-		WITH2->UU.U161.aradius *
-		cos(WITH2->UU.U161.endpos.xpos + WITH2->UU.U161.endpos.ypos);
+		WITH2->UU.Uline.aradius *
+		cos(WITH2->UU.Uline.endpos.xpos + WITH2->UU.Uline.endpos.ypos);
 	    attstack[newp + 2].yval = WITH2->aat.ypos +
-		WITH2->UU.U161.aradius *
-		sin(WITH2->UU.U161.endpos.xpos + WITH2->UU.U161.endpos.ypos);
-	    redubuf[reduinx + REDUMAX].prod_ = object20;
-	    reduinx--;
+		WITH2->UU.Uline.aradius *
+		sin(WITH2->UU.Uline.endpos.xpos + WITH2->UU.Uline.endpos.ypos);
+	    doprod(object20);
 	  }
 	  WITH2->aat.xpos =
-	    r - WITH2->UU.U161.aradius * cos(WITH2->UU.U161.endpos.xpos);
+	    r - WITH2->UU.Uline.aradius * cos(WITH2->UU.Uline.endpos.xpos);
 	  WITH2->aat.ypos =
-	    s - WITH2->UU.U161.aradius * sin(WITH2->UU.U161.endpos.xpos);
+	    s - WITH2->UU.Uline.aradius * sin(WITH2->UU.Uline.endpos.xpos);
 	} else if (!teststflag(WITH->state, XLto)) {
 	  prp = WITH->prim;
 	  while (isthen(prp))
@@ -6041,13 +6168,14 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                            | object "to" position         */
+  /* | object "to" position */
   case object20:
     if (WITH->prim != NULL) {
       if (WITH->prim->ptype == XLmove || WITH->prim->ptype == XLspline ||
 	  WITH->prim->ptype == XLarrow || WITH->prim->ptype == XLline ||
 	  WITH->prim->ptype == XLarc) {
 	if ((WITH->prim->ptype != XLarc) & teststflag(WITH->state, XLto)) {
+	  /* (teststflag(state,XLto) or teststflag(state,XLdirecton)) */
 	  /*D if debuglevel > 0 then begin writeln(log,'"then" inserted, ');
 	      prtstval(state); writeln(log) end; D*/
 	  appendthen(&WITH->prim);
@@ -6055,14 +6183,14 @@ void produce(stackinx newp, long p)
 	}
 	WITH2 = WITH->prim;
 	if (WITH2->ptype != XLarc) {
-	  WITH2->UU.U161.endpos.xpos = attstack[newp + 2].xval;
-	  WITH2->UU.U161.endpos.ypos = attstack[newp + 2].yval;
+	  WITH2->UU.Uline.endpos.xpos = attstack[newp + 2].xval;
+	  WITH2->UU.Uline.endpos.ypos = attstack[newp + 2].yval;
 	} else {
 	  x1 = WITH2->aat.xpos +
-	       WITH2->UU.U161.aradius * cos(WITH2->UU.U161.endpos.xpos);
+	       WITH2->UU.Uline.aradius * cos(WITH2->UU.Uline.endpos.xpos);
 	      /* from position */
 	  y1 = WITH2->aat.ypos +
-	       WITH2->UU.U161.aradius * sin(WITH2->UU.U161.endpos.xpos);
+	       WITH2->UU.Uline.aradius * sin(WITH2->UU.Uline.endpos.xpos);
 	  dx = attstack[newp + 2].xval - x1;
 	  dy = attstack[newp + 2].yval - y1;
 	  ts = dx * dx + dy * dy;   /* chord^2 */
@@ -6076,37 +6204,37 @@ void produce(stackinx newp, long p)
 	     write(log,' ts='); wfloat(log,ts);
 	     write(log,' i=',i:1 ) end; D*/
 	  if (ts == 0.0)
-	    WITH2->UU.U161.endpos.ypos = 0.0;
+	    WITH2->UU.Uline.endpos.ypos = 0.0;
 	  else {  /* ratio centre-to-chord/half-chord */
-	    t = sqrt(Max(0.0, 4.0 * WITH2->UU.U161.aradius * WITH2->
-				UU.U161.aradius - ts) / ts);
+	    t = sqrt(Max(0.0, 4.0 * WITH2->UU.Uline.aradius * WITH2->
+				UU.Uline.aradius - ts) / ts);
 	    /*D if debuglevel = 2 then begin
 	       write(log,' t='); wfloat(log,t);
 	       write(log,' |arcangle','|='); wfloat(log,endpos.ypos*180/pi);
 	       writeln(log) end; D*/
 	    r = sqrt(ts);
-	    if (t <= 0.0)   /* t is always nonnegative  */
-	      WITH2->UU.U161.aradius = 0.5 * r;
+	    if (t <= 0.0)   /* t is always nonnegative */
+	      WITH2->UU.Uline.aradius = 0.5 * r;
 	    switch (i) {
 		/* Determine which of the two default arcs to draw: */
 
 	    case XLup:
-	      if (WITH2->UU.U161.endpos.ypos * (-dx - t * dy) < 0.0)
+	      if (WITH2->UU.Uline.endpos.ypos * (-dx - t * dy) < 0.0)
 		t = -t;
 	      break;
 
 	    case XLdown:
-	      if (WITH2->UU.U161.endpos.ypos * (-dx - t * dy) > 0.0)
+	      if (WITH2->UU.Uline.endpos.ypos * (-dx - t * dy) > 0.0)
 		t = -t;
 	      break;
 
 	    case XLright:
-	      if (WITH2->UU.U161.endpos.ypos * (dy - t * dx) < 0.0)
+	      if (WITH2->UU.Uline.endpos.ypos * (dy - t * dx) < 0.0)
 		t = -t;
 	      break;
 
 	    case XLleft:
-	      if (WITH2->UU.U161.endpos.ypos * (dy - t * dx) > 0.0)
+	      if (WITH2->UU.Uline.endpos.ypos * (dy - t * dx) > 0.0)
 		t = -t;
 	      break;
 	    }
@@ -6117,8 +6245,8 @@ void produce(stackinx newp, long p)
 	       write(log,' aradius='); wfloat(log,aradius);
 	       write(log,' aat='); wpair(log,aat.xpos,aat.ypos);
 	       writeln(log) end; D*/
-	    setangles(&WITH2->UU.U161.endpos.xpos,
-		      &WITH2->UU.U161.endpos.ypos, WITH2->aat, x1, y1,
+	    setangles(&WITH2->UU.Uline.endpos.xpos,
+		      &WITH2->UU.Uline.endpos.ypos, WITH2->aat, x1, y1,
 		      attstack[newp + 2].xval, attstack[newp + 2].yval);
 	  }
 	  if (WITH2->direction != 0)
@@ -6132,7 +6260,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "at" position    */
+  /* | object "at" position */
   case object21:
     if (WITH->prim != NULL) {
       WITH2 = WITH->prim;
@@ -6144,10 +6272,10 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object "<textpos>"    */
+  /* | object "<textpos>" */
   /* This might be altered (in the case of strings, not other objects with text),
-       so that aat is changed as a function of textpos.  Then
-       the output routines have to take that into account.   The alternative
+       so that aat is changed as a function of textpos. Then
+       the output routines have to take that into account. The alternative
        is to alter nesw for strings, as now. */
   case object22:
     if (WITH->prim != NULL) {
@@ -6185,7 +6313,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                          | object ("colour"|"outline"|"shade") stringexpr */
+  /* | object ("colour"|"outline"|"shade") stringexpr */
   case object23:
     if (((1L << ((long)drawmode)) &
 	 ((1L << ((long)MPost)) | (1L << ((long)MFpic)) |
@@ -6232,35 +6360,8 @@ void produce(stackinx newp, long p)
     deletestringbox(&attstack[newp + 2].prim);
     break;
 
-  /*                          | objectwith "<corner>" "at" position    */
-  /*                          | objectwith pair "at" position    */
+  /* | objectwith "at" position */
   case object24:
-  case object25:
-    if (WITH->prim != NULL) {
-      if (WITH->root != NULL) {
-	prp = WITH->prim;
-	WITH->prim = WITH->root;
-	WITH->root = prp;
-      }
-      WITH->xval = attstack[newp + 3].xval;
-      WITH->yval = attstack[newp + 3].yval;
-      if (p == object24)
-	setstval(&WITH->state, attstack[newp + 1].lexval);
-      else if (WITH->prim->ptype != XLarc && WITH->prim->ptype != XLellipse &&
-	       WITH->prim->ptype != XLcircle && WITH->prim->ptype != XBLOCK &&
-	       WITH->prim->ptype != XLstring && WITH->prim->ptype != XLbox)
-	markerror(858);
-      else {
-	WITH->startchop = attstack[newp + 1].xval;
-	WITH->endchop = attstack[newp + 1].yval;
-	setstval(&WITH->state, XLfloat);
-      }
-      setstflag(&WITH->state, XLat);
-    }
-    break;
-
-  /*             | objectwith "at" position  */
-  case object26:
     if (WITH->prim == NULL)
       WITH->root = NULL;
     else {
@@ -6276,7 +6377,34 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                         | "continue" */
+  /* | objectwith "<corner>" "at" position */
+  /* | objectwith pair "at" position */
+  case object25:
+  case object26:
+    if (WITH->prim != NULL) {
+      if (WITH->root != NULL) {
+	prp = WITH->prim;
+	WITH->prim = WITH->root;
+	WITH->root = prp;
+      }
+      WITH->xval = attstack[newp + 3].xval;
+      WITH->yval = attstack[newp + 3].yval;
+      if (p == object25)
+	setstval(&WITH->state, attstack[newp + 1].lexval);
+      else if (WITH->prim->ptype != XLarc && WITH->prim->ptype != XLellipse &&
+	       WITH->prim->ptype != XLcircle && WITH->prim->ptype != XBLOCK &&
+	       WITH->prim->ptype != XLstring && WITH->prim->ptype != XLbox)
+	markerror(858);
+      else {
+	WITH->startchop = attstack[newp + 1].xval;
+	WITH->endchop = attstack[newp + 1].yval;
+	setstval(&WITH->state, XLfloat);
+      }
+      setstflag(&WITH->state, XLat);
+    }
+    break;
+
+  /* | "continue" */
   case object27:
     primp = NULL;
     prp = envblock->son;
@@ -6292,17 +6420,16 @@ void produce(stackinx newp, long p)
       while (primp->son != NULL)
 	primp = primp->son;
       WITH->prim = primp;
-      redubuf[reduinx + REDUMAX].prod_ = object10;
-      reduinx--;
+      doprod(object13);
     }
     break;
 
-  /*     openblock = "<EMPTY>"   */
+  /* openblock = "<EMPTY>" */
   case openblock1:
     /*D if debuglevel > 0 then writeln(log,
        'Calling newprim(prim,',XBLOCK:1,'):'); D*/
     newprim(&WITH->prim, XBLOCK, envblock);
-    WITH6 = &WITH->prim->UU.U26.here;
+    WITH6 = &WITH->prim->UU.Ublock.here;
     /* prim^.here := envblock^.here; */
     /* Bah! gpic compatibility: */
     WITH6->xpos = 0.0;
@@ -6313,10 +6440,11 @@ void produce(stackinx newp, long p)
     /*D; if (debuglevel > 0) and (prim <> nil) then printobject(prim)D*/
     break;
 
-  /*     block = "<primitiv>" optexp   */
-  /*           | stringexpr   */
-  /*           | openblock "[" closeblock "]"   */
-  /*           | openblock "[]"   */
+  /* block = "<primitiv>" optexp */
+  /* | stringexpr */
+  /* | openblock "[" closeblock "]" */
+  /* | openblock "[]" */
+  /* set parameters for primitive object */
   case block1:
     if (WITH->lexval > XLprimitiv && WITH->lexval < XLenvvar) {
       newprim(&WITH->prim, WITH->lexval, envblock);
@@ -6326,128 +6454,128 @@ void produce(stackinx newp, long p)
 	      (1L << ((long)SVG)) | (1L << ((long)PSfrag)))) != 0 &&
 	   WITH->lexval != XLmove) || WITH->lexval == XLarc)
       {   /*,PSmps*/
-	WITH->prim->lthick = eb->UU.U26.env[XLlinethick - XLenvvar - 1];
+	WITH->prim->lthick = eb->UU.Ublock.env[XLlinethick - XLenvvar - 1];
 	/*D; if debuglevel > 0 then begin write(log,
 	    ' envblock[',ordp(eb),'] setting linethick=');
 	    wfloat(log,prim^.lthick); writeln(log) end D*/
       }
       /* (drawmode in [PGF,PSTricks]) and */
       if (attstack[newp + 1].lexval != XEMPTY && WITH->lexval != XLmove &&
-	  WITH->lexval != XLspline && WITH->lexval != XLarrow &&
-	  WITH->lexval != XLline)
+	  WITH->lexval != XLspline &&
+	  WITH->lexval != XLarrow && WITH->lexval != XLline)
 	markerror(858);
       WITH2 = WITH->prim;
       switch (WITH->lexval) {
 
       case XLbox:
-	WITH2->UU.U157.boxheight = eb->UU.U26.env[XLboxht - XLenvvar - 1];
-	WITH2->UU.U157.boxwidth = eb->UU.U26.env[XLboxwid - XLenvvar - 1];
-	WITH2->UU.U157.boxradius = eb->UU.U26.env[XLboxrad - XLenvvar - 1];
+	WITH2->UU.Ubox.boxheight = eb->UU.Ublock.env[XLboxht - XLenvvar - 1];
+	WITH2->UU.Ubox.boxwidth = eb->UU.Ublock.env[XLboxwid - XLenvvar - 1];
+	WITH2->UU.Ubox.boxradius = eb->UU.Ublock.env[XLboxrad - XLenvvar - 1];
 	switch (WITH2->direction) {
 
 	case XLup:
-	  WITH2->aat.ypos += WITH2->UU.U157.boxheight * 0.5;
+	  WITH2->aat.ypos += WITH2->UU.Ubox.boxheight * 0.5;
 	  break;
 
 	case XLdown:
-	  WITH2->aat.ypos -= WITH2->UU.U157.boxheight * 0.5;
+	  WITH2->aat.ypos -= WITH2->UU.Ubox.boxheight * 0.5;
 	  break;
 
 	case XLleft:
-	  WITH2->aat.xpos -= WITH2->UU.U157.boxwidth * 0.5;
+	  WITH2->aat.xpos -= WITH2->UU.Ubox.boxwidth * 0.5;
 	  break;
 
 	case XLright:
-	  WITH2->aat.xpos += WITH2->UU.U157.boxwidth * 0.5;
+	  WITH2->aat.xpos += WITH2->UU.Ubox.boxwidth * 0.5;
 	  break;
 	}
 	break;
 
       case XLcircle:
-	WITH2->UU.U158.radius = eb->UU.U26.env[XLcirclerad - XLenvvar - 1];
+	WITH2->UU.Ucircle.radius = eb->UU.Ublock.env[XLcirclerad - XLenvvar - 1];
 	switch (WITH2->direction) {
 
 	case XLup:
-	  WITH2->aat.ypos += WITH2->UU.U158.radius;
+	  WITH2->aat.ypos += WITH2->UU.Ucircle.radius;
 	  break;
 
 	case XLdown:
-	  WITH2->aat.ypos -= WITH2->UU.U158.radius;
+	  WITH2->aat.ypos -= WITH2->UU.Ucircle.radius;
 	  break;
 
 	case XLleft:
-	  WITH2->aat.xpos -= WITH2->UU.U158.radius;
+	  WITH2->aat.xpos -= WITH2->UU.Ucircle.radius;
 	  break;
 
 	case XLright:
-	  WITH2->aat.xpos += WITH2->UU.U158.radius;
+	  WITH2->aat.xpos += WITH2->UU.Ucircle.radius;
 	  break;
 	}
 	break;
 
       case XLellipse:
-	WITH2->UU.U159.elheight = eb->UU.U26.env[XLellipseht - XLenvvar - 1];
-	WITH2->UU.U159.elwidth = eb->UU.U26.env[XLellipsewid - XLenvvar - 1];
+	WITH2->UU.Uellipse.elheight = eb->UU.Ublock.env[XLellipseht - XLenvvar - 1];
+	WITH2->UU.Uellipse.elwidth = eb->UU.Ublock.env[XLellipsewid - XLenvvar - 1];
 	switch (WITH2->direction) {
 
 	case XLup:
-	  WITH2->aat.ypos += WITH2->UU.U159.elheight * 0.5;
+	  WITH2->aat.ypos += WITH2->UU.Uellipse.elheight * 0.5;
 	  break;
 
 	case XLdown:
-	  WITH2->aat.ypos -= WITH2->UU.U159.elheight * 0.5;
+	  WITH2->aat.ypos -= WITH2->UU.Uellipse.elheight * 0.5;
 	  break;
 
 	case XLleft:
-	  WITH2->aat.xpos -= WITH2->UU.U159.elwidth * 0.5;
+	  WITH2->aat.xpos -= WITH2->UU.Uellipse.elwidth * 0.5;
 	  break;
 
 	case XLright:
-	  WITH2->aat.xpos += WITH2->UU.U159.elwidth * 0.5;
+	  WITH2->aat.xpos += WITH2->UU.Uellipse.elwidth * 0.5;
 	  break;
 	}
 	break;
 
       case XLarc:
-	WITH2->UU.U161.aradius = eb->UU.U26.env[XLarcrad - XLenvvar - 1];
+	WITH2->UU.Uline.aradius = eb->UU.Ublock.env[XLarcrad - XLenvvar - 1];
 	switch (WITH2->direction) {
 
 	case XLup:
-	  WITH2->UU.U161.endpos.xpos = 0.0;
-	  WITH2->aat.xpos -= WITH2->UU.U161.aradius;
+	  WITH2->UU.Uline.endpos.xpos = 0.0;
+	  WITH2->aat.xpos -= WITH2->UU.Uline.aradius;
 	  break;
 
 	case XLdown:
-	  WITH2->UU.U161.endpos.xpos = pi;
-	  WITH2->aat.xpos += WITH2->UU.U161.aradius;
+	  WITH2->UU.Uline.endpos.xpos = pi;
+	  WITH2->aat.xpos += WITH2->UU.Uline.aradius;
 	  break;
 
 	case XLleft:
-	  WITH2->UU.U161.endpos.xpos = 0.5 * pi;
-	  WITH2->aat.ypos -= WITH2->UU.U161.aradius;
+	  WITH2->UU.Uline.endpos.xpos = 0.5 * pi;
+	  WITH2->aat.ypos -= WITH2->UU.Uline.aradius;
 	  break;
 
 	case XLright:
-	  WITH2->UU.U161.endpos.xpos = -0.5 * pi;
-	  WITH2->aat.ypos += WITH2->UU.U161.aradius;
+	  WITH2->UU.Uline.endpos.xpos = -0.5 * pi;
+	  WITH2->aat.ypos += WITH2->UU.Uline.aradius;
 	  break;
 	}
-	WITH2->UU.U161.height = eb->UU.U26.env[XLarrowht - XLenvvar - 1];
-	WITH2->UU.U161.width = eb->UU.U26.env[XLarrowwid - XLenvvar - 1];
+	WITH2->UU.Uline.height = eb->UU.Ublock.env[XLarrowht - XLenvvar - 1];
+	WITH2->UU.Uline.width = eb->UU.Ublock.env[XLarrowwid - XLenvvar - 1];
 	    /* atype := XEMPTY; */
-	WITH2->UU.U161.atype = pahnum(pahlex(0, XEMPTY),
-	    (long)floor(eb->UU.U26.env[XLarrowhead - XLenvvar - 1] + 0.5));
-	WITH2->UU.U161.endpos.ypos = pi * 0.5;
+	WITH2->UU.Uline.atype = pahnum(pahlex(0, XEMPTY),
+	    (long)floor(eb->UU.Ublock.env[XLarrowhead - XLenvvar - 1] + 0.5));
+	WITH2->UU.Uline.endpos.ypos = pi * 0.5;
 	break;
 
       case XLline:
       case XLarrow:
       case XLspline:
       case XLmove:
-	WITH2->UU.U161.endpos = WITH2->aat;
+	WITH2->UU.Uline.endpos = WITH2->aat;
 	if (WITH2->ptype == XLspline && attstack[newp + 1].lexval != XEMPTY) {
 	  /* This implements adjusted splines */
-	  WITH2->UU.U161.aradius = attstack[newp + 1].xval;
+	  WITH2->UU.Uline.aradius = attstack[newp + 1].xval;
 	  attstack[newp + 1].lexval = XEMPTY;
 	}  /* */
 	if (attstack[newp + 1].lexval != XEMPTY)
@@ -6457,12 +6585,12 @@ void produce(stackinx newp, long p)
 
 	  case XLup:
 	  case XLdown:
-	    r = eb->UU.U26.env[XLmoveht - XLenvvar - 1];
+	    r = eb->UU.Ublock.env[XLmoveht - XLenvvar - 1];
 	    break;
 
 	  case XLleft:
 	  case XLright:
-	    r = eb->UU.U26.env[XLmovewid - XLenvvar - 1];
+	    r = eb->UU.Ublock.env[XLmovewid - XLenvvar - 1];
 	    break;
 	  }
 	} else {
@@ -6470,47 +6598,47 @@ void produce(stackinx newp, long p)
 
 	  case XLup:
 	  case XLdown:
-	    r = eb->UU.U26.env[XLlineht - XLenvvar - 1];
+	    r = eb->UU.Ublock.env[XLlineht - XLenvvar - 1];
 	    break;
 
 	  case XLleft:
 	  case XLright:
-	    r = eb->UU.U26.env[XLlinewid - XLenvvar - 1];
+	    r = eb->UU.Ublock.env[XLlinewid - XLenvvar - 1];
 	    break;
 	  }
 	}
 	switch (WITH2->direction) {
 
 	case XLup:
-	  WITH2->UU.U161.endpos.ypos = WITH2->aat.ypos + r;
+	  WITH2->UU.Uline.endpos.ypos = WITH2->aat.ypos + r;
 	  break;
 
 	case XLdown:
-	  WITH2->UU.U161.endpos.ypos = WITH2->aat.ypos - r;
+	  WITH2->UU.Uline.endpos.ypos = WITH2->aat.ypos - r;
 	  break;
 
 	case XLleft:
-	  WITH2->UU.U161.endpos.xpos = WITH2->aat.xpos - r;
+	  WITH2->UU.Uline.endpos.xpos = WITH2->aat.xpos - r;
 	  break;
 
 	case XLright:
-	  WITH2->UU.U161.endpos.xpos = WITH2->aat.xpos + r;
+	  WITH2->UU.Uline.endpos.xpos = WITH2->aat.xpos + r;
 	  break;
 	}
-	WITH2->UU.U161.height = eb->UU.U26.env[XLarrowht - XLenvvar - 1];
-	WITH2->UU.U161.width = eb->UU.U26.env[XLarrowwid - XLenvvar - 1];
+	WITH2->UU.Uline.height = eb->UU.Ublock.env[XLarrowht - XLenvvar - 1];
+	WITH2->UU.Uline.width = eb->UU.Ublock.env[XLarrowwid - XLenvvar - 1];
 	if (WITH2->ptype == XLarrow)
-	  WITH2->UU.U161.atype = pahlex(0, XRIGHTHEAD);
+	  WITH2->UU.Uline.atype = pahlex(0, XRIGHTHEAD);
 	else
-	  WITH2->UU.U161.atype = pahlex(0, XEMPTY);
-	WITH2->UU.U161.atype = pahnum(WITH2->UU.U161.atype,
-	    (long)floor(eb->UU.U26.env[XLarrowhead - XLenvvar - 1] + 0.5));
+	  WITH2->UU.Uline.atype = pahlex(0, XEMPTY);
+	WITH2->UU.Uline.atype = pahnum(WITH2->UU.Uline.atype,
+	    (long)floor(eb->UU.Ublock.env[XLarrowhead - XLenvvar - 1] + 0.5));
 	break;
       }
     }
     break;
 
-  /*                          | stringexpr */
+  /* | stringexpr */
   case block2:
     if (((1L << ((long)drawmode)) &
 	 ((1L << ((long)PS)) | (1L << ((long)PSfrag)))) != 0)
@@ -6519,35 +6647,35 @@ void produce(stackinx newp, long p)
     /* flag text in output */
     break;
 
-  /*                          | openblock "[" closeblock "]" */
+  /* | openblock "[" closeblock "]" */
   case block3:
     if (WITH->prim != NULL) {
       WITH->prim->son = attstack[newp + 2].prim;
       envblock = WITH->prim->parent;
       getnesw(WITH->prim->son);
       WITH2 = WITH->prim;
-      WITH2->UU.U26.blockwidth = east - west;
-      WITH2->UU.U26.blockheight = north - south;
+      WITH2->UU.Ublock.blockwidth = east - west;
+      WITH2->UU.Ublock.blockheight = north - south;
       WITH2->aat.xpos = (east + west) * 0.5;
       WITH2->aat.ypos = (north + south) * 0.5;
-      dx = envblock->UU.U26.here.xpos - WITH2->aat.xpos;
-      dy = envblock->UU.U26.here.ypos - WITH2->aat.ypos;
+      dx = envblock->UU.Ublock.here.xpos - WITH2->aat.xpos;
+      dy = envblock->UU.Ublock.here.ypos - WITH2->aat.ypos;
       switch (envblock->direction) {
 
       case XLright:
-	dx += WITH2->UU.U26.blockwidth * 0.5;
+	dx += WITH2->UU.Ublock.blockwidth * 0.5;
 	break;
 
       case XLleft:
-	dx -= WITH2->UU.U26.blockwidth * 0.5;
+	dx -= WITH2->UU.Ublock.blockwidth * 0.5;
 	break;
 
       case XLup:
-	dy += WITH2->UU.U26.blockheight * 0.5;
+	dy += WITH2->UU.Ublock.blockheight * 0.5;
 	break;
 
       case XLdown:
-	dy -= WITH2->UU.U26.blockheight * 0.5;
+	dy -= WITH2->UU.Ublock.blockheight * 0.5;
 	break;
       }
       WITH2->direction = envblock->direction;   /* gpic compatibility */
@@ -6566,51 +6694,52 @@ void produce(stackinx newp, long p)
             if prim^.son^.next <> nil then printobject(prim^.son^.next)
             end
          end;
-      if debuglevel > 0 then begin snaptree(prim,0); writeln(log) endD*/
+      if debuglevel > 0 then begin snaptree(prim,0); writeln(log) end D*/
       shift(WITH->prim, dx, dy);
     }
     break;
 
-  /*                          | openblock "[]" */
+  /* | openblock "[]" */
   case block4:
     if (WITH->prim != NULL)
       envblock = WITH->prim->parent;
     break;
 
-  /*     optexp = "<EMPTY>"   */
-  /*            | expression   */
+  /* optexp = "<EMPTY>" */
+  /* | expression */
   case optexp1:
     WITH->lexval = XEMPTY;
     break;
 
   case optexp2:
+    /* blank case */
     break;
 
-  /*     closeblock = elementlist optnl   */
-  /*    Add latex to reset env variables changed within a block */
+  /* closeblock = elementlist optnl */
+  /* Add latex to reset env variables changed within a block */
   case closeblock1:
-    if (WITH->prim != NULL && envblock->UU.U26.env != NULL) {
+    if (WITH->prim != NULL && envblock->UU.Ublock.env != NULL) {
       eb = findenv(envblock->parent);
       if (eb != NULL) {  /* check and reset variables: */
-	if (envblock->UU.U26.env[XLlinethick - XLenvvar - 1] !=
-	    eb->UU.U26.env[XLlinethick - XLenvvar - 1]) {
+	if (envblock->UU.Ublock.env[XLlinethick - XLenvvar - 1] !=
+	    eb->UU.Ublock.env[XLlinethick - XLenvvar - 1]) {
 	  newprim(&attstack[newp + 2].prim, XLaTeX, envblock);
 	  attstack[newp + 2].prim->lthick =
-	    eb->UU.U26.env[XLlinethick - XLenvvar - 1];
+	    eb->UU.Ublock.env[XLlinethick - XLenvvar - 1];
 	  addelem(attstack[newp + WITH->state].prim, attstack[newp + 2].prim);
 	}
-	if (envblock->UU.U26.env[XLdashwid - XLenvvar - 1] !=
-	    eb->UU.U26.env[XLdashwid - XLenvvar - 1]) {
+	if (envblock->UU.Ublock.env[XLdashwid - XLenvvar - 1] !=
+	    eb->UU.Ublock.env[XLdashwid - XLenvvar - 1]) {
 	  newprim(&attstack[newp + 2].prim, XLaTeX, envblock);
-	  attstack[newp + 2].prim->lparam = eb->UU.U26.env[XLdashwid - XLenvvar - 1];
+	  attstack[newp + 2].prim->lparam = eb->UU.Ublock.env[XLdashwid - XLenvvar - 1];
 	  addelem(attstack[newp + WITH->state].prim, attstack[newp + 2].prim);
 	}
       }
     }
     break;
 
-  /*     pair = expression "," expression   */
-  /*          | location shift   */
+  /* pair = expression "," expression */
+  /* | location shift */
   case pair1:
     WITH->yval = attstack[newp + 2].xval;
     break;
@@ -6622,8 +6751,8 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*     objectwith = object "with"  */
-  /*                | objectwith "." "<Label>" suffix  */
+  /* objectwith = object "with" */
+  /* | objectwith "." "<Label>" suffix */
   case objectwith1:
     break;
 
@@ -6637,7 +6766,7 @@ void produce(stackinx newp, long p)
       primp = findplace(WITH->prim->son, chbuf, attstack[newp + 2].chbufx,
 			attstack[newp + 2].length);
       if (primp == NULL) {
-	marknotfound(chbuf, attstack[newp + 2].chbufx,
+	marknotfound(855, chbuf, attstack[newp + 2].chbufx,
 		     attstack[newp + 2].length);
 	deletetree(&WITH->prim);
       } else {
@@ -6648,7 +6777,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                | objectwith "." nth primobj  */
+  /* | objectwith "." nth primobj */
   case objectwith3:
     if (WITH->prim != NULL) {
       WITH->lexval = attstack[newp + 1].lexval;
@@ -6665,9 +6794,9 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*     shift = "<EMPTY>"   */
-  /*           | shift "+" location   */
-  /*           | shift "-" location   */
+  /* shift = "<EMPTY>" */
+  /* | shift "+" location */
+  /* | shift "-" location */
   case shift1:
     WITH->xval = 0.0;
     WITH->yval = 0.0;
@@ -6686,11 +6815,11 @@ void produce(stackinx newp, long p)
     WITH->lexval = XLfloat;
     break;
 
-  /*     location = "(" position ")"   */
-  /*              | "(" position "," position ")"   */
-  /*              | place   */
-  /*              | location "*" factor   */
-  /*              | location "/" factor   */
+  /* location = "(" position ")" */
+  /* | "(" position "," position ")" */
+  /* | place */
+  /* | location "*" factor */
+  /* | location "/" factor */
   case location1:
     attstack[newp] = attstack[newp + 1];
     break;
@@ -6718,11 +6847,11 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*     place = placename   */
-  /*           | placename "<corner>"   */
-  /*           | "<corner>" placename   */
-  /*           | "<corner>" "of" placename   */
-  /*           | "Here"   */
+  /* place = placename */
+  /* | placename "<corner>" */
+  /* | "<corner>" placename */
+  /* | "<corner>" "of" placename */
+  /* | "Here" */
   case place1:
     corner(WITH->prim, XEMPTY, &WITH->xval, &WITH->yval);
     break;
@@ -6740,13 +6869,13 @@ void produce(stackinx newp, long p)
     break;
 
   case place5:
-    WITH->xval = envblock->UU.U26.here.xpos;
-    WITH->yval = envblock->UU.U26.here.ypos;
+    WITH->xval = envblock->UU.Ublock.here.xpos;
+    WITH->yval = envblock->UU.Ublock.here.ypos;
     break;
 
-  /*     factor = primary   */
-  /*            | "!" primary   */
-  /*            | primary "^" factor   */
+  /* factor = primary */
+  /* | "!" primary */
+  /* | primary "^" factor */
   case factor1:
     break;
 
@@ -6773,7 +6902,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*     placename = "<Label>" suffix   */
+  /* placename = "<Label>" suffix */
   case placename1:
     if (attstack[newp + 1].lexval != XEMPTY)
       addsuffix(chbuf, &WITH->chbufx, &WITH->length, attstack[newp + 1].xval);
@@ -6787,24 +6916,15 @@ void produce(stackinx newp, long p)
 	primp = primp->parent;
     }
     if (prp == NULL) {
-      markerror(854);
-      fprintf(stderr_, "\nSearch failure for \"");
-      FORLIM = WITH->length;
-      for (i = 0; i < FORLIM; i++)
-	putc(chbuf[WITH->chbufx + i], stderr_);
-      fprintf(stderr_, "\"\n");
+      /*D else if debuglevel > 0 then with prp^ do begin
+          write(log,'placename: type ', ptype:1,', ');
+          wpair(log,aat.xpos,aat.ypos); writeln(log) end D*/
+      marknotfound(854, chbuf, WITH->chbufx, WITH->length);
     }
-    /*D if (debuglevel > 0) and (prp<>nil) then with prp^ do
-       writeln(log,
-       'placename: type ', ptype:7,', ',aat.xpos:7:4,aat.ypos:7:4)
-        else if debuglevel > 0 then begin
-           write(log,'Search failure for "');
-           for i := 0 to length-1 do write(log,chbuf^[chbufx+i]);
-           writeln(log,'"') end ; D*/
     WITH->prim = prp;
     break;
 
-  /*            | nth primobj                   */
+  /* | nth primobj */
   case placename2:
     WITH->prim = nthprimobj(envblock->son, WITH->length,
 			    attstack[newp + 1].lexval);
@@ -6812,7 +6932,7 @@ void produce(stackinx newp, long p)
       markerror(857);
     break;
 
-  /*            | placename "." "<Label>" suffix  */
+  /* | placename "." "<Label>" suffix */
   case placename3:
     if (WITH->prim != NULL) {
       if (attstack[newp + 3].lexval != XEMPTY) {
@@ -6827,16 +6947,16 @@ void produce(stackinx newp, long p)
       primp = findplace(WITH->prim->son, chbuf, attstack[newp + 2].chbufx,
 			attstack[newp + 2].length);
       if (primp == NULL) {
-	/*Delse if debuglevel > 0 then begin
-	   write(log,'placename:'); printobject(primp) endD*/
-	marknotfound(chbuf, attstack[newp + 2].chbufx,
+	/*D else if debuglevel > 0 then begin
+	   write(log,'placename:'); printobject(primp) end D*/
+	marknotfound(855, chbuf, attstack[newp + 2].chbufx,
 		     attstack[newp + 2].length);
       }
       WITH->prim = primp;
     }
     break;
 
-  /*            | placename "." nth primobj      */
+  /* | placename "." nth primobj */
   case placename4:
     if (WITH->prim != NULL) {
       WITH->prim = nthprimobj(WITH->prim->son, attstack[newp + 2].length,
@@ -6846,9 +6966,9 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*     nth = ncount "th"   */
-  /*         | ncount "th" "last"   */
-  /*         | "last"   */
+  /* nth = ncount "th" */
+  /* | ncount "th" "last" */
+  /* | "last" */
   case nth1:
     if (WITH->xval <= 0.0)
       markerror(856);
@@ -6867,10 +6987,10 @@ void produce(stackinx newp, long p)
     WITH->length = 0;
     break;
 
-  /*     primobj = "<primitiv>"   */
-  /*             | "[]"   */
-  /*             | "<string>"   */
-  /*             | "[" "]"   */
+  /* primobj = "<primitiv>" */
+  /* | "[]" */
+  /* | "<string>" */
+  /* | "[" "]" */
   case primobj1:
   case primobj2:
   case primobj3:
@@ -6880,22 +7000,22 @@ void produce(stackinx newp, long p)
     WITH->lexval = XBLOCK;
     break;
 
-  /*     ncount = "<float>"   */
+  /* ncount = "<float>" */
   case ncount1:
     break;
 
-  /*            | "`" expression "'"   */
-  /*            | "lbrace" expression "rbrace"   */
+  /* | "`" expression "'" */
+  /* | "lbrace" expression "rbrace" */
   case ncount2:
   case ncount3:
     WITH->xval = attstack[newp + 1].xval;
     break;
 
-  /*     logprod = logval   */
+  /* logprod = logval */
   case logprod1:
     break;
 
-  /*             | logprod "&&" logval   */
+  /* | logprod "&&" logval */
   case logprod2:
     if (WITH->xval == 0.0 || attstack[newp + 2].xval == 0.0)
       WITH->xval = 0.0;
@@ -6903,7 +7023,7 @@ void produce(stackinx newp, long p)
       WITH->xval = 1.0;
     break;
 
-  /*   logval = lcompare */
+  /* logval = lcompare */
   case logval1:
     if (WITH->lexval == XLstring) {
       markerror(869);
@@ -6912,7 +7032,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*          | stringexpr "<" stringexpr */
+  /* | stringexpr "<" stringexpr */
   case logval2:
     i = cmpstring(WITH->prim, attstack[newp + 2].prim);
     if (i < 0)
@@ -6924,7 +7044,7 @@ void produce(stackinx newp, long p)
     deletestringbox(&WITH->prim);
     break;
 
-  /*          | expression "<" expression */
+  /* | expression "<" expression */
   case logval3:
     if (WITH->xval < attstack[newp + 2].xval)
       WITH->xval = 1.0;
@@ -6932,14 +7052,14 @@ void produce(stackinx newp, long p)
       WITH->xval = 0.0;
     break;
 
-  /*   lcompare = expression */
-  /*            | stringexpr */
+  /* lcompare = expression */
+  /* | stringexpr */
   case lcompare1:
   case lcompare2:
     break;
 
-  /*            | lcompare "<compare>" expression */
-  /*             "==" "!=" ">=" "<=" "<^>" ">"     */
+  /* | lcompare "<compare>" expression */
+  /* "<" "==" "!=" ">=" "<=" ">" */
   case lcompare3:
     if (WITH->lexval == XLstring) {
       markerror(869);
@@ -6947,6 +7067,10 @@ void produce(stackinx newp, long p)
       deletestringbox(&WITH->prim);
     } else {
       switch (attstack[newp + 1].lexval - XLcompare) {
+
+      case 0:
+	bswitch = (WITH->xval < attstack[newp + 2].xval);
+	break;
 
       case 1:
 	bswitch = (WITH->xval == attstack[newp + 2].xval);
@@ -6965,10 +7089,6 @@ void produce(stackinx newp, long p)
 	break;
 
       case 5:
-	bswitch = (WITH->xval < attstack[newp + 2].xval);
-	break;
-
-      case 6:
 	bswitch = (WITH->xval > attstack[newp + 2].xval);
 	break;
       }
@@ -6979,7 +7099,7 @@ void produce(stackinx newp, long p)
       WITH->xval = 0.0;
     break;
 
-  /*            | lcompare "<compare>" stringexpr */
+  /* | lcompare "<compare>" stringexpr */
   case lcompare4:
     if (WITH->lexval != XLstring) {
       markerror(869);
@@ -6988,6 +7108,10 @@ void produce(stackinx newp, long p)
       i = cmpstring(WITH->prim, attstack[newp + 2].prim);
       /*D if debuglevel > 0 then writeln(log,' cmpstring=',i:1); D*/
       switch (attstack[newp + 1].lexval - XLcompare) {
+
+      case 0:
+	bswitch = (i < 0);
+	break;
 
       case 1:
 	bswitch = (i == 0);
@@ -7006,15 +7130,7 @@ void produce(stackinx newp, long p)
 	break;
 
       case 5:
-	bswitch = (i < 0);
-	break;
-
-      case 6:
 	bswitch = (i > 0);
-	break;
-
-      default:
-	bswitch = false;
 	break;
       }
       deletestringbox(&WITH->prim);
@@ -7027,53 +7143,54 @@ void produce(stackinx newp, long p)
     deletestringbox(&attstack[newp + 2].prim);
     break;
 
-  /*     primary = "<envvar>"   */
-  /*             | "<name>" suffix   */
-  /*             | "<float>"   */
-  /*             | "(" logexpr ")"   */
-  /*             | location ".x"   */
-  /*             | location ".y"   */
-  /*             | placename "<param>"   */
-  /*             | "rand" "(" ")"   */
-  /*             | "rand" "(" expression ")"   */
-  /*             | "<func1>" "(" expression ")"   */
-  /*             | "<func2>" "(" expression "," expression ")"   */
-  /*             | "(" assignlist ")"   */
+  /* primary = "<envvar>" */
+  /* | "<name>" suffix */
+  /* | "<float>" */
+  /* | "(" logexpr ")" */
+  /* | location ".x" */
+  /* | location ".y" */
+  /* | placename "<param>" */
+  /* | "rand" "(" ")" */
+  /* | "rand" "(" expression ")" */
+  /* | "<func1>" "(" expression ")" */
+  /* | "<func2>" "(" expression "," expression ")" */
+  /* | "(" assignlist ")" */
   case primary1:
     if (envblock != NULL) {
       eb = findenv(envblock);
-      WITH->xval = eb->UU.U26.env[WITH->lexval - XLenvvar - 1];
+      WITH->xval = eb->UU.Ublock.env[WITH->lexval - XLenvvar - 1];
     }
     break;
 
-  /*                           | "<name>" suffix    */
+  /* | "<name>" suffix */
   case primary2:
     if (attstack[newp + 1].lexval != XEMPTY)
       addsuffix(chbuf, &WITH->chbufx, &WITH->length, attstack[newp + 1].xval);
-    namptr = glfindname(envblock, chbuf, WITH->chbufx, WITH->length, &lastn);
+    namptr = glfindname(envblock, chbuf, WITH->chbufx, WITH->length, &lastvar,
+			&k);
     if (namptr == NULL)
       WITH->xval = 0.0;
     else
       WITH->xval = namptr->val;
     break;
 
-  /*                           | "<float>"    */
+  /* | "<float>" */
   case primary3:
     break;
 
-  /*                           | "(" logexpr ")"    */
+  /* | "(" logexpr ")" */
   case primary4:
     WITH->xval = attstack[newp + 1].xval;
     break;
 
-  case primary5:   /*   | place ".x"  */
+  case primary5:   /* | place ".x" */
     break;
 
-  case primary6:   /*   | place ".y"  */
+  case primary6:   /* | place ".y" */
     WITH->xval = WITH->yval;
     break;
 
-  /*                                        | placename "<param>"  */
+  /* | placename "<param>" */
   case primary7:
     if (WITH->prim != NULL) {
       switch (attstack[newp + 1].lexval) {
@@ -7090,9 +7207,9 @@ void produce(stackinx newp, long p)
       case XLdiameter:
 	WITH2 = WITH->prim;
 	if (WITH2->ptype == XLcircle)
-	  WITH->xval = WITH2->UU.U158.radius;
+	  WITH->xval = WITH2->UU.Ucircle.radius;
 	else if (WITH2->ptype == XLarc)
-	  WITH->xval = WITH2->UU.U161.aradius;
+	  WITH->xval = WITH2->UU.Uline.aradius;
 	else
 	  markerror(858);
 	if (attstack[newp + 1].lexval == XLdiameter)
@@ -7102,18 +7219,18 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                  | "rand" "(" ")"  random number between 0 and 1 */
+  /* | "rand" "(" ")" random number between 0 and 1 */
   case primary8:
     WITH->xval = (double)random() / LONG_MAX;
     break;
 
-  /*                  | "rand" "(" expression ")"  */
+  /* | "rand" "(" expression ")" */
   case primary9:
     srandom((long)floor(attstack[newp + 2].xval + 0.5));
     WITH->xval = (double)random() / LONG_MAX;
     break;
 
-  /*                  | "<func1>" "(" expression ")"  */
+  /* | "<func1>" "(" expression ")" */
   case primary10:
     switch (WITH->lexval) {
 
@@ -7125,14 +7242,16 @@ void produce(stackinx newp, long p)
       t = attstack[newp + 2].xval;
       if (fabs(t) > 1.0)
 	markerror(868);
-      WITH->xval = datan(sqrt(1 - t * t), t);
+      else
+	WITH->xval = datan(sqrt(1 - t * t), t);
       break;
 
     case XLasin:
       t = attstack[newp + 2].xval;
       if (fabs(t) > 1.0)
 	markerror(868);
-      WITH->xval = datan(t, sqrt(1 - t * t));
+      else
+	WITH->xval = datan(t, sqrt(1 - t * t));
       break;
 
     case XLcos:
@@ -7152,18 +7271,16 @@ void produce(stackinx newp, long p)
       break;
 
     case XLlog:
-      if (attstack[newp + 2].xval <= 0.0) {
+      if (attstack[newp + 2].xval <= 0.0)
 	markerror(867);
-	WITH->xval = 0.0;
-      } else
+      else
 	WITH->xval = log(attstack[newp + 2].xval) / log(10.0);
       break;
 
     case XLloge:
-      if (attstack[newp + 2].xval <= 0.0) {
+      if (attstack[newp + 2].xval <= 0.0)
 	markerror(867);
-	WITH->xval = 0.0;
-      } else
+      else
 	WITH->xval = log(attstack[newp + 2].xval);
       break;
 
@@ -7179,10 +7296,9 @@ void produce(stackinx newp, long p)
       break;
 
     case XLsqrt:
-      if (attstack[newp + 2].xval < 0.0) {
+      if (attstack[newp + 2].xval < 0.0)
 	markerror(867);
-	WITH->xval = 0.0;
-      } else
+      else
 	WITH->xval = sqrt(attstack[newp + 2].xval);
       break;
 
@@ -7201,7 +7317,7 @@ void produce(stackinx newp, long p)
     }
     break;
 
-  /*                  | "<func2>" "(" expression "," expression ")"  */
+  /* | "<func2>" "(" expression "," expression ")" */
   case primary11:
     switch (WITH->lexval) {
 
@@ -7218,26 +7334,31 @@ void produce(stackinx newp, long p)
       break;
 
     case XLpmod:
-      j = labs((long)floor(attstack[newp + 4].xval + 0.5));
-      i = (long)floor(attstack[newp + 2].xval + 0.5) % j;
-/* p2c: dpic.p, line 4024:
- * Note: Using % for possibly-negative arguments [317] */
-      if (i >= 0)
-	WITH->xval = i;
-      else
-	WITH->xval = i + j;
+      t = attstack[newp + 2].xval;
+      s = attstack[newp + 4].xval;
+      if (s == 0)
+	markerror(871);
+      else {
+	WITH->xval = t - s * Floor(t / s);
+	if (WITH->xval < 0)
+	  WITH->xval += fabs(s);
+      }
       break;
     }
     break;
 
-  /*                 | "(" assignlist ")"    */
+  /* | "(" assignlist ")" */
   case primary12:
     WITH->xval = attstack[newp + 1].xval;
-
     break;
   }/* case */
 
   /*D; if debuglevel > 0 then printobject(prim); D*/
+  /*D; if debuglevel > 0 then begin
+     write(log,'for: initial='); wfloat(log,xval);
+     write(log,' final='); wfloat(log,endchop);
+     write(log,' incr='); wfloat(log,yval);
+     writeln(log) end D*/
 }
 
 
@@ -7246,27 +7367,22 @@ void produce(stackinx newp, long p)
 /* G end.G */
 /* onefile */
 /*GH#include 'dpic1.p'HG*/
-
 /* include dpic2.p */
 /*BXsegment dpic2;XB*/
 /* onefile */
 /* G module dpic2; G */
-
 /* include dp0.h */
 /*BXU#include 'dp0.h'UXB*/
 /* onefile */
 /* G#include 'dp0.h'G */
-
 /* include dp1.h */
 /*BXU#include 'dp1.h'UXB*/
 /* onefile */
 /* G#include 'dp1.h'G */
-
 /* include sysdep.h */
 /*DBXU#include 'sysdep.h'UXBD*/
 /* onefile */
 /* DG#include 'sysdep.h'GD */
-
 void controls(void)
 {
   printf("\n ..controls ");
@@ -7314,8 +7430,8 @@ void getlinshade(primitive *n, primitive **tn, nametype **ss,
       WITH = n;
       if (WITH->shadedp != NULL)
 	*ss = WITH->shadedp;
-      if (WITH->UU.U161.lfill >= 0.0 && WITH->UU.U161.lfill <= 1.0)
-	*f = WITH->UU.U161.lfill;
+      if (WITH->UU.Uline.lfill >= 0.0 && WITH->UU.Uline.lfill <= 1.0)
+	*f = WITH->UU.Uline.lfill;
       *tn = n;
       n = n->son;
     }
@@ -7326,27 +7442,27 @@ void getlinshade(primitive *n, primitive **tn, nametype **ss,
 
 
 /* Arrowhead location (lex value) and number */
-long ahlex(long atyp)
+int ahlex(int atyp)
 {
   return (atyp >> 3);
 }
 
 
-long ahnum(long atyp)
+int ahnum(int atyp)
 {
   return (atyp & 7);
 }
 
 
-long pahlex(long atyp, long alex)
+int pahlex(int atyp, int alex)
 {
   return ((atyp & 7) + alex * 8);
 }
 
 
-long pahnum(long atyp, long anum)
+int pahnum(int atyp, int anum)
 {
-  return ((atyp >> 3) * 8 + anum);
+  return ((atyp >> 3) * 8 + (anum & 7));   /* 0 < anum < 7 */
 }
 
 
@@ -7358,9 +7474,9 @@ void wfloat(FILE **iou, double y)
   if (fabs(y)==distmax)
      sprintf(buf,"%24.6e", y);
   else if (y >= 0.0)
-     sprintf(buf,"%24.6f", floor( 1000000*y+0.5)/1000000.0);
+     sprintf(buf,"%24.6f", floor( 1000000*y+0.5)/1000000.0 );
   else
-     sprintf(buf,"%24.6f",-floor(-1000000*y+0.5)/1000000.0);
+     sprintf(buf,"%24.6f",-floor(-1000000*y+0.5)/1000000.0 );
   for (i=23; buf[i]=='0'; ) i-- ;
   if (buf[i]=='.') buf[i] = (char)0;
   else buf[i+1] = (char)0;
@@ -7402,7 +7518,7 @@ void wpos(postype pos)
 void wstring(FILE **iou, nametype *p)
 {
   /* var iou: text; p: strptr */
-  long i, FORLIM;
+  int i, FORLIM;
 
   /*D if debuglevel <= 0 then begin end
       else if p = nil then begin end
@@ -7436,7 +7552,7 @@ void wbrace(double x)
 }
 
 
-boolean testjust(long n, long flag)
+boolean testjust(int n, int flag)
 {
   boolean Result;
 
@@ -7474,7 +7590,7 @@ void checkjust(nametype *tp, boolean *A, boolean *B, boolean *L,
 		      boolean *R)
 {
   /* tp: strptr; var A,B,L,R: boolean */
-  long i;
+  int i;
 
   if (tp == NULL) {
     *A = false;
@@ -7491,6 +7607,32 @@ void checkjust(nametype *tp, boolean *A, boolean *B, boolean *L,
 }
 
 
+int lspec(int n)
+{
+  /* n: integer): integer */
+  /* if ((n div 16) mod 2) <> 0 then lspec := XLsolid
+  else */
+  return ((n & 7) + XLlinetype);
+}
+
+
+void getlinespec(primitive *nd, int *lsp, primitive **lastnd)
+{
+  /* nd: primitivep;
+     var lsp: integer; var lastnd: primitivep */
+  primitive *tn;
+
+  tn = nd;
+  if (nd->ptype == XLarc || nd->ptype == XLarrow || nd->ptype == XLline ||
+      nd->ptype == XLspline) {
+    while (tn->son != NULL)
+      tn = tn->son;
+  }
+  *lastnd = tn;
+  *lsp = lspec(tn->spec);
+}
+
+
 primitive *findenv(primitive *p)
 {
   /* p: primitivep ): primitivep; external */
@@ -7498,9 +7640,10 @@ primitive *findenv(primitive *p)
 
   q = NULL;
   while (p != q) {
-    if (p->ptype != XBLOCK)
+    if (p->ptype != XBLOCK) {
+      /* if (p^.ptype mod XLlastenv)<>XBLOCK then */
       p = p->parent;
-    else if (p->UU.U26.env == NULL)
+    } else if (p->UU.Ublock.env == NULL)
       p = p->parent;
     else
       q = p;
@@ -7513,7 +7656,7 @@ primitive *findenv(primitive *p)
 }
 
 
-double venv(primitive *p, long ind)
+double venv(primitive *p, int ind)
 {
   double v;
 
@@ -7522,12 +7665,12 @@ double venv(primitive *p, long ind)
     return v;
   p = findenv(p);
   if (p != NULL)
-    v = p->UU.U26.env[ind - XLenvvar - 1];
+    v = p->UU.Ublock.env[ind - XLenvvar - 1];
   return v;
 }
 
 
-double qenv(primitive *p, long ind, double localval)
+double qenv(primitive *p, int ind, double localval)
 {
   double noval;
 
@@ -7556,7 +7699,7 @@ double qenv(primitive *p, long ind, double localval)
 }
 
 
-/*        orig + mat(cs) * [x,y] */
+/* orig + mat(cs) * [x,y] */
 postype affine(double x, double y, postype orig, postype cs)
 {
   postype tpos;
@@ -7619,7 +7762,7 @@ Local void neswstring(primitive *pmp, struct LOC_nesw *LINK)
   else if (B)
     y += -LINK->hight * 0.5 - offst;
   if (drawmode == SVG)
-    offst = pmp->UU.U157.boxheight / 3;
+    offst = pmp->UU.Ubox.boxheight / 3;
   x = pmp->aat.xpos;
   if (R)
     x += -LINK->wdth * 0.5 - offst;
@@ -7629,28 +7772,30 @@ Local void neswstring(primitive *pmp, struct LOC_nesw *LINK)
   south = Min(south, y - LINK->hight * 0.5);
   west = Min(west, x - LINK->wdth * 0.5);
   east = Max(east, x + LINK->wdth * 0.5);
-  /*D;  if debuglevel>0 then
-     writeln(log,' neswstring: aat.xpos=',aat.xpos:8:3,' x=',x:8:3,
-             ' east=',east:8:3,' west=',west:8:3,' wdth=',wdth:8:3) D*/
+  /*D; if debuglevel>0 then begin
+     write(log,' neswstring:');
+     wlogfl('aat.xpos',aat.xpos,0); wlogfl('x',x,0);
+     wlogfl('east',east,0); wlogfl('west',west,0); wlogfl('wdth',wdth,1)
+     end D*/
 }
 
 Local void neswline(primitive *pmp, struct LOC_nesw *LINK)
 {
   double aht, awd;
   postype cs, cc, cd;
-  long TEMP;
+  int TEMP;
 
   if (pmp == NULL)
     return;
-  west = Min(west, Min(pmp->aat.xpos, pmp->UU.U161.endpos.xpos));
-  east = Max(east, Max(pmp->aat.xpos, pmp->UU.U161.endpos.xpos));
-  south = Min(south, Min(pmp->aat.ypos, pmp->UU.U161.endpos.ypos));
-  north = Max(north, Max(pmp->aat.ypos, pmp->UU.U161.endpos.ypos));
-  TEMP = ahlex(pmp->UU.U161.atype);
+  west = Min(west, Min(pmp->aat.xpos, pmp->UU.Uline.endpos.xpos));
+  east = Max(east, Max(pmp->aat.xpos, pmp->UU.Uline.endpos.xpos));
+  south = Min(south, Min(pmp->aat.ypos, pmp->UU.Uline.endpos.ypos));
+  north = Max(north, Max(pmp->aat.ypos, pmp->UU.Uline.endpos.ypos));
+  TEMP = ahlex(pmp->UU.Uline.atype);
   if (TEMP == XLEFTHEAD || TEMP == XDOUBLEHEAD) {
-    cs = affang(pmp->UU.U161.endpos, pmp->aat);
-    awd = qenv(pmp, XLarrowht, pmp->UU.U161.width);
-    aht = qenv(pmp, XLarrowwid, pmp->UU.U161.height);
+    cs = affang(pmp->UU.Uline.endpos, pmp->aat);
+    awd = qenv(pmp, XLarrowht, pmp->UU.Uline.width);
+    aht = qenv(pmp, XLarrowwid, pmp->UU.Uline.height);
     cc = affine(aht, awd / 2, pmp->aat, cs);
     cd = affine(aht, awd / -2, pmp->aat, cs);
     west = Min(west, Min(cc.xpos, cd.xpos));
@@ -7658,14 +7803,14 @@ Local void neswline(primitive *pmp, struct LOC_nesw *LINK)
     south = Min(south, Min(cc.ypos, cd.ypos));
     north = Max(north, Max(cc.ypos, cd.ypos));
   }
-  TEMP = ahlex(pmp->UU.U161.atype);
+  TEMP = ahlex(pmp->UU.Uline.atype);
   if (!(TEMP == XRIGHTHEAD || TEMP == XDOUBLEHEAD))
     return;
-  cs = affang(pmp->aat, pmp->UU.U161.endpos);
-  awd = qenv(pmp, XLarrowht, pmp->UU.U161.width);
-  aht = qenv(pmp, XLarrowwid, pmp->UU.U161.height);
-  cc = affine(aht, awd / 2, pmp->UU.U161.endpos, cs);
-  cd = affine(aht, awd / -2, pmp->UU.U161.endpos, cs);
+  cs = affang(pmp->aat, pmp->UU.Uline.endpos);
+  awd = qenv(pmp, XLarrowht, pmp->UU.Uline.width);
+  aht = qenv(pmp, XLarrowwid, pmp->UU.Uline.height);
+  cc = affine(aht, awd / 2, pmp->UU.Uline.endpos, cs);
+  cd = affine(aht, awd / -2, pmp->UU.Uline.endpos, cs);
   west = Min(west, Min(cc.xpos, cd.xpos));
   east = Max(east, Max(cc.xpos, cd.xpos));
   south = Min(south, Min(cc.ypos, cd.ypos));
@@ -7718,23 +7863,23 @@ void nesw(primitive *ptmp)
 
   case XLbox:
   case XLstring:
-    V.hight = ptmp->UU.U157.boxheight;
-    V.wdth = ptmp->UU.U157.boxwidth;
+    V.hight = ptmp->UU.Ubox.boxheight;
+    V.wdth = ptmp->UU.Ubox.boxwidth;
     break;
 
   case XBLOCK:
-    V.hight = ptmp->UU.U26.blockheight;
-    V.wdth = ptmp->UU.U26.blockwidth;
+    V.hight = ptmp->UU.Ublock.blockheight;
+    V.wdth = ptmp->UU.Ublock.blockwidth;
     break;
 
   case XLcircle:
-    V.hight = 2.0 * ptmp->UU.U158.radius;
-    V.wdth = 2.0 * ptmp->UU.U158.radius;
+    V.hight = 2.0 * ptmp->UU.Ucircle.radius;
+    V.wdth = 2.0 * ptmp->UU.Ucircle.radius;
     break;
 
   case XLellipse:
-    V.hight = ptmp->UU.U159.elheight;
-    V.wdth = ptmp->UU.U159.elwidth;
+    V.hight = ptmp->UU.Uellipse.elheight;
+    V.wdth = ptmp->UU.Uellipse.elwidth;
     break;
   }
   switch (ptmp->ptype) {
@@ -7766,36 +7911,37 @@ void nesw(primitive *ptmp)
     break;
 
   case XLarc:
-    sa = principal(ptmp->UU.U161.endpos.xpos, pi);
-    ea = ptmp->UU.U161.endpos.xpos + ptmp->UU.U161.endpos.ypos;
+    sa = principal(ptmp->UU.Uline.endpos.xpos, pi);
+    ea = ptmp->UU.Uline.endpos.xpos + ptmp->UU.Uline.endpos.ypos;
     /*D if debuglevel > 0 then begin write(log,'(sa,ea)(deg)=');
        wpair(log,sa*180/pi,ea*180/pi); writeln(log) end; D*/
-    if (inarc(sa, ea, 0.5 * pi, ptmp->UU.U161.endpos.ypos, &V))
-      north = Max(north, ptmp->aat.ypos + ptmp->UU.U161.aradius);
+    if (inarc(sa, ea, 0.5 * pi, ptmp->UU.Uline.endpos.ypos, &V))
+      north = Max(north, ptmp->aat.ypos + ptmp->UU.Uline.aradius);
     else
       north = Max(north,
-	  ptmp->aat.ypos + ptmp->UU.U161.aradius * Max(sin(sa), sin(ea)));
-    if (inarc(sa, ea, -0.5 * pi, ptmp->UU.U161.endpos.ypos, &V))
-      south = Min(south, ptmp->aat.ypos - ptmp->UU.U161.aradius);
+	  ptmp->aat.ypos + ptmp->UU.Uline.aradius * Max(sin(sa), sin(ea)));
+    if (inarc(sa, ea, -0.5 * pi, ptmp->UU.Uline.endpos.ypos, &V))
+      south = Min(south, ptmp->aat.ypos - ptmp->UU.Uline.aradius);
     else
       south = Min(south,
-	  ptmp->aat.ypos + ptmp->UU.U161.aradius * Min(sin(sa), sin(ea)));
-    if (inarc(sa, ea, pi, ptmp->UU.U161.endpos.ypos, &V))
-      west = Min(west, ptmp->aat.xpos - ptmp->UU.U161.aradius);
+	  ptmp->aat.ypos + ptmp->UU.Uline.aradius * Min(sin(sa), sin(ea)));
+    if (inarc(sa, ea, pi, ptmp->UU.Uline.endpos.ypos, &V))
+      west = Min(west, ptmp->aat.xpos - ptmp->UU.Uline.aradius);
     else
       west = Min(west,
-	  ptmp->aat.xpos + ptmp->UU.U161.aradius * Min(cos(sa), cos(ea)));
-    if (inarc(sa, ea, 0.0, ptmp->UU.U161.endpos.ypos, &V))
-      east = Max(east, ptmp->aat.xpos + ptmp->UU.U161.aradius);
+	  ptmp->aat.xpos + ptmp->UU.Uline.aradius * Min(cos(sa), cos(ea)));
+    if (inarc(sa, ea, 0.0, ptmp->UU.Uline.endpos.ypos, &V))
+      east = Max(east, ptmp->aat.xpos + ptmp->UU.Uline.aradius);
     else
       east = Max(east,
-	  ptmp->aat.xpos + ptmp->UU.U161.aradius * Max(cos(sa), cos(ea)));
+	  ptmp->aat.xpos + ptmp->UU.Uline.aradius * Max(cos(sa), cos(ea)));
     break;
   }
   /*D;if debuglevel > 0 then with ptmp^ do begin
-     write(log, 'nesw(',ordp(ptmp):1,') ptype=',ptype:1,' (W,S)=');
-     wpair(log,west,south); write(log,' (E,N)='); wpair(log,east,north);
-     writeln(log) end D*/
+     write(log, 'nesw(',ordp(ptmp):1,') ptype=',ptype:1);
+     wlogfl('W',west,0); wlogfl('S',south,0);
+     wlogfl('E',east,0); wlogfl('N',north,1)
+     end D*/
 }  /* nesw */
 
 
@@ -7849,9 +7995,9 @@ void texstacktext(nametype *tp)
 }
 
 
-long primdepth(primitive *ptmp)
+int primdepth(primitive *ptmp)
 {
-  long dep;
+  int dep;
 
   dep = 0;
   while (ptmp != NULL) {
@@ -7887,9 +8033,9 @@ boolean iscorner(double theta)
 }
 
 
-long hcf(long x, long y)
+int hcf(int x, int y)
 {
-  long i, small, large;
+  int i, small, large;
 
   if (x < 0)
     x = -x;
@@ -7905,7 +8051,7 @@ long hcf(long x, long y)
   while (small > 0) {
     i = small;
     small = large % small;
-/* p2c: dpic.p, line 4523:
+/* p2c: dpic.p, line 4459:
  * Note: Using % for possibly-negative arguments [317] */
     large = i;
   }
@@ -7916,7 +8062,7 @@ long hcf(long x, long y)
 }
 
 
-long iabs(long i)
+int iabs(int i)
 {
   if (i < 0)
     return (-i);
@@ -7927,10 +8073,11 @@ long iabs(long i)
 
 void wrslope(double xp, double yp, boolean arrow)
 {
-  long i, ix, iy;
+  int i, ix, iy;
   double r;
 
-  /*D if debuglevel > 0 then writeln(log,'wrslope xp,yp: ',xp,yp); D*/
+  /*D if debuglevel > 0 then begin
+     write(log,'wrslope xp,yp: '); wpair(log,xp,yp) end; D*/
   if (xp == 0.0 && yp == 0.0) {
     xp = 1.0;
     yp = 0.0;
@@ -7950,24 +8097,15 @@ void wrslope(double xp, double yp, boolean arrow)
   iy /= i;
   ix /= i;
   /*D if debuglevel > 0 then begin
-         write(log,' ix,iy: ',ix:6,iy:6);
-         if ix = 0 then writeln(log,' {',abs(yp)/fsc,'}')
-         else writeln(log,' {',abs(xp)/fsc,'}')
+         write(log,' ix,iy:(',ix:1,',',iy:1,')'); write(log,' {');
+         if ix = 0 then wfloat(log,abs(yp)/fsc) else wfloat(log,abs(xp)/fsc);
+         writeln(log,'}')
          end; D*/
-  printf("(%ld,%ld)", ix, iy);
+  printf("(%d,%d)", ix, iy);
   if (ix == 0)
     wbrace(fabs(yp) / fsc);
   else
     wbrace(fabs(xp) / fsc);
-}
-
-
-long lspec(long n)
-{
-  /* n: integer): integer */
-  /* if ((n div 16) mod 2) <> 0 then lspec := XLsolid
-  else */
-  return ((n & 7) + XLlinetype);
 }
 
 
@@ -7981,7 +8119,7 @@ boolean isthen(primitive *pr)
 }
 
 
-boolean drawn(primitive *node, long lsp, double fill)
+boolean drawn(primitive *node, int lsp, double fill)
 {
   if (node == NULL)
     return false;
@@ -8048,7 +8186,7 @@ void dahead(postype point, postype shaft, double ht, double wid,
     t = ht / *x;
   Rx->xpos = point.xpos + (R->xpos - P->xpos) * t;   /* right corner */
   Rx->ypos = point.ypos + (R->ypos - P->ypos) * t;
-  Lx->xpos = point.xpos + (L->xpos - P->xpos) * t;   /* left corner  */
+  Lx->xpos = point.xpos + (L->xpos - P->xpos) * t;   /* left corner */
   Lx->ypos = point.ypos + (L->ypos - P->ypos) * t;
   Px->xpos = (point.xpos + Lx->xpos + Rx->xpos) / 3;   /* type 3 center pt */
   Px->ypos = (point.ypos + Lx->ypos + Rx->ypos) / 3;
@@ -8069,7 +8207,7 @@ void dahead(postype point, postype shaft, double ht, double wid,
 void popgwarc(postype Ctr, double radius, double startangle,
 		     double endangle, double ccw)
 {
-  long narcs, i;
+  int narcs, i;
   double c, s, cc, ss, arcangle;
   postype Q;
 
@@ -8102,7 +8240,7 @@ void popgwarc(postype Ctr, double radius, double startangle,
 
 
 /* Parameters and positions for traced arrows*/
-void arcahead(postype C, postype point, long atyp, double ht,
+void arcahead(postype C, postype point, int atyp, double ht,
 		     double wid, double lth, double radius, double angle,
 		     postype *P, postype *Co, postype *Ci, postype *Px,
 		     postype *Cox, postype *Cix, postype *Ao, postype *Ai,
@@ -8197,7 +8335,6 @@ void arcahead(postype C, postype point, long atyp, double ht,
   Q.xpos = cos(t);
   Q.ypos = *ccw * sin(t);
   *Px = affine(point.xpos - C.xpos, point.ypos - C.ypos, C, Q);
-
   v = radius * radius;
   TEMP = Ao->xpos - Px->xpos;
   TEMP1 = Ao->ypos - Px->ypos;
@@ -8210,7 +8347,6 @@ void arcahead(postype C, postype point, long atyp, double ht,
     s = sqrt(v / d - 0.25);
   Cox->xpos = (Px->xpos + Ao->xpos) / 2 - *ccw * (Ao->ypos - Px->ypos) * s;
   Cox->ypos = (Px->ypos + Ao->ypos) / 2 + *ccw * (Ao->xpos - Px->xpos) * s;
-
   TEMP = Ai->xpos - Px->xpos;
   TEMP1 = Ai->ypos - Px->ypos;
   d = TEMP * TEMP + TEMP1 * TEMP1;
@@ -8222,7 +8358,6 @@ void arcahead(postype C, postype point, long atyp, double ht,
     s = sqrt(v / d - 0.25);
   Cix->xpos = (Px->xpos + Ai->xpos) / 2 - *ccw * (Ai->ypos - Px->ypos) * s;
   Cix->ypos = (Px->ypos + Ai->ypos) / 2 + *ccw * (Ai->xpos - Px->xpos) * s;
-
   /*D; if debuglevel > 0 then begin
      writeln(log,' arcahead out:');
      write(log,' lw='); wfloat(log,lw);
@@ -8243,19 +8378,19 @@ void startarc(primitive *n, postype X0, double lth, double *h,
 {
   double x, y;
 
-  *h = qenv(n, XLarrowht, n->UU.U161.height);
-  *w = qenv(n, XLarrowwid, n->UU.U161.width);
+  *h = qenv(n, XLarrowht, n->UU.Uline.height);
+  *w = qenv(n, XLarrowwid, n->UU.Uline.width);
   y = ahoffset(*h, *w, lth / 72 * scale);
-  if (n->UU.U161.aradius * n->UU.U161.aradius - y * y <= 0.0)
+  if (n->UU.Uline.aradius * n->UU.Uline.aradius - y * y <= 0.0)
     x = 0.0;
   else
-    x = 2 * atan(y / sqrt(n->UU.U161.aradius * n->UU.U161.aradius - y * y));
-  if (n->UU.U161.endpos.ypos >= 0.0) {
-    n->UU.U161.endpos.xpos += x;
-    n->UU.U161.endpos.ypos -= x;
+    x = 2 * atan(y / sqrt(n->UU.Uline.aradius * n->UU.Uline.aradius - y * y));
+  if (n->UU.Uline.endpos.ypos >= 0.0) {
+    n->UU.Uline.endpos.xpos += x;
+    n->UU.Uline.endpos.ypos -= x;
   } else {
-    n->UU.U161.endpos.xpos -= x;
-    n->UU.U161.endpos.ypos += x;
+    n->UU.Uline.endpos.xpos -= x;
+    n->UU.Uline.endpos.ypos += x;
   }
 }
 
@@ -8264,17 +8399,17 @@ void endarc(primitive *n, postype X0, double lth, double *h, double *w)
 {
   double x, y;
 
-  *h = qenv(n, XLarrowht, n->UU.U161.height);
-  *w = qenv(n, XLarrowwid, n->UU.U161.width);
+  *h = qenv(n, XLarrowht, n->UU.Uline.height);
+  *w = qenv(n, XLarrowwid, n->UU.Uline.width);
   y = ahoffset(*h, *w, lth / 72 * scale);
-  if (n->UU.U161.aradius * n->UU.U161.aradius - y * y <= 0.0)
+  if (n->UU.Uline.aradius * n->UU.Uline.aradius - y * y <= 0.0)
     x = 0.0;
   else
-    x = 2 * atan(y / sqrt(n->UU.U161.aradius * n->UU.U161.aradius - y * y));
-  if (n->UU.U161.endpos.ypos >= 0.0)
-    n->UU.U161.endpos.ypos -= x;
+    x = 2 * atan(y / sqrt(n->UU.Uline.aradius * n->UU.Uline.aradius - y * y));
+  if (n->UU.Uline.endpos.ypos >= 0.0)
+    n->UU.Uline.endpos.ypos -= x;
   else
-    n->UU.U161.endpos.ypos += x;
+    n->UU.Uline.endpos.ypos += x;
 }
 
 
@@ -8282,8 +8417,8 @@ postype arcstart(primitive *n)
 {
   postype X;
 
-  X.xpos = n->aat.xpos + n->UU.U161.aradius * cos(n->UU.U161.endpos.xpos);
-  X.ypos = n->aat.ypos + n->UU.U161.aradius * sin(n->UU.U161.endpos.xpos);
+  X.xpos = n->aat.xpos + n->UU.Uline.aradius * cos(n->UU.Uline.endpos.xpos);
+  X.ypos = n->aat.ypos + n->UU.Uline.aradius * sin(n->UU.Uline.endpos.xpos);
   return X;
 }
 
@@ -8292,10 +8427,10 @@ postype arcend(primitive *n)
 {
   postype X;
 
-  X.xpos = n->aat.xpos + n->UU.U161.aradius *
-			 cos(n->UU.U161.endpos.xpos + n->UU.U161.endpos.ypos);
-  X.ypos = n->aat.ypos + n->UU.U161.aradius *
-			 sin(n->UU.U161.endpos.xpos + n->UU.U161.endpos.ypos);
+  X.xpos = n->aat.xpos + n->UU.Uline.aradius *
+			 cos(n->UU.Uline.endpos.xpos + n->UU.Uline.endpos.ypos);
+  X.ypos = n->aat.ypos + n->UU.Uline.aradius *
+			 sin(n->UU.Uline.endpos.xpos + n->UU.Uline.endpos.ypos);
   return X;
 }
 
@@ -8318,7 +8453,6 @@ void xfigprelude(void)
      writeln(xfigres:1,' 2');
      writeln('# ',Version, ' option -x for Fig 3.1')
      */
-
   printf("#FIG 3.2\n");
   printf("Landscape\n");
   printf("Center\n");
@@ -8329,7 +8463,6 @@ void xfigprelude(void)
   printf("-2\n");
   printf("# %s option -x for Fig 3.2\n", Version);
   printf("%ld 2\n", (long)xfigres);
-
 }
 
 
@@ -8346,7 +8479,7 @@ void wfigcoord(double x, double y)
 }
 
 
-void arrowline(long atype, double wid, double ht, double lth)
+void arrowline(int atype, double wid, double ht, double lth)
 {
   /* arrowtype,arrowstyle: integer;
      arrowthickness,arrowwidth,arrowheight: real */
@@ -8363,7 +8496,7 @@ void arrowline(long atype, double wid, double ht, double lth)
 }
 
 
-long linstyle(long i)
+int linstyle(int i)
 {
   if (i == XLsolid) {
     i = 0;
@@ -8381,12 +8514,11 @@ long linstyle(long i)
 }
 
 
-void hdrline(long object_code, long sub_type, long line_style,
-		    double lth, double gfill)
+void hdrline(int object_code, int sub_type, int line_style, double lth,
+		    double gfill)
 {
   /* first 10 values object_code .. style_val */
-  printf("%ld %ld %ld ", object_code, sub_type, linstyle(line_style));
-
+  printf("%d %d %d ", object_code, sub_type, linstyle(line_style));
   if (line_style == XLinvis)
     printf("0 ");
   else
@@ -8396,7 +8528,6 @@ void hdrline(long object_code, long sub_type, long line_style,
     printf("-1 ");   /* area fill */
   else
     printf("%ld ", (long)floor((1.0 - gfill) * 20 + 0.5));
-
   /* style_val */
   if (line_style == XLdashed)
     wfloat(&output, 5.0 / points * dispres);
@@ -8408,7 +8539,7 @@ void hdrline(long object_code, long sub_type, long line_style,
 }
 
 
-long fwdarrow(long i)
+int fwdarrow(int i)
 {
   if ((ahlex(i) == XRIGHTHEAD) | (ahlex(i) == XDOUBLEHEAD))
     return 1;
@@ -8417,7 +8548,7 @@ long fwdarrow(long i)
 }
 
 
-long bckarrow(long i)
+int bckarrow(int i)
 {
   if ((ahlex(i) == XLEFTHEAD) | (ahlex(i) == XDOUBLEHEAD))
     return 1;
@@ -8426,9 +8557,9 @@ long bckarrow(long i)
 }
 
 
-void polyline(long object_code, long sub_type, long line_style,
-		     double lth, double gfill, double lrad, long atype,
-		     double lwid, double lht, long npoints)
+void polyline(int object_code, int sub_type, int line_style,
+		     double lth, double gfill, double lrad, int atype,
+		     double lwid, double lht, int npoints)
 {
   hdrline(object_code, sub_type, line_style, lth, gfill);
   if (object_code == 3) {
@@ -8436,7 +8567,7 @@ void polyline(long object_code, long sub_type, long line_style,
     /* join_style = miter, cap_style = butt, radius */
   } else
     printf("0 0 %ld ", (long)floor(lrad * dispres + 0.5));
-  printf("%ld %ld %ld\n", fwdarrow(atype), bckarrow(atype), npoints);
+  printf("%d %d %d\n", fwdarrow(atype), bckarrow(atype), npoints);
   if (fwdarrow(atype) == 1)
     arrowline(atype, lwid, lht, lth);
   if (bckarrow(atype) == 1)
@@ -8448,10 +8579,10 @@ void xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid,
 		       double x, double y)
 {
   double ydisp;
-  long istr, nstr, figjust, i;
+  int istr, nstr, figjust, i;
   boolean A, B, L, R;
   nametype *p;
-  long FORLIM;
+  int FORLIM;
 
   if (bxht == 0.0)
     bxht = venv(np, XLtextht);
@@ -8474,7 +8605,7 @@ void xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid,
       figjust = 2;
     else
       figjust = 1;
-    printf("%ld ", figjust);
+    printf("%d ", figjust);
     printf("-1 0 -1 ");   /* color, depth, penstyle */
     printf("0 10 0.0 2");   /* font, font_size, angle, font_flags */
     wfigpt(bxht);
@@ -8494,8 +8625,8 @@ void xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid,
     putchar(' ');
     FORLIM = tp->len;
     for (i = 0; i < FORLIM; i++) {
-      if (tp->segmnt[tp->seginx + i] == '\\')
-	putchar('\\');
+      if (tp->segmnt[tp->seginx + i] == bslch)
+	putchar(bslch);
       putchar(tp->segmnt[tp->seginx + i]);
     }
     printf("\\001\n");
@@ -8504,8 +8635,8 @@ void xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid,
 }
 
 
-void farc(long object_code, long sub_type, long line_style, double lth,
-		 double gfill, long atype, double radius, double strtang,
+void farc(int object_code, int sub_type, int line_style, double lth,
+		 double gfill, int atype, double radius, double strtang,
 		 double arcang, double x, double y, double lwid, double lht)
 {
   hdrline(object_code, sub_type, line_style, lth, gfill);
@@ -8514,7 +8645,7 @@ void farc(long object_code, long sub_type, long line_style, double lth,
     printf("0 ");
   else
     printf("1 ");
-  printf("%ld %ld ", fwdarrow(atype), bckarrow(atype));
+  printf("%d %d ", fwdarrow(atype), bckarrow(atype));
   wfigcoord(x, y);
   wfigcoord(x + radius * cos(strtang), y + radius * sin(strtang));
   wfigcoord(x + radius * cos(strtang + arcang / 2),
@@ -8529,7 +8660,7 @@ void farc(long object_code, long sub_type, long line_style, double lth,
 }
 
 
-void fellipse(long object_code, long sub_type, long line_style,
+void fellipse(int object_code, int sub_type, int line_style,
 		     double lth, double gfill, double center_x,
 		     double center_y, double radius_x, double radius_y)
 {
@@ -8553,15 +8684,15 @@ boolean rdrawn(primitive *np)
   while (rv == false && np != NULL) {
     WITH = np;
     if (WITH->ptype == XLbox)
-      v = drawn(np, lspec(WITH->spec), WITH->UU.U157.boxfill);
+      v = drawn(np, lspec(WITH->spec), WITH->UU.Ubox.boxfill);
     else if (WITH->ptype == XLcircle)
-      v = drawn(np, lspec(WITH->spec), WITH->UU.U158.cfill);
+      v = drawn(np, lspec(WITH->spec), WITH->UU.Ucircle.cfill);
     else if (WITH->ptype == XLellipse)
-      v = drawn(np, lspec(WITH->spec), WITH->UU.U159.efill);
+      v = drawn(np, lspec(WITH->spec), WITH->UU.Uellipse.efill);
     else if (WITH->ptype == XLspline || WITH->ptype == XLarrow ||
 	     WITH->ptype == XLline || WITH->ptype == XLarc) {
       /* v := drawn(np,lspec(spec),-1.0) */
-      v = drawn(np, lspec(WITH->spec), WITH->UU.U161.lfill);
+      v = drawn(np, lspec(WITH->spec), WITH->UU.Uline.lfill);
     } else
       v = false;
     if (v || WITH->textp != NULL) {
@@ -8579,11 +8710,12 @@ boolean rdrawn(primitive *np)
 
 void xfigdraw(primitive *node)
 {
-  long i, lsp;
+  int i, lsp;
   double fill;
-  long FORLIM;
+  primitive *tn;
+  int FORLIM;
 
-  lsp = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   if (node->lthick < 0.0)
     node->lthick = venv(node, XLlinethick);
   /*D if debuglevel > 0 then with node^ do begin
@@ -8594,12 +8726,12 @@ void xfigdraw(primitive *node)
 
   case XLarc:
     /* if drawn(node,lsp,-1.0) then farc(5,1,lsp,lthick, */
-    if (drawn(node, lsp, node->UU.U161.lfill)) {
+    if (drawn(node, lsp, node->UU.Uline.lfill)) {
       /* -1.0,atype,aradius,endpos.xpos, */
-      farc(5, 1, lsp, node->lthick, node->UU.U161.lfill, node->UU.U161.atype,
-	   node->UU.U161.aradius, node->UU.U161.endpos.xpos,
-	   node->UU.U161.endpos.ypos, node->aat.xpos, node->aat.ypos,
-	   node->UU.U161.width, node->UU.U161.height);
+      farc(5, 1, lsp, node->lthick, node->UU.Uline.lfill, node->UU.Uline.atype,
+	   node->UU.Uline.aradius, node->UU.Uline.endpos.xpos,
+	   node->UU.Uline.endpos.ypos, node->aat.xpos, node->aat.ypos,
+	   node->UU.Uline.width, node->UU.Uline.height);
     }
     xfigwrtext(node, node->textp, 0.0, 0.0, node->aat.xpos, node->aat.ypos);
     break;
@@ -8608,24 +8740,24 @@ void xfigdraw(primitive *node)
   case XLarrow:
   case XLspline:
     /* if drawn(node,lsp,-1.0) then begin */
-    if (drawn(node, lsp, node->UU.U161.lfill)) {
+    if (drawn(node, lsp, node->UU.Uline.lfill)) {
       if (!isthen(node)) {
 	spltot = primdepth(node);
 	if (node->ptype == XLspline) {
 	  /* -1.0,0.0,atype,width,height,spltot+1) */
-	  polyline(3, 0, lsp, node->lthick, node->UU.U161.lfill, 0.0,
-		   node->UU.U161.atype, node->UU.U161.width,
-		   node->UU.U161.height, spltot + 1);
+	  polyline(3, 0, lsp, node->lthick, node->UU.Uline.lfill, 0.0,
+		   node->UU.Uline.atype, node->UU.Uline.width,
+		   node->UU.Uline.height, spltot + 1);
 	} else {
 	  /* -1.0,0.0,atype,width,height,spltot+1); */
-	  polyline(2, 1, lsp, node->lthick, node->UU.U161.lfill, 0.0,
-		   node->UU.U161.atype, node->UU.U161.width,
-		   node->UU.U161.height, spltot + 1);
+	  polyline(2, 1, lsp, node->lthick, node->UU.Uline.lfill, 0.0,
+		   node->UU.Uline.atype, node->UU.Uline.width,
+		   node->UU.Uline.height, spltot + 1);
 	}
 	putchar(tabch);
 	wfigcoord(node->aat.xpos, node->aat.ypos);
       }
-      wfigcoord(node->UU.U161.endpos.xpos, node->UU.U161.endpos.ypos);
+      wfigcoord(node->UU.Uline.endpos.xpos, node->UU.Uline.endpos.ypos);
       if (node->son == NULL && node->ptype == XLspline) {
 	printf("\n%c 0.0", tabch);
 	FORLIM = spltot;
@@ -8636,8 +8768,8 @@ void xfigdraw(primitive *node)
 	putchar('\n');
     }
     xfigwrtext(node, node->textp, 0.0, 0.0,
-	       0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	       0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+	       0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	       0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XBLOCK:
@@ -8655,7 +8787,7 @@ void xfigdraw(primitive *node)
     if (node->ptype == XBLOCK)
       fill = -1.0;
     else
-      fill = node->UU.U157.boxfill;
+      fill = node->UU.Ubox.boxfill;
     if (drawn(node, lsp, fill)) {
       polyline(2, 2, lsp, node->lthick, fill, 0.0, -1, 0.0, 0.0, 6);
       putchar(tabch);
@@ -8672,28 +8804,28 @@ void xfigdraw(primitive *node)
 
   case XLmove:
     xfigwrtext(node, node->textp, 0.0, 0.0,
-	       0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	       0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+	       0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	       0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLellipse:
-    if (drawn(node, lsp, node->UU.U159.efill))
-      fellipse(1, 1, lsp, node->lthick, node->UU.U159.efill, node->aat.xpos,
-	       node->aat.ypos, 0.5 * node->UU.U159.elwidth,
-	       0.5 * node->UU.U159.elheight);
+    if (drawn(node, lsp, node->UU.Uellipse.efill))
+      fellipse(1, 1, lsp, node->lthick, node->UU.Uellipse.efill, node->aat.xpos,
+	       node->aat.ypos, 0.5 * node->UU.Uellipse.elwidth,
+	       0.5 * node->UU.Uellipse.elheight);
     xfigwrtext(node, node->textp, 0.0, 0.0, node->aat.xpos, node->aat.ypos);
     break;
 
   case XLcircle:
-    if (drawn(node, lsp, node->UU.U158.cfill))
-      fellipse(1, 3, lsp, node->lthick, node->UU.U158.cfill, node->aat.xpos,
-	       node->aat.ypos, node->UU.U158.radius, node->UU.U158.radius);
+    if (drawn(node, lsp, node->UU.Ucircle.cfill))
+      fellipse(1, 3, lsp, node->lthick, node->UU.Ucircle.cfill, node->aat.xpos,
+	       node->aat.ypos, node->UU.Ucircle.radius, node->UU.Ucircle.radius);
     xfigwrtext(node, node->textp, 0.0, 0.0, node->aat.xpos, node->aat.ypos);
     break;
 
   case XLstring:
-    xfigwrtext(node, node->textp, node->UU.U157.boxheight,
-	       node->UU.U157.boxwidth, node->aat.xpos, node->aat.ypos);
+    xfigwrtext(node, node->textp, node->UU.Ubox.boxheight,
+	       node->UU.Ubox.boxwidth, node->aat.xpos, node->aat.ypos);
     break;
 
   case XLaTeX:
@@ -8709,7 +8841,6 @@ void xfigdraw(primitive *node)
 /* include svg.h */
 /* svg.x */
 /* Output routines for SVG */
-
 void svgprelude(double n, double s, double e, double w, double lth)
 {
   double hsize, vsize;
@@ -8725,8 +8856,8 @@ void svgprelude(double n, double s, double e, double w, double lth)
   printf("<!-- Creator: %s option -v for SVG 1.1 -->\n", Version);
   hsize = (e - w + 2 * lth) / fsc;
   vsize = (n - s + 2 * lth) / fsc;
-  printf("<!-- width=\"%ld\" height=\"%ld\" -->\n",
-	 (long)floor(hsize + 0.5), (long)floor(vsize + 0.5));
+  printf("<!-- width=\"%d\" height=\"%d\" -->\n",
+	 Ceil(hsize + 0.5), Ceil(vsize + 0.5));
   printf("<svg\n");
   printf(" xmlns=\"http://www.w3.org/2000/svg\"");
   printf(" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n");
@@ -8822,7 +8953,7 @@ void fillgray(double fll)
 }
 
 
-void svglineoptions(primitive *node, long lnspec)
+void svglineoptions(primitive *node, int lnspec)
 {
   double param;
 
@@ -8868,7 +8999,7 @@ void svglineoptions(primitive *node, long lnspec)
 }
 
 
-void svgfilloptions(primitive *node, long lnspec)
+void svgfilloptions(primitive *node, int lnspec, boolean poly)
 {
   double fill;
 
@@ -8881,15 +9012,15 @@ void svgfilloptions(primitive *node, long lnspec)
 
   case XLbox:
   case XLstring:
-    fill = node->UU.U157.boxfill;
+    fill = node->UU.Ubox.boxfill;
     break;
 
   case XLcircle:
-    fill = node->UU.U158.cfill;
+    fill = node->UU.Ucircle.cfill;
     break;
 
   case XLellipse:
-    fill = node->UU.U159.efill;
+    fill = node->UU.Uellipse.efill;
     break;
 
   case XLarc:
@@ -8897,7 +9028,7 @@ void svgfilloptions(primitive *node, long lnspec)
   case XLarrow:
   case XLmove:
   case XLspline:
-    fill = node->UU.U161.lfill;
+    fill = node->UU.Uline.lfill;
     break;
   }
   fill = (long)floor(fill * 1000000L + 0.5) / 1000000.0;
@@ -8920,7 +9051,14 @@ void svgfilloptions(primitive *node, long lnspec)
     printf("<path");
     break;
 
-  /* XLline,XLarrow: ; */
+  case XLline:
+  case XLarrow:
+    if (poly)
+      printf("<polyline");
+    else
+      printf("<line");
+    break;
+
   case XLarc:
     printf("<path");
     break;
@@ -8983,10 +9121,10 @@ void svgwprop(postype p1, postype p2, double a, double b, double c)
 
 void svgwstring(nametype *p)
 {
-  long i;
+  int i;
   Char c;
   boolean waswhite, iswhite;
-  long FORLIM;
+  int FORLIM;
 
   waswhite = false;
   if (p == NULL)
@@ -8999,7 +9137,7 @@ void svgwstring(nametype *p)
     iswhite = (c == etxch || c == nlch || c == tabch || c == ' ');
     if (!iswhite || !waswhite)
       putchar(c);
-    /* if c in ['(',')','\'] then write('\'); */
+    /* if c in ['(',')',bslch] then write(bslch); */
     waswhite = iswhite;
   }
 }
@@ -9007,7 +9145,7 @@ void svgwstring(nametype *p)
 
 void svgwtext(primitive *node, nametype *tp, double x, double y)
 {
-  long i;
+  int i;
   nametype *tx;
   boolean L, R, A, B;
   double textht, textoff, dx, dy;
@@ -9022,7 +9160,7 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
     tx = tx->next_;
   }
   if (node->ptype == XLstring && i > 0)
-    textht = node->UU.U157.boxheight / i;
+    textht = node->UU.Ubox.boxheight / i;
   textoff = venv(node, XLtextoffset);
   /*D if debuglevel>0 then begin
     write(log,' svgwtext: xfheight=',xfheight:8:3);
@@ -9038,7 +9176,7 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
       printf(" font-size=\"");
       wfloat(&output, textht / scale * 72);
       printf("pt\"");
-      svgfilloptions(node, lspec(node->spec));
+      svgfilloptions(node, lspec(node->spec), false);
       if (node->lthick < 0)
 	svgsetstroke(0.2);
     }
@@ -9103,7 +9241,7 @@ void svgwarc(postype E, double r, double angle, double ccw)
 }
 
 
-void svgarcahead(postype C, long atyp, postype *point, nametype *sou,
+void svgarcahead(postype C, int atyp, postype *point, nametype *sou,
 			double ht, double wid, double lth, double radius,
 			double angle)
 {
@@ -9166,7 +9304,7 @@ void svgarcahead(postype C, long atyp, postype *point, nametype *sou,
 }
 
 
-void svgahead(long atyp, postype *point, postype shaft, nametype *sou,
+void svgahead(int atyp, postype *point, postype shaft, nametype *sou,
 		     double ht, double wid, double lth, double fill)
 {
   postype P, L, R, Px, Lx, Rx, Q;
@@ -9252,14 +9390,14 @@ void svgahead(long atyp, postype *point, postype shaft, nametype *sou,
 void svgdraw(primitive *node)
 {
   /* node is always <> nil */
-  long lnspec;
+  int lsp;
   postype X0, X1, X2;
   primitive *tn;
   boolean v;
   double h, w, lth;
-  long TEMP;
+  int TEMP;
 
-  lnspec = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   sshade = node->shadedp;
   soutline = node->outlinep;
   lth = qenv(node, XLlinethick, node->lthick);   /* printobject(node); */
@@ -9271,8 +9409,8 @@ void svgdraw(primitive *node)
            wfloat(log,aat.ypos); write(log,')');
            writeln(log)
            end;
-        if linesignal > 0 then begin write(stderr,'svgdraw: ');
-           snaptype(stderr,ptype); writeln(stderr) end D*/
+        if linesignal > 0 then begin write(errout,'svgdraw: ');
+           snaptype(errout,ptype); writeln(errout) end D*/
   switch (node->ptype) {
 
   case XLbox:
@@ -9280,73 +9418,72 @@ void svgdraw(primitive *node)
     initnesw();
     nesw(node);
     if (node->ptype == XBLOCK)
-      v = drawn(node, lnspec, -1.0);
+      v = drawn(node, lsp, -1.0);
     else
-      v = drawn(node, lnspec, node->UU.U157.boxfill);
+      v = drawn(node, lsp, node->UU.Ubox.boxfill);
     if (v) {
-      svgfilloptions(node, lnspec);
-      svgcoord("x", "y", node->aat.xpos - fabs(node->UU.U157.boxwidth) / 2,
-	       node->aat.ypos + fabs(node->UU.U157.boxheight) / 2);
-      if (node->UU.U157.boxradius > 0.0) {
-	svgparam("rx", node->UU.U157.boxradius);
-	svgparam("ry", node->UU.U157.boxradius);
+      svgfilloptions(node, lsp, false);
+      svgcoord("x", "y", node->aat.xpos - fabs(node->UU.Ubox.boxwidth) / 2,
+	       node->aat.ypos + fabs(node->UU.Ubox.boxheight) / 2);
+      if (node->UU.Ubox.boxradius > 0.0) {
+	svgparam("rx", node->UU.Ubox.boxradius);
+	svgparam("ry", node->UU.Ubox.boxradius);
       }
-      svgparam("width", fabs(node->UU.U157.boxwidth));
-      svgparam("height", fabs(node->UU.U157.boxheight));
+      svgparam("width", fabs(node->UU.Ubox.boxwidth));
+      svgparam("height", fabs(node->UU.Ubox.boxheight));
       svgendpath();
     }
     svgwtext(node, node->textp, 0.5 * (east + west), 0.5 * (north + south));
     break;
 
   case XLellipse:
-    if (drawn(node, lnspec, node->UU.U159.efill)) {
-      svgfilloptions(node, lnspec);
+    if (drawn(node, lsp, node->UU.Uellipse.efill)) {
+      svgfilloptions(node, lsp, false);
       svgcoord("cx", "cy", node->aat.xpos, node->aat.ypos);
-      svgparam("rx", 0.5 * fabs(node->UU.U159.elwidth));
-      svgparam("ry", 0.5 * fabs(node->UU.U159.elheight));
+      svgparam("rx", 0.5 * fabs(node->UU.Uellipse.elwidth));
+      svgparam("ry", 0.5 * fabs(node->UU.Uellipse.elheight));
       svgendpath();
     }
     svgwtext(node, node->textp, node->aat.xpos, node->aat.ypos);
     break;
 
   case XLcircle:
-    if (drawn(node, lnspec, node->UU.U158.cfill)) {
-      svgfilloptions(node, lnspec);
+    if (drawn(node, lsp, node->UU.Ucircle.cfill)) {
+      svgfilloptions(node, lsp, false);
       svgcoord("cx", "cy", node->aat.xpos, node->aat.ypos);
-      svgparam("r", fabs(node->UU.U158.radius));
+      svgparam("r", fabs(node->UU.Ucircle.radius));
       svgendpath();
     }
     svgwtext(node, node->textp, node->aat.xpos, node->aat.ypos);
     break;
 
   case XLarc:
-    if (drawn(node, lnspec, -1.0)) {
+    if (drawn(node, lsp, -1.0)) {
       getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
-      lnspec = lspec(tn->spec);
       lth = qenv(tn, XLlinethick, tn->lthick);
       X1 = arcstart(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
 	startarc(node, X1, lth, &h, &w);
-	svgarcahead(node->aat, ahnum(node->UU.U161.atype), &X1, soutline, h,
-		    w, lth, fabs(node->UU.U161.aradius),
-		    node->UU.U161.endpos.ypos);
+	svgarcahead(node->aat, ahnum(node->UU.Uline.atype), &X1, soutline, h,
+		    w, lth, fabs(node->UU.Uline.aradius),
+		    node->UU.Uline.endpos.ypos);
       }
       X2 = arcend(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
 	endarc(node, X2, lth, &h, &w);
-	svgarcahead(node->aat, ahnum(node->UU.U161.atype), &X2, soutline, h,
-		    w, lth, -fabs(node->UU.U161.aradius),
-		    node->UU.U161.endpos.ypos);
+	svgarcahead(node->aat, ahnum(node->UU.Uline.atype), &X2, soutline, h,
+		    w, lth, -fabs(node->UU.Uline.aradius),
+		    node->UU.Uline.endpos.ypos);
       }
       printf("<path");
-      svglineoptions(node, lnspec);
+      svglineoptions(node, lsp);
       printf(" d=\"M ");
       svgwpos(X1);
       putchar('\n');
-      svgwarc(X2, node->UU.U161.aradius, node->UU.U161.endpos.ypos,
-	      node->UU.U161.endpos.ypos);
+      svgwarc(X2, node->UU.Uline.aradius, node->UU.Uline.endpos.ypos,
+	      node->UU.Uline.endpos.ypos);
       quote();
       svgendpath();
     }
@@ -9354,67 +9491,66 @@ void svgdraw(primitive *node)
     break;
 
   case XLspline:
-    if (drawn(node, lnspec, -1.0)) {
+    if (drawn(node, lsp, -1.0)) {
       if (!isthen(node)) {  /* first spline */
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
-	lnspec = lspec(tn->spec);
 	lth = qenv(tn, XLlinethick, tn->lthick);
 	X0 = node->aat;
-	splineend = tn->UU.U161.endpos;
-	TEMP = ahlex(tn->UU.U161.atype);
+	splineend = tn->UU.Uline.endpos;
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  svgahead(ahnum(node->UU.U161.atype), &node->aat,
-		   node->UU.U161.endpos, soutline,
-		   qenv(tn, XLarrowht, tn->UU.U161.height),
-		   qenv(tn, XLarrowwid, tn->UU.U161.width), lth,
-		   node->UU.U161.lfill);
-	TEMP = ahlex(tn->UU.U161.atype);
+	  svgahead(ahnum(node->UU.Uline.atype), &node->aat,
+		   node->UU.Uline.endpos, soutline,
+		   qenv(tn, XLarrowht, tn->UU.Uline.height),
+		   qenv(tn, XLarrowwid, tn->UU.Uline.width), lth,
+		   node->UU.Uline.lfill);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	  svgahead(ahnum(tn->UU.U161.atype), &tn->UU.U161.endpos, tn->aat,
-		   soutline, qenv(tn, XLarrowht, tn->UU.U161.height),
-		   qenv(tn, XLarrowwid, tn->UU.U161.width), lth,
-		   node->UU.U161.lfill);
+	  svgahead(ahnum(tn->UU.Uline.atype), &tn->UU.Uline.endpos, tn->aat,
+		   soutline, qenv(tn, XLarrowht, tn->UU.Uline.height),
+		   qenv(tn, XLarrowwid, tn->UU.Uline.width), lth,
+		   node->UU.Uline.lfill);
 	spltot = primdepth(node);
 	splcount = spltot;
-	svgfilloptions(node, lnspec);
+	svgfilloptions(node, lsp, false);
 	printf(" d=\"M ");
 	svgwpos(node->aat);
 	printf("\n C ");
-	if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
-	  svgwprop(X0, node->UU.U161.endpos, 5.0, 1.0, 6.0);
+	if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
+	  svgwprop(X0, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
 	  space();
-	  svgwprop(X0, node->UU.U161.endpos, 2.0, 1.0, 3.0);
+	  svgwprop(X0, node->UU.Uline.endpos, 2.0, 1.0, 3.0);
 	  space();
-	  svgwprop(X0, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	  svgwprop(X0, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	  space();
-	  svgwprop(X0, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	  svgwprop(X0, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
 	  putchar('\n');
 	} else if (spltot > 1) {
-	  svgwprop(X0, node->UU.U161.endpos, 1 - node->UU.U161.aradius,
-		   node->UU.U161.aradius, 1.0);
+	  svgwprop(X0, node->UU.Uline.endpos, 1 - node->UU.Uline.aradius,
+		   node->UU.Uline.aradius, 1.0);
 	  space();
 	}
-      } else if (splcount > 1 && node->UU.U161.aradius == mdistmax) {
-	svgwprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
+      } else if (splcount > 1 && node->UU.Uline.aradius == mdistmax) {
+	svgwprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
 	space();
-	svgwprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	svgwprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	space();
-	svgwprop(node->aat, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	svgwprop(node->aat, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
 	putchar('\n');
       } else if (splcount > 1) {
-	svgwprop(node->aat, node->UU.U161.endpos,
-		 0.5 + node->UU.U161.aradius / 2,
-		 0.5 - node->UU.U161.aradius / 2, 1.0);
+	svgwprop(node->aat, node->UU.Uline.endpos,
+		 0.5 + node->UU.Uline.aradius / 2,
+		 0.5 - node->UU.Uline.aradius / 2, 1.0);
 	space();
-	svgwprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	svgwprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	space();
-	svgwprop(node->aat, node->UU.U161.endpos,
-		 0.5 - node->UU.U161.aradius / 2,
-		 0.5 + node->UU.U161.aradius / 2, 1.0);
+	svgwprop(node->aat, node->UU.Uline.endpos,
+		 0.5 - node->UU.Uline.aradius / 2,
+		 0.5 + node->UU.Uline.aradius / 2, 1.0);
 	space();
       }
       if (splcount == 1) {
-	if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
+	if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
 	  svgwprop(node->aat, splineend, 5.0, 1.0, 6.0);
 	  space();
 	  svgwprop(node->aat, splineend, 1.0, 1.0, 2.0);
@@ -9424,11 +9560,11 @@ void svgdraw(primitive *node)
 	  svgwprop(node->aat, splineend, 1.0, 5.0, 6.0);
 	  putchar('\n');
 	} else if (spltot > 1) {
-	  svgwprop(node->aat, splineend, node->UU.U161.aradius,
-		   1 - node->UU.U161.aradius, 1.0);
+	  svgwprop(node->aat, splineend, node->UU.Uline.aradius,
+		   1 - node->UU.Uline.aradius, 1.0);
 	  space();
 	}
-	svgwpos(node->UU.U161.endpos);
+	svgwpos(node->UU.Uline.endpos);
 	quote();
 	svgendpath();
       }
@@ -9441,33 +9577,30 @@ void svgdraw(primitive *node)
   case XLline:
   case XLarrow:
   case XLmove:
-    if (drawn(node, lnspec, -1.0)) {
+    if (drawn(node, lsp, -1.0)) {
       if (!isthen(node)) {
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
-	lnspec = lspec(tn->spec);
 	lth = qenv(tn, XLlinethick, tn->lthick);
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  svgahead(ahnum(tn->UU.U161.atype), &node->aat, node->UU.U161.endpos,
-		   soutline, qenv(tn, XLarrowht, tn->UU.U161.height),
-		   qenv(tn, XLarrowwid, tn->UU.U161.width), lth,
-		   node->UU.U161.lfill);
-	TEMP = ahlex(tn->UU.U161.atype);
+	  svgahead(ahnum(tn->UU.Uline.atype), &node->aat, node->UU.Uline.endpos,
+		   soutline, qenv(tn, XLarrowht, tn->UU.Uline.height),
+		   qenv(tn, XLarrowwid, tn->UU.Uline.width), lth,
+		   node->UU.Uline.lfill);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	  svgahead(ahnum(tn->UU.U161.atype), &tn->UU.U161.endpos, tn->aat,
-		   soutline, qenv(tn, XLarrowht, tn->UU.U161.height),
-		   qenv(tn, XLarrowwid, tn->UU.U161.width), lth,
-		   node->UU.U161.lfill);
+	  svgahead(ahnum(tn->UU.Uline.atype), &tn->UU.Uline.endpos, tn->aat,
+		   soutline, qenv(tn, XLarrowht, tn->UU.Uline.height),
+		   qenv(tn, XLarrowwid, tn->UU.Uline.width), lth,
+		   node->UU.Uline.lfill);
 	if (node->son == NULL) {
-	  printf("<line");
-	  svgfilloptions(tn, lnspec);
+	  svgfilloptions(tn, lsp, false);
 	  svgcoord("x1", "y1", node->aat.xpos, node->aat.ypos);
-	  svgcoord("x2", "y2", node->UU.U161.endpos.xpos,
-		   node->UU.U161.endpos.ypos);
+	  svgcoord("x2", "y2", node->UU.Uline.endpos.xpos,
+		   node->UU.Uline.endpos.ypos);
 	  svgendpath();
 	} else {
-	  printf("<polyline");
-	  svgfilloptions(tn, lnspec);
+	  svgfilloptions(tn, lsp, true);
 	  printf(" points=\"");
 	  svgwpos(node->aat);
 	  space();
@@ -9475,7 +9608,7 @@ void svgdraw(primitive *node)
       } else if (node->son == NULL) {
 	svgwpos(node->aat);
 	putchar('\n');
-	svgwpos(node->UU.U161.endpos);
+	svgwpos(node->UU.Uline.endpos);
 	quote();
 	svgendpath();
       } else {
@@ -9484,8 +9617,8 @@ void svgdraw(primitive *node)
       }
     }
     svgwtext(node, node->textp,
-	     0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	     0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+	     0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	     0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLstring:
@@ -9561,9 +9694,9 @@ void pstwrtext(primitive *np, nametype *tp, double x, double y)
 }
 
 
-void pstlineoptions(primitive *node, long lsp, Char sep)
+void pstlineoptions(primitive *node, int lsp, Char sep)
 {
-  long TEMP;
+  int TEMP;
 
   if (node->lthick >= 0.0) {
     printf("%clinewidth=", sep);
@@ -9610,17 +9743,17 @@ void pstlineoptions(primitive *node, long lsp, Char sep)
     }
     sep = ',';
   }
-  TEMP = ahnum(node->UU.U161.atype);
+  TEMP = ahnum(node->UU.Uline.atype);
   if ((node->ptype == XLspline || node->ptype == XLline ||
-       node->ptype == XLarrow) & (ahlex(node->UU.U161.atype) != XEMPTY) &
+       node->ptype == XLarrow) & (ahlex(node->UU.Uline.atype) != XEMPTY) &
       (!(TEMP >= 0 && TEMP < 32 && ((1L << TEMP) & 0x9) != 0))) {
     printf("%carrowsize=", sep);
-    wfloat(&output, node->UU.U161.width / scale);
+    wfloat(&output, node->UU.Uline.width / scale);
     printf("in 0,arrowlength=");
-    if (node->UU.U161.width == 0.0)
+    if (node->UU.Uline.width == 0.0)
       wfloat(&output, 0.0);
     else
-      wfloat(&output, node->UU.U161.height / node->UU.U161.width);
+      wfloat(&output, node->UU.Uline.height / node->UU.Uline.width);
     printf(",arrowinset=0");
     sep = ',';
   }
@@ -9629,7 +9762,7 @@ void pstlineoptions(primitive *node, long lsp, Char sep)
 }
 
 
-void pstfilloptions(primitive *node, long lsp, double a)
+void pstfilloptions(primitive *node, int lsp, double a)
 {
   Char sep;
   double fill;
@@ -9642,15 +9775,15 @@ void pstfilloptions(primitive *node, long lsp, double a)
     break;
 
   case XLbox:
-    fill = node->UU.U157.boxfill;
+    fill = node->UU.Ubox.boxfill;
     break;
 
   case XLcircle:
-    fill = node->UU.U158.cfill;
+    fill = node->UU.Ucircle.cfill;
     break;
 
   case XLellipse:
-    fill = node->UU.U159.efill;
+    fill = node->UU.Uellipse.efill;
     break;
 
   case XLarc:
@@ -9658,7 +9791,7 @@ void pstfilloptions(primitive *node, long lsp, double a)
   case XLarrow:
   case XLmove:
   case XLspline:
-    fill = node->UU.U161.lfill;
+    fill = node->UU.Uline.lfill;
     break;
   }
   fill = (long)floor(fill * 1000000L + 0.5) / 1000000.0;
@@ -9722,9 +9855,9 @@ void pstfilloptions(primitive *node, long lsp, double a)
   } else
     sep = '[';
   if (node->ptype == XLbox) {
-    if (node->UU.U157.boxradius != 0.0) {
+    if (node->UU.Ubox.boxradius != 0.0) {
       printf("%clinearc=", sep);
-      wfloat(&output, node->UU.U157.boxradius / fsc);
+      wfloat(&output, node->UU.Ubox.boxradius / fsc);
       sep = ',';
     }
   }
@@ -9733,7 +9866,7 @@ void pstfilloptions(primitive *node, long lsp, double a)
 
 
 void pstahead(postype *point, postype shaft, double ht, double wid,
-		     double lth, long typ, nametype *sou)
+		     double lth, int typ, nametype *sou)
 {
   postype P, L, R, Px, Lx, Rx, Q;
   double x, y;
@@ -9828,7 +9961,7 @@ void pstarc(double ccw)
 }
 
 
-void pstarcahead(postype C, postype point, long atyp, nametype *sou,
+void pstarcahead(postype C, postype point, int atyp, nametype *sou,
 			double ht, double wid, double lth, double radius,
 			double arcangle, postype *P)
 {
@@ -9885,22 +10018,23 @@ void pstarcahead(postype C, postype point, long atyp, nametype *sou,
 
 void pstdraw(primitive *node)
 {
-  long lsp;
+  int lsp;
   postype X0, X1;
   boolean v;
   double lth;
   primitive *tn;
-  long TEMP, TEMP1;
+  int TEMP, TEMP1;
 
-  lsp = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   sshade = node->shadedp;
-  lth = qenv(node, XLlinethick, node->lthick);   /* printobject(node); */
-  /*D if debuglevel > 0 then begin write(log,'pstdraw: ');
+  lth = qenv(node, XLlinethick, tn->lthick);   /* printobject(node); */
+  /*D if debuglevel > 0 then begin
+     write(log,'pstdraw[',ordp(node):1,']: ');
      snaptype(log,ptype); D*/
   /*D
            writeln(log) end;
-        if linesignal > 0 then begin write(stderr,'pstdraw: ');
-           snaptype(stderr,ptype); writeln(stderr) end D*/
+        if linesignal > 0 then begin write(errout,'pstdraw: ');
+           snaptype(errout,ptype); writeln(errout) end D*/
   switch (node->ptype) {
 
   case XLbox:
@@ -9910,7 +10044,7 @@ void pstdraw(primitive *node)
     if (node->ptype == XBLOCK)
       v = drawn(node, lsp, -1.0);
     else
-      v = drawn(node, lsp, node->UU.U157.boxfill);
+      v = drawn(node, lsp, node->UU.Ubox.boxfill);
     if (v) {
       pstfilloptions(node, lsp, 0.0);
       wcoord(&output, west, south);
@@ -9921,34 +10055,34 @@ void pstdraw(primitive *node)
     break;
 
   case XLspline:
-    if (drawn(node, lsp, node->UU.U161.lfill)) {
+    if (drawn(node, lsp, node->UU.Uline.lfill)) {
       if (!isthen(node)) {  /* first spline */
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
 	if (sfill && vfill >= 0.0)
-	  node->UU.U161.lfill = vfill;
-	TEMP = ahnum(tn->UU.U161.atype);
+	  node->UU.Uline.lfill = vfill;
+	TEMP = ahnum(tn->UU.Uline.atype);
 	if (TEMP >= 0 && TEMP < 32 && ((1L << TEMP) & 0x9) != 0) {
-	  TEMP1 = ahlex(tn->UU.U161.atype);
+	  TEMP1 = ahlex(tn->UU.Uline.atype);
 	  if (TEMP1 == XDOUBLEHEAD || TEMP1 == XRIGHTHEAD)
-	    pstahead(&tn->UU.U161.endpos, tn->aat,
-		     qenv(node, XLarrowht, node->UU.U161.height),
-		     qenv(node, XLarrowwid, node->UU.U161.width),
+	    pstahead(&tn->UU.Uline.endpos, tn->aat,
+		     qenv(node, XLarrowht, node->UU.Uline.height),
+		     qenv(node, XLarrowwid, node->UU.Uline.width),
 		     qenv(node, XLlinethick, tn->lthick),
-		     ahnum(tn->UU.U161.atype), soutline);
-	  TEMP1 = ahlex(tn->UU.U161.atype);
+		     ahnum(tn->UU.Uline.atype), soutline);
+	  TEMP1 = ahlex(tn->UU.Uline.atype);
 	  if (TEMP1 == XDOUBLEHEAD || TEMP1 == XLEFTHEAD)
-	    pstahead(&node->aat, node->UU.U161.endpos,
-		     qenv(node, XLarrowht, node->UU.U161.height),
-		     qenv(node, XLarrowwid, node->UU.U161.width),
+	    pstahead(&node->aat, node->UU.Uline.endpos,
+		     qenv(node, XLarrowht, node->UU.Uline.height),
+		     qenv(node, XLarrowwid, node->UU.Uline.width),
 		     qenv(node, XLlinethick, tn->lthick),
-		     ahnum(tn->UU.U161.atype), soutline);
+		     ahnum(tn->UU.Uline.atype), soutline);
 	}
 	pstfilloptions(tn, lsp, 0.0);
 	spltot = primdepth(node);
 	splcount = spltot;
-	TEMP = ahnum(tn->UU.U161.atype);
+	TEMP = ahnum(tn->UU.Uline.atype);
 	if (!(TEMP >= 0 && TEMP < 32 && ((1L << TEMP) & 0x9) != 0)) {
-	  switch (ahlex(tn->UU.U161.atype)) {
+	  switch (ahlex(tn->UU.Uline.atype)) {
 
 	  case XLEFTHEAD:
 	    printf("{<-}");
@@ -9963,54 +10097,55 @@ void pstdraw(primitive *node)
 	    break;
 	  }
 	}
-	wpos(node->aat);
 	sfill = false;
+	wpos(node->aat);
+	putchar('\n');
       }
-      if (node->UU.U161.aradius == mdistmax) {
+      if (node->UU.Uline.aradius == mdistmax) {
 	if (splcount == spltot && splcount > 1) {  /* 1st seg */
-	  wprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
 	      /* 1/6 from 1st to 2nd */
-	  wprop(node->aat, node->UU.U161.endpos, 4.0, 2.0, 6.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 4.0, 2.0, 6.0);
 	      /* 1/3 from 1st to 2nd */
-	  pprop(node->UU.U161.endpos, &node->aat, 1.0, 1.0, 2.0);
+	  pprop(node->UU.Uline.endpos, &node->aat, 1.0, 1.0, 2.0);
 	      /* set aat to halfway */
 	  wpos(node->aat);
 	  putchar('\n');
 	}
 	if (splcount > 1) {  /* interior segment */
-	  wprop(node->aat, node->UU.U161.endpos, 1.0, 2.0, 3.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1.0, 2.0, 3.0);
 	      /* 2/3 from 1st to 2nd */
-	  pprop(node->son->UU.U161.endpos, &node->son->aat, 1.0, 1.0, 2.0);
+	  pprop(node->son->UU.Uline.endpos, &node->son->aat, 1.0, 1.0, 2.0);
 	      /* shift son^.aat */
-	  wprop(node->UU.U161.endpos, node->son->aat, 2.0, 1.0, 3.0);
+	  wprop(node->UU.Uline.endpos, node->son->aat, 2.0, 1.0, 3.0);
 	      /* 1/3 from endpos */
 	  wpos(node->son->aat);
 	} else {  /* last segment */
-	  wprop(node->aat, node->UU.U161.endpos, 2.0, 1.0, 3.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 2.0, 1.0, 3.0);
 	      /* 1/3 along */
-	  wprop(node->aat, node->UU.U161.endpos, 1.0, 2.0, 3.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1.0, 2.0, 3.0);
 	      /* 2/3 along */
-	  wpos(node->UU.U161.endpos);
+	  wpos(node->UU.Uline.endpos);
 	}
       } else if (splcount > 1) {
-	wprop(node->aat, node->UU.U161.endpos, 1 - node->UU.U161.aradius,
-	      node->UU.U161.aradius, 1.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1 - node->UU.Uline.aradius,
+	      node->UU.Uline.aradius, 1.0);
 	if (splcount > 2)
-	  pprop(node->son->UU.U161.endpos, &node->son->aat, 1.0, 1.0, 2.0);
+	  pprop(node->son->UU.Uline.endpos, &node->son->aat, 1.0, 1.0, 2.0);
 	else
-	  node->son->aat = node->son->UU.U161.endpos;
-	wprop(node->UU.U161.endpos, node->son->aat, node->UU.U161.aradius,
-	      1 - node->UU.U161.aradius, 1.0);
+	  node->son->aat = node->son->UU.Uline.endpos;
+	wprop(node->UU.Uline.endpos, node->son->aat, node->UU.Uline.aradius,
+	      1 - node->UU.Uline.aradius, 1.0);
 	wpos(node->son->aat);
       } else if (spltot == 1) {
-	wprop(node->aat, node->UU.U161.endpos, node->UU.U161.aradius,
-	      1 - node->UU.U161.aradius, 1.0);
-	wprop(node->aat, node->UU.U161.endpos, 1 - node->UU.U161.aradius,
-	      node->UU.U161.aradius, 1.0);
-	wpos(node->UU.U161.endpos);
+	wprop(node->aat, node->UU.Uline.endpos, node->UU.Uline.aradius,
+	      1 - node->UU.Uline.aradius, 1.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1 - node->UU.Uline.aradius,
+	      node->UU.Uline.aradius, 1.0);
+	wpos(node->UU.Uline.endpos);
       }
       node->ptype = XLline;
-      if (node->UU.U161.aradius == mdistmax || splcount > 1)
+      if (node->UU.Uline.aradius == mdistmax || splcount > 1)
 	putchar('\n');
       splcount--;
     }
@@ -10018,32 +10153,32 @@ void pstdraw(primitive *node)
 
   case XLline:
   case XLarrow:
-    if (drawn(node, lsp, node->UU.U161.lfill)) {
+    if (drawn(node, lsp, node->UU.Uline.lfill)) {
       if (!isthen(node)) {
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
 	if (sfill && vfill >= 0.0)
-	  node->UU.U161.lfill = vfill;
-	TEMP = ahnum(tn->UU.U161.atype);
+	  node->UU.Uline.lfill = vfill;
+	TEMP = ahnum(tn->UU.Uline.atype);
 	if (TEMP >= 0 && TEMP < 32 && ((1L << TEMP) & 0x9) != 0) {
-	  TEMP1 = ahlex(tn->UU.U161.atype);
+	  TEMP1 = ahlex(tn->UU.Uline.atype);
 	  if (TEMP1 == XDOUBLEHEAD || TEMP1 == XLEFTHEAD)
-	    pstahead(&node->aat, node->UU.U161.endpos,
-		     qenv(node, XLarrowht, node->UU.U161.height),
-		     qenv(node, XLarrowwid, node->UU.U161.width),
+	    pstahead(&node->aat, node->UU.Uline.endpos,
+		     qenv(node, XLarrowht, node->UU.Uline.height),
+		     qenv(node, XLarrowwid, node->UU.Uline.width),
 		     qenv(node, XLlinethick, tn->lthick),
-		     ahnum(tn->UU.U161.atype), soutline);
-	  TEMP1 = ahlex(tn->UU.U161.atype);
+		     ahnum(tn->UU.Uline.atype), soutline);
+	  TEMP1 = ahlex(tn->UU.Uline.atype);
 	  if (TEMP1 == XDOUBLEHEAD || TEMP1 == XRIGHTHEAD)
-	    pstahead(&tn->UU.U161.endpos, tn->aat,
-		     qenv(node, XLarrowht, node->UU.U161.height),
-		     qenv(node, XLarrowwid, node->UU.U161.width),
+	    pstahead(&tn->UU.Uline.endpos, tn->aat,
+		     qenv(node, XLarrowht, node->UU.Uline.height),
+		     qenv(node, XLarrowwid, node->UU.Uline.width),
 		     qenv(node, XLlinethick, tn->lthick),
-		     ahnum(tn->UU.U161.atype), soutline);
+		     ahnum(tn->UU.Uline.atype), soutline);
 	}
 	pstfilloptions(tn, lsp, 0.0);
-	TEMP = ahnum(tn->UU.U161.atype);
+	TEMP = ahnum(tn->UU.Uline.atype);
 	if (!(TEMP >= 0 && TEMP < 32 && ((1L << TEMP) & 0x9) != 0)) {
-	  switch (ahlex(tn->UU.U161.atype)) {
+	  switch (ahlex(tn->UU.Uline.atype)) {
 
 	  case XLEFTHEAD:
 	    printf("{<-}");
@@ -10059,68 +10194,69 @@ void pstdraw(primitive *node)
 	  }
 	}
 	sfill = false;
+	wpos(node->aat);
       }
-      wpos(node->aat);
-      wpos(node->UU.U161.endpos);
+      /* wpos( aat ); */
+      wpos(node->UU.Uline.endpos);
       putchar('\n');
     }
     pstwrtext(node, node->textp,
-	      0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	      0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+	      0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	      0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLmove:
     pstwrtext(node, node->textp,
-	      0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	      0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+	      0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	      0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLellipse:
-    if (drawn(node, lsp, node->UU.U159.efill)) {
+    if (drawn(node, lsp, node->UU.Uellipse.efill)) {
       pstfilloptions(node, lsp, 0.0);
       wpos(node->aat);
-      wcoord(&output, 0.5 * node->UU.U159.elwidth,
-	     0.5 * node->UU.U159.elheight);
+      wcoord(&output, 0.5 * node->UU.Uellipse.elwidth,
+	     0.5 * node->UU.Uellipse.elheight);
       putchar('\n');
     }
     pstwrtext(node, node->textp, node->aat.xpos, node->aat.ypos);
     break;
 
   case XLcircle:
-    if (drawn(node, lsp, node->UU.U158.cfill)) {
+    if (drawn(node, lsp, node->UU.Ucircle.cfill)) {
       pstfilloptions(node, lsp, 0.0);
       wpos(node->aat);
       putchar('{');
-      wfloat(&output, node->UU.U158.radius / fsc);
+      wfloat(&output, node->UU.Ucircle.radius / fsc);
       printf("}\n");
     }
     pstwrtext(node, node->textp, node->aat.xpos, node->aat.ypos);
     break;
 
   case XLarc:
-    if (drawn(node, lsp, node->UU.U161.lfill)) {
+    if (drawn(node, lsp, node->UU.Uline.lfill)) {
       getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
       if (sfill && vfill >= 0.0)
-	node->UU.U161.lfill = vfill;
+	node->UU.Uline.lfill = vfill;
       X0 = arcstart(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	pstarcahead(node->aat, X0, ahnum(node->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, node->UU.U161.height),
-		    qenv(node, XLarrowwid, node->UU.U161.width), lth,
-		    fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	pstarcahead(node->aat, X0, ahnum(node->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, node->UU.Uline.height),
+		    qenv(node, XLarrowwid, node->UU.Uline.width), lth,
+		    fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		    &X0);
       X1 = arcend(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	pstarcahead(node->aat, X1, ahnum(node->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, node->UU.U161.height),
-		    qenv(node, XLarrowwid, node->UU.U161.width), lth,
-		    -fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	pstarcahead(node->aat, X1, ahnum(node->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, node->UU.Uline.height),
+		    qenv(node, XLarrowwid, node->UU.Uline.width), lth,
+		    -fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		    &X1);
-      pstfilloptions(node, lsp, node->UU.U161.endpos.ypos);
-      pstwarc(node->aat, fabs(node->UU.U161.aradius), posangle(X0, node->aat),
-	      posangle(X1, node->aat), node->UU.U161.endpos.ypos);
+      pstfilloptions(node, lsp, node->UU.Uline.endpos.ypos);
+      pstwarc(node->aat, fabs(node->UU.Uline.aradius), posangle(X0, node->aat),
+	      posangle(X1, node->aat), node->UU.Uline.endpos.ypos);
     }
     pstwrtext(node, node->textp, node->aat.xpos, node->aat.ypos);
     break;
@@ -10163,7 +10299,7 @@ void mfpprelude(double n, double s, double e, double w)
 void mfppostlude(void)
 {
   printf("\\end{mfpic}\n");
-  /*Dif debuglevel > 0 then writeln(log,'mfpbpostlude done');D*/
+  /*D if debuglevel > 0 then writeln(log,'mfpbpostlude done');D*/
 }
 
 
@@ -10296,7 +10432,7 @@ void mfsetthick(double lt)
 }
 
 
-void mfpdashdot(long lsp, double param)
+void mfpdashdot(int lsp, double param)
 {
   if (lsp == XLdashed) {
     mfsetdash(param / fsc);
@@ -10314,7 +10450,7 @@ void mfpdashdot(long lsp, double param)
 }
 
 
-void mfplineopts(double lt, double param, long lsp, nametype *sou)
+void mfplineopts(double lt, double param, int lsp, nametype *sou)
 {
   if (sou != NULL) {
     printf("\\drawcolor{");
@@ -10326,7 +10462,7 @@ void mfplineopts(double lt, double param, long lsp, nametype *sou)
 }
 
 
-void mfpahead(long atyp, postype *point, postype shaft, double ht,
+void mfpahead(int atyp, postype *point, postype shaft, double ht,
 		     double wid, double lth, nametype *sou)
 {
   postype P, L, R, Px, Lx, Rx, Q;
@@ -10395,7 +10531,7 @@ void mfpwarc(postype Ctr, double radius, double startangle,
 }
 
 
-void mfparcahead(postype C, postype point, long atyp, nametype *sou,
+void mfparcahead(postype C, postype point, int atyp, nametype *sou,
 			double ht, double wid, double lth, double radius,
 			double arcangle, postype *P)
 {
@@ -10439,13 +10575,13 @@ void mfparcahead(postype C, postype point, long atyp, nametype *sou,
 void mfpdraw(primitive *node)
 {
   /* node is always <> nil */
-  long i, lsp;
+  int i, lsp;
   postype tmpos, X0, X1;
   primitive *tn;
   double x, y, t, r, lth;
-  long TEMP;
+  int TEMP;
 
-  lsp = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   lth = qenv(node, XLlinethick, node->lthick);
   /*D if debuglevel > 0 then begin write(log,'mfpdraw: ');
         snaptype(log,node^.ptype);
@@ -10457,9 +10593,9 @@ void mfpdraw(primitive *node)
     initnesw();
     nesw(node);
     if (node->ptype == XLbox) {
-      if (node->UU.U157.boxfill >= 0.0 && node->UU.U157.boxfill <= 1.0 ||
+      if (node->UU.Ubox.boxfill >= 0.0 && node->UU.Ubox.boxfill <= 1.0 ||
 	  node->shadedp != NULL) {
-	mfpsetshade(node->UU.U157.boxfill, node->shadedp);
+	mfpsetshade(node->UU.Ubox.boxfill, node->shadedp);
 	printf("\\rect{");
 	wcoord(&output, west, south);
 	comma();
@@ -10481,14 +10617,14 @@ void mfpdraw(primitive *node)
     break;
 
   case XLellipse:
-    if (node->UU.U159.efill >= 0.0 && node->UU.U159.efill <= 1.0 ||
+    if (node->UU.Uellipse.efill >= 0.0 && node->UU.Uellipse.efill <= 1.0 ||
 	node->shadedp != NULL) {
-      mfpsetshade(node->UU.U159.efill, node->shadedp);
-      mfpellipse(node->aat, node->UU.U159.elwidth, node->UU.U159.elheight);
+      mfpsetshade(node->UU.Uellipse.efill, node->shadedp);
+      mfpellipse(node->aat, node->UU.Uellipse.elwidth, node->UU.Uellipse.elheight);
     }
     if (drawn(node, lsp, -1.0)) {
       mfplineopts(lth, node->lparam, lsp, node->outlinep);
-      mfpellipse(node->aat, node->UU.U159.elwidth, node->UU.U159.elheight);
+      mfpellipse(node->aat, node->UU.Uellipse.elwidth, node->UU.Uellipse.elheight);
       if (node->outlinep != NULL)
 	printf("\\drawcolor{\\mfpdefaultcolor}\n");
     }
@@ -10496,14 +10632,14 @@ void mfpdraw(primitive *node)
     break;
 
   case XLcircle:
-    if (node->UU.U158.cfill >= 0.0 && node->UU.U158.cfill <= 1.0 ||
+    if (node->UU.Ucircle.cfill >= 0.0 && node->UU.Ucircle.cfill <= 1.0 ||
 	node->shadedp != NULL) {
-      mfpsetshade(node->UU.U158.cfill, node->shadedp);
-      mfpcircle(node->aat, node->UU.U158.radius);
+      mfpsetshade(node->UU.Ucircle.cfill, node->shadedp);
+      mfpcircle(node->aat, node->UU.Ucircle.radius);
     }
     if (drawn(node, lsp, -1.0)) {
       mfplineopts(lth, node->lparam, lsp, node->outlinep);
-      mfpcircle(node->aat, node->UU.U158.radius);
+      mfpcircle(node->aat, node->UU.Ucircle.radius);
       if (node->outlinep != NULL)
 	printf("\\drawcolor{\\mfpdefaultcolor}\n");
     }
@@ -10518,11 +10654,11 @@ void mfpdraw(primitive *node)
 	splcount = spltot;
 	lth = qenv(node, XLlinethick, tn->lthick);
 	X0 = node->aat;
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  mfpahead(ahnum(tn->UU.U161.atype), &node->aat, node->UU.U161.endpos,
-		   qenv(node, XLarrowht, tn->UU.U161.height),
-		   qenv(node, XLarrowwid, tn->UU.U161.width), lth, soutline);
+	  mfpahead(ahnum(tn->UU.Uline.atype), &node->aat, node->UU.Uline.endpos,
+		   qenv(node, XLarrowht, tn->UU.Uline.height),
+		   qenv(node, XLarrowwid, tn->UU.Uline.width), lth, soutline);
 	mfplineopts(lth, node->lparam, lsp, node->outlinep);
 	if (sfill) {
 	  mfpsetshade(vfill, sshade);
@@ -10535,89 +10671,86 @@ void mfpdraw(primitive *node)
 	wpos(node->aat);
 	comma();
 	node->aat = X0;
-	if (node->UU.U161.aradius == mdistmax) {  /* spline x ie tensioned */
-	  wprop(node->aat, node->UU.U161.endpos, 3.0, 1.0, 4.0);
+	if (node->UU.Uline.aradius == mdistmax) {  /* spline x ie tensioned */
+	  wprop(node->aat, node->UU.Uline.endpos, 3.0, 1.0, 4.0);
 	  comma();
-	  pprop(node->UU.U161.endpos, &node->aat, 1.0, 1.0, 2.0);
+	  pprop(node->UU.Uline.endpos, &node->aat, 1.0, 1.0, 2.0);
 	  wpos(node->aat);
 	  commacr();
 	}
       }
       node->ptype = XLline;   /* Do we need this anymore? */
       if (splcount > 1) {
-	tn = node;
-	while (tn->son != NULL)
-	  tn = tn->son;
 	lth = qenv(node, XLlinethick, tn->lthick);
-	if (node->UU.U161.aradius == mdistmax || splcount > 2)
-	  pprop(node->son->UU.U161.endpos, &node->son->aat, 1.0, 1.0, 2.0);
+	if (node->UU.Uline.aradius == mdistmax || splcount > 2)
+	  pprop(node->son->UU.Uline.endpos, &node->son->aat, 1.0, 1.0, 2.0);
 	else {
 	  X1 = node->son->aat;
-	  X0 = node->son->UU.U161.endpos;
-	  TEMP = ahlex(node->UU.U161.atype);
-	  if ((ahnum(node->UU.U161.atype) == 0) & (TEMP == XDOUBLEHEAD ||
+	  X0 = node->son->UU.Uline.endpos;
+	  TEMP = ahlex(node->UU.Uline.atype);
+	  if ((ahnum(node->UU.Uline.atype) == 0) & (TEMP == XDOUBLEHEAD ||
 						   TEMP == XRIGHTHEAD)) {
-	    x = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		       node->UU.U161.endpos.ypos - node->aat.ypos);
-	    y = ahoffset(qenv(node, XLarrowht, tn->UU.U161.height),
-			 qenv(node, XLarrowwid, tn->UU.U161.width),
+	    x = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		       node->UU.Uline.endpos.ypos - node->aat.ypos);
+	    y = ahoffset(qenv(node, XLarrowht, tn->UU.Uline.height),
+			 qenv(node, XLarrowwid, tn->UU.Uline.width),
 			 lth / 72 * scale);
 	    if (x > 0.0)
 	      pprop(X1, &X0, y, x - y, x);
 	  }
-	  node->son->aat = node->son->UU.U161.endpos;
+	  node->son->aat = node->son->UU.Uline.endpos;
 	}
-	if (node->UU.U161.aradius == mdistmax)
+	if (node->UU.Uline.aradius == mdistmax)
 	  r = 2.0 / 3;
 	else
-	  r = node->UU.U161.aradius;
+	  r = node->UU.Uline.aradius;
 	for (i = 1; i <= 3; i++) {
 	  t = i / 4.0;
 	  tmpos = node->aat;
-	  pprop(node->UU.U161.endpos, &tmpos, 3 * r * t * (1 - t),
+	  pprop(node->UU.Uline.endpos, &tmpos, 3 * r * t * (1 - t),
 		(1 - t) * (1 - t) * (1 - t + 3 * t * (1 - r)), 1.0);
 	  wprop(node->son->aat, tmpos, t * t * (t + 3 * (1 - t) * (1 - r)),
 		1.0, 1.0);
 	  comma();
 	}
-	if (node->UU.U161.aradius == mdistmax || splcount > 2) {
+	if (node->UU.Uline.aradius == mdistmax || splcount > 2) {
 	  wpos(node->son->aat);
 	  commacr();
 	} else {
-	  TEMP = ahlex(node->UU.U161.atype);
+	  TEMP = ahlex(node->UU.Uline.atype);
 	  if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
 	    wpos(X0);
 	    printf("}\n");
-	    mfpahead(ahnum(node->UU.U161.atype), &node->son->aat, X1,
-		     qenv(node, XLarrowht, node->UU.U161.height),
-		     qenv(node, XLarrowwid, node->UU.U161.width), lth,
+	    mfpahead(ahnum(node->UU.Uline.atype), &node->son->aat, X1,
+		     qenv(node, XLarrowht, node->UU.Uline.height),
+		     qenv(node, XLarrowwid, node->UU.Uline.width), lth,
 		     soutline);
 	  } else {
 	    wpos(node->son->aat);
 	    printf("}\n");
 	  }
 	}
-      } else if (node->UU.U161.aradius == mdistmax) {
-	wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+      } else if (node->UU.Uline.aradius == mdistmax) {
+	wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	comma();
-	TEMP = ahlex(node->UU.U161.atype);
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
-	  X0 = node->UU.U161.endpos;
-	  x = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		     node->UU.U161.endpos.ypos - node->aat.ypos);
-	  y = ahoffset(qenv(node, XLarrowht, node->UU.U161.height),
-		       qenv(node, XLarrowwid, node->UU.U161.width),
+	  X0 = node->UU.Uline.endpos;
+	  x = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		     node->UU.Uline.endpos.ypos - node->aat.ypos);
+	  y = ahoffset(qenv(node, XLarrowht, node->UU.Uline.height),
+		       qenv(node, XLarrowwid, node->UU.Uline.width),
 		       lth / 72 * scale);
 	  if (x > 0.0)
-	    pprop(node->aat, &node->UU.U161.endpos, y, x - y, x);
-	  wpos(node->UU.U161.endpos);
+	    pprop(node->aat, &node->UU.Uline.endpos, y, x - y, x);
+	  wpos(node->UU.Uline.endpos);
 	  printf("}\n");
-	  mfpahead(ahnum(node->UU.U161.atype), &X0, node->aat,
-		   qenv(node, XLarrowht, node->UU.U161.height),
-		   qenv(node, XLarrowwid, node->UU.U161.width), lth,
+	  mfpahead(ahnum(node->UU.Uline.atype), &X0, node->aat,
+		   qenv(node, XLarrowht, node->UU.Uline.height),
+		   qenv(node, XLarrowwid, node->UU.Uline.width), lth,
 		   soutline);
 	} else {
-	  wpos(node->UU.U161.endpos);
+	  wpos(node->UU.Uline.endpos);
 	  printf("}\n");
 	  if (sfill)
 	    printf("\\end{connect}\n");
@@ -10636,18 +10769,18 @@ void mfpdraw(primitive *node)
       if (!isthen(node)) {
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
 	if (sfill && vfill >= 0.0)
-	  node->UU.U161.lfill = vfill;
-	TEMP = ahlex(node->UU.U161.atype);
+	  node->UU.Uline.lfill = vfill;
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  mfpahead(ahnum(node->UU.U161.atype), &node->aat,
-		   node->UU.U161.endpos,
-		   qenv(node, XLarrowht, tn->UU.U161.height),
-		   qenv(node, XLarrowwid, tn->UU.U161.width), lth, soutline);
-	TEMP = ahlex(tn->UU.U161.atype);
+	  mfpahead(ahnum(node->UU.Uline.atype), &node->aat,
+		   node->UU.Uline.endpos,
+		   qenv(node, XLarrowht, tn->UU.Uline.height),
+		   qenv(node, XLarrowwid, tn->UU.Uline.width), lth, soutline);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	  mfpahead(ahnum(tn->UU.U161.atype), &tn->UU.U161.endpos, tn->aat,
-		   qenv(node, XLarrowht, tn->UU.U161.height),
-		   qenv(node, XLarrowwid, tn->UU.U161.width), lth, soutline);
+	  mfpahead(ahnum(tn->UU.Uline.atype), &tn->UU.Uline.endpos, tn->aat,
+		   qenv(node, XLarrowht, tn->UU.Uline.height),
+		   qenv(node, XLarrowwid, tn->UU.Uline.width), lth, soutline);
 	mfplineopts(lth, node->lparam, lsp, node->outlinep);
 	if (sfill) {
 	  mfpsetshade(vfill, sshade);
@@ -10659,10 +10792,10 @@ void mfpdraw(primitive *node)
 	printf("\\polyline{");
 	wpos(node->aat);
 	comma();
-	wpos(node->UU.U161.endpos);
+	wpos(node->UU.Uline.endpos);
       } else {
 	commacr();
-	wpos(node->UU.U161.endpos);
+	wpos(node->UU.Uline.endpos);
       }
       if (node->son == NULL) {
 	printf("}\n");
@@ -10671,28 +10804,28 @@ void mfpdraw(primitive *node)
       }
     }
     mfpwrtext(node, node->textp,
-	      0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	      0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+	      0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	      0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLarc:
     if (drawn(node, lsp, -1.0)) {
       getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
       X0 = arcstart(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	mfparcahead(node->aat, X0, ahnum(node->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, node->UU.U161.height),
-		    qenv(node, XLarrowwid, node->UU.U161.width), lth,
-		    fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	mfparcahead(node->aat, X0, ahnum(node->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, node->UU.Uline.height),
+		    qenv(node, XLarrowwid, node->UU.Uline.width), lth,
+		    fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		    &X0);
       X1 = arcend(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	mfparcahead(node->aat, X1, ahnum(node->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, node->UU.U161.height),
-		    qenv(node, XLarrowwid, node->UU.U161.width), lth,
-		    -fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	mfparcahead(node->aat, X1, ahnum(node->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, node->UU.Uline.height),
+		    qenv(node, XLarrowwid, node->UU.Uline.width), lth,
+		    -fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		    &X1);
       /*D if debuglevel > 0 then begin
           write(log,' XLarc: lth='); wfloat(log,lth); writeln(log) end;D*/
@@ -10704,8 +10837,8 @@ void mfpdraw(primitive *node)
 	  printf("\\draw");
 	putchar('\n');
       }
-      mfpwarc(node->aat, node->UU.U161.aradius, posangle(X0, node->aat),
-	      posangle(X1, node->aat), node->UU.U161.endpos.ypos);
+      mfpwarc(node->aat, node->UU.Uline.aradius, posangle(X0, node->aat),
+	      posangle(X1, node->aat), node->UU.Uline.endpos.ypos);
       if (soutline != NULL)
 	printf("\\drawcolor{\\mfpdefaultcolor}\n");
     }
@@ -10739,7 +10872,7 @@ void mpoprelude(void)
   /* n,s,e,w: real */
   printstate++;
   printf("%% %s option -s for MetaPost\n", Version);
-  printf("beginfig(%ld)\n", printstate);
+  printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
   printf("def lcrnd=linecap:=rounded enddef;\n");
@@ -10819,7 +10952,7 @@ void mposetthick(double lthick)
 }
 
 
-void mpolinecap(long lsp)
+void mpolinecap(int lsp)
 {
   switch (lsp) {
 
@@ -10846,7 +10979,7 @@ void addcolor(nametype *sp, double fillv)
 }
 
 
-void mpodashdot(long lsp, double param, nametype *op)
+void mpodashdot(int lsp, double param, nametype *op)
 {
   if (lsp == XLdashed) {
     printf(" dashed evenly");
@@ -10964,7 +11097,7 @@ void mpoellipse(Char *initial, postype ctr, double halfwid,
 #undef r
 
 
-void mpoahead(long atyp, postype *point, postype shaft, double ht,
+void mpoahead(int atyp, postype *point, postype shaft, double ht,
 		     double wid, double lth, nametype *sou)
 {
   postype P, L, R, Px, Lx, Rx, Q;
@@ -11002,7 +11135,7 @@ void mpoahead(long atyp, postype *point, postype shaft, double ht,
 }
 
 
-void mpoarcahead(postype C, postype point, long atyp, nametype *sou,
+void mpoarcahead(postype C, postype point, int atyp, nametype *sou,
 			double ht, double wid, double lth, double radius,
 			double arcangle, postype *P)
 {
@@ -11049,14 +11182,14 @@ void mpoarcahead(postype C, postype point, long atyp, nametype *sou,
 void mpodraw(primitive *node)
 {
   /* node is always <> nil */
-  long lsp;
+  int lsp;
   postype tmpat, X0, X1, X3;
   primitive *tn;
   double x, y, lth;
   primitive *WITH, *WITH1;
-  long TEMP;
+  int TEMP;
 
-  lsp = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   lth = qenv(node, XLlinethick, node->lthick);
   WITH = node;
   switch (WITH->ptype) {
@@ -11067,17 +11200,17 @@ void mpodraw(primitive *node)
     nesw(node);
     if (WITH->ptype == XLbox) {
       if (WITH->shadedp != NULL ||
-	  WITH->UU.U157.boxfill >= 0.0 && WITH->UU.U157.boxfill <= 1.0) {
-	mpobox("fill ", WITH->aat, WITH->UU.U157.boxwidth / 2,
-	       WITH->UU.U157.boxheight / 2, WITH->UU.U157.boxradius);
-	addcolor(WITH->shadedp, WITH->UU.U157.boxfill);
+	  WITH->UU.Ubox.boxfill >= 0.0 && WITH->UU.Ubox.boxfill <= 1.0) {
+	mpobox("fill ", WITH->aat, WITH->UU.Ubox.boxwidth / 2,
+	       WITH->UU.Ubox.boxheight / 2, WITH->UU.Ubox.boxradius);
+	addcolor(WITH->shadedp, WITH->UU.Ubox.boxfill);
 	printf(";\n");
       }
       if (drawn(node, lsp, -1.0)) {
 	mposetthick(WITH->lthick);
 	mpolinecap(lsp);
-	mpobox("drw ", WITH->aat, WITH->UU.U157.boxwidth / 2,
-	       WITH->UU.U157.boxheight / 2, WITH->UU.U157.boxradius);
+	mpobox("drw ", WITH->aat, WITH->UU.Ubox.boxwidth / 2,
+	       WITH->UU.Ubox.boxheight / 2, WITH->UU.Ubox.boxradius);
 	mpodashdot(lsp, WITH->lparam, WITH->outlinep);
       }
     }
@@ -11086,17 +11219,17 @@ void mpodraw(primitive *node)
 
   case XLellipse:
     if (WITH->shadedp != NULL ||
-	WITH->UU.U159.efill >= 0.0 && WITH->UU.U159.efill <= 1.0) {
-      mpoellipse("fill ", WITH->aat, WITH->UU.U159.elwidth / 2,
-		 WITH->UU.U159.elheight / 2);
-      addcolor(WITH->shadedp, WITH->UU.U159.efill);
+	WITH->UU.Uellipse.efill >= 0.0 && WITH->UU.Uellipse.efill <= 1.0) {
+      mpoellipse("fill ", WITH->aat, WITH->UU.Uellipse.elwidth / 2,
+		 WITH->UU.Uellipse.elheight / 2);
+      addcolor(WITH->shadedp, WITH->UU.Uellipse.efill);
       printf(";\n");
     }
     if (drawn(node, lsp, -1.0)) {
       mposetthick(WITH->lthick);
       mpolinecap(lsp);
-      mpoellipse("drw ", WITH->aat, WITH->UU.U159.elwidth / 2,
-		 WITH->UU.U159.elheight / 2);
+      mpoellipse("drw ", WITH->aat, WITH->UU.Uellipse.elwidth / 2,
+		 WITH->UU.Uellipse.elheight / 2);
       mpodashdot(lsp, WITH->lparam, WITH->outlinep);
     }
     mpowrtext(WITH->textp, WITH->aat.xpos, WITH->aat.ypos);
@@ -11104,19 +11237,19 @@ void mpodraw(primitive *node)
 
   case XLcircle:
     if (WITH->shadedp != NULL ||
-	WITH->UU.U158.cfill >= 0.0 && WITH->UU.U158.cfill <= 1.0) {
+	WITH->UU.Ucircle.cfill >= 0.0 && WITH->UU.Ucircle.cfill <= 1.0) {
       printf("fill fullcircle scaled ");
-      wfloat(&output, WITH->UU.U158.radius * 2 / fsc);
+      wfloat(&output, WITH->UU.Ucircle.radius * 2 / fsc);
       printf(" shifted ");
       wpos(WITH->aat);
-      addcolor(WITH->shadedp, WITH->UU.U158.cfill);
+      addcolor(WITH->shadedp, WITH->UU.Ucircle.cfill);
       printf(";\n");
     }
     if (drawn(node, lsp, -1.0)) {
       mposetthick(WITH->lthick);
       mpolinecap(lsp);
       printf("drw fullcircle scaled ");
-      wfloat(&output, WITH->UU.U158.radius * 2 / fsc);
+      wfloat(&output, WITH->UU.Ucircle.radius * 2 / fsc);
       printf(" shifted ");
       wpos(WITH->aat);
       mpodashdot(lsp, WITH->lparam, WITH->outlinep);
@@ -11127,10 +11260,10 @@ void mpodraw(primitive *node)
   case XLspline:
     if (drawn(node, lsp, -1.0)) {
       while (node != NULL) {
-	if (node->UU.U161.aradius == mdistmax)
+	if (node->UU.Uline.aradius == mdistmax)
 	  x = 2.0 / 3;
 	else
-	  x = node->UU.U161.aradius;
+	  x = node->UU.Uline.aradius;
 	if (!isthen(node)) {
 	  getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
 	  lth = qenv(node, XLlinethick, tn->lthick);
@@ -11138,12 +11271,12 @@ void mpodraw(primitive *node)
 	  spltot = primdepth(node);
 	  splcount = spltot;
 	  tmpat = node->aat;
-	  TEMP = ahlex(tn->UU.U161.atype);
+	  TEMP = ahlex(tn->UU.Uline.atype);
 	  if ((!sfill) & (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD))
-	    mpoahead(ahnum(tn->UU.U161.atype), &node->aat,
-		     node->UU.U161.endpos,
-		     qenv(node, XLarrowht, tn->UU.U161.height),
-		     qenv(node, XLarrowwid, tn->UU.U161.width), lth,
+	    mpoahead(ahnum(tn->UU.Uline.atype), &node->aat,
+		     node->UU.Uline.endpos,
+		     qenv(node, XLarrowht, tn->UU.Uline.height),
+		     qenv(node, XLarrowwid, tn->UU.Uline.width), lth,
 		     soutline);
 	  mpolinecap(lsp);
 	  if (sfill)
@@ -11152,47 +11285,47 @@ void mpodraw(primitive *node)
 	    printf("drw ");
 	  wpos(node->aat);
 	  node->aat = tmpat;
-	  if (node->UU.U161.aradius == mdistmax) {
+	  if (node->UU.Uline.aradius == mdistmax) {
 	    ddash();
 	    if (spltot > 1) {
-	      wprop(node->UU.U161.endpos, node->aat, 1.0, 1.0, 2.0);
+	      wprop(node->UU.Uline.endpos, node->aat, 1.0, 1.0, 2.0);
 	      controls();
-	      wprop(node->aat, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	      wprop(node->aat, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
 	    }
 	  } else if (spltot > 1) {
 	    controls();
-	    wprop(node->aat, node->UU.U161.endpos, 1 - x, x, 1.0);
+	    wprop(node->aat, node->UU.Uline.endpos, 1 - x, x, 1.0);
 	  }
 	} else if (splcount > 1) {
 	  wrand();
-	  wprop(node->aat, node->UU.U161.endpos, (1 + x) / 2, (1 - x) / 2,
+	  wprop(node->aat, node->UU.Uline.endpos, (1 + x) / 2, (1 - x) / 2,
 		1.0);
 	  ddot();
-	  wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	  controls();
-	  wprop(node->aat, node->UU.U161.endpos, (1 - x) / 2, (1 + x) / 2,
+	  wprop(node->aat, node->UU.Uline.endpos, (1 - x) / 2, (1 + x) / 2,
 		1.0);
 	}
 	if (splcount == 1) {
 	  /*D; if debuglevel > 0 then writeln(log,'last node started');D*/
-	  if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
+	  if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
 	    wrand();
-	    wprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
+	    wprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
 	    ddot();
-	    wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	    wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	    ddash();
-	  } else if (node->UU.U161.aradius != distmax) {
+	  } else if (node->UU.Uline.aradius != distmax) {
 	    wrand();
-	    wprop(node->aat, node->UU.U161.endpos, x, 1 - x, 1.0);
+	    wprop(node->aat, node->UU.Uline.endpos, x, 1 - x, 1.0);
 	    ddot();
 	  }
-	  tmpat = node->UU.U161.endpos;
-	  TEMP = ahlex(node->UU.U161.atype);
+	  tmpat = node->UU.Uline.endpos;
+	  TEMP = ahlex(node->UU.Uline.atype);
 	  if ((!sfill) & (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)) {
-	    x = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		       node->UU.U161.endpos.ypos - node->aat.ypos);
-	    y = ahoffset(qenv(node, XLarrowht, node->UU.U161.height),
-			 qenv(node, XLarrowwid, node->UU.U161.width),
+	    x = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		       node->UU.Uline.endpos.ypos - node->aat.ypos);
+	    y = ahoffset(qenv(node, XLarrowht, node->UU.Uline.height),
+			 qenv(node, XLarrowwid, node->UU.Uline.width),
 			 lth / 72 * scale);
 	    if (x > 0.0)
 	      pprop(node->aat, &tmpat, y, x - y, x);
@@ -11204,11 +11337,11 @@ void mpodraw(primitive *node)
 	    printf(";\n");
 	  } else
 	    mpodashdot(lsp, node->lparam, node->outlinep);
-	  TEMP = ahlex(node->UU.U161.atype);
+	  TEMP = ahlex(node->UU.Uline.atype);
 	  if ((!sfill) & (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD))
-	    mpoahead(ahnum(node->UU.U161.atype), &node->UU.U161.endpos,
-		     node->aat, qenv(node, XLarrowht, node->UU.U161.height),
-		     qenv(node, XLarrowwid, node->UU.U161.width), lth,
+	    mpoahead(ahnum(node->UU.Uline.atype), &node->UU.Uline.endpos,
+		     node->aat, qenv(node, XLarrowht, node->UU.Uline.height),
+		     qenv(node, XLarrowwid, node->UU.Uline.width), lth,
 		     soutline);
 	}
 	if (!sfill)
@@ -11233,12 +11366,12 @@ void mpodraw(primitive *node)
 	  getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
 	  mposetthick(lth);
 	  tmpat = node->aat;
-	  TEMP = ahlex(tn->UU.U161.atype);
+	  TEMP = ahlex(tn->UU.Uline.atype);
 	  if ((!sfill) & (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD))
-	    mpoahead(ahnum(tn->UU.U161.atype), &node->aat,
-		     node->UU.U161.endpos,
-		     qenv(node, XLarrowht, tn->UU.U161.height),
-		     qenv(node, XLarrowwid, tn->UU.U161.width), lth,
+	    mpoahead(ahnum(tn->UU.Uline.atype), &node->aat,
+		     node->UU.Uline.endpos,
+		     qenv(node, XLarrowht, tn->UU.Uline.height),
+		     qenv(node, XLarrowwid, tn->UU.Uline.width), lth,
 		     soutline);
 	  mpolinecap(lsp);
 	  if (sfill)
@@ -11247,25 +11380,25 @@ void mpodraw(primitive *node)
 	    printf("drw ");
 	  wpos(node->aat);
 	}
-	TEMP = ahlex(node->UU.U161.atype);
+	TEMP = ahlex(node->UU.Uline.atype);
 	if ((!sfill && node->son == NULL) & (TEMP == XDOUBLEHEAD ||
 					     TEMP == XRIGHTHEAD)) {
 	  getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
 	  lth = qenv(node, XLlinethick, node->lthick);
-	  x = ahoffset(qenv(node, XLarrowht, tn->UU.U161.height),
-		       qenv(node, XLarrowwid, tn->UU.U161.width),
+	  x = ahoffset(qenv(node, XLarrowht, tn->UU.Uline.height),
+		       qenv(node, XLarrowwid, tn->UU.Uline.width),
 		       lth / 72 * scale);
 	  ddash();
-	  wpos(affine(x, 0.0, node->UU.U161.endpos,
-		      affang(node->aat, node->UU.U161.endpos)));
+	  wpos(affine(x, 0.0, node->UU.Uline.endpos,
+		      affang(node->aat, node->UU.Uline.endpos)));
 	  mpodashdot(lsp, node->lparam, node->outlinep);
-	  mpoahead(ahnum(node->UU.U161.atype), &node->UU.U161.endpos,
-		   node->aat, qenv(node, XLarrowht, tn->UU.U161.height),
-		   qenv(node, XLarrowwid, tn->UU.U161.width), lth, soutline);
+	  mpoahead(ahnum(node->UU.Uline.atype), &node->UU.Uline.endpos,
+		   node->aat, qenv(node, XLarrowht, tn->UU.Uline.height),
+		   qenv(node, XLarrowwid, tn->UU.Uline.width), lth, soutline);
 	} else if (node->son == NULL) {
 	  /*D; if debuglevel > 0 then writeln(log,'last node started');D*/
 	  ddash();
-	  wpos(node->UU.U161.endpos);
+	  wpos(node->UU.Uline.endpos);
 	  if (sfill) {
 	    printf(" ..cycle");
 	    addcolor(sshade, vfill);
@@ -11274,7 +11407,7 @@ void mpodraw(primitive *node)
 	    mpodashdot(lsp, node->lparam, node->outlinep);
 	} else {
 	  ddash();
-	  wpos(node->UU.U161.endpos);
+	  wpos(node->UU.Uline.endpos);
 	}
 	if (sfill)
 	  node = node->son;
@@ -11287,8 +11420,8 @@ void mpodraw(primitive *node)
     if (!sfill && snode != NULL) {
       WITH1 = snode;
       mpowrtext(WITH1->textp,
-		0.5 * (WITH1->UU.U161.endpos.xpos + WITH1->aat.xpos),
-		0.5 * (WITH1->UU.U161.endpos.ypos + WITH1->aat.ypos));
+		0.5 * (WITH1->UU.Uline.endpos.xpos + WITH1->aat.xpos),
+		0.5 * (WITH1->UU.Uline.endpos.ypos + WITH1->aat.ypos));
     }
     break;
 
@@ -11297,40 +11430,40 @@ void mpodraw(primitive *node)
       getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
       X0 = arcstart(node);
       if (WITH->shadedp != NULL ||
-	  WITH->UU.U161.lfill >= 0.0 && WITH->UU.U161.lfill <= 1.0) {
+	  WITH->UU.Uline.lfill >= 0.0 && WITH->UU.Uline.lfill <= 1.0) {
 	X3 = arcend(node);
 	printf("fill ");
 	wpos(X3);
 	ddash();
-	popgwarc(WITH->aat, fabs(WITH->UU.U161.aradius),
+	popgwarc(WITH->aat, fabs(WITH->UU.Uline.aradius),
 		 posangle(X0, WITH->aat), posangle(X3, WITH->aat),
-		 WITH->UU.U161.endpos.ypos);
+		 WITH->UU.Uline.endpos.ypos);
 	printf(" ..cycle");
-	addcolor(WITH->shadedp, WITH->UU.U161.lfill);
+	addcolor(WITH->shadedp, WITH->UU.Uline.lfill);
 	printf(";\n");
       }
-      TEMP = ahlex(WITH->UU.U161.atype);
+      TEMP = ahlex(WITH->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	mpoarcahead(WITH->aat, X0, ahnum(WITH->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, WITH->UU.U161.height),
-		    qenv(node, XLarrowwid, WITH->UU.U161.width), lth,
-		    fabs(WITH->UU.U161.aradius), WITH->UU.U161.endpos.ypos,
+	mpoarcahead(WITH->aat, X0, ahnum(WITH->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, WITH->UU.Uline.height),
+		    qenv(node, XLarrowwid, WITH->UU.Uline.width), lth,
+		    fabs(WITH->UU.Uline.aradius), WITH->UU.Uline.endpos.ypos,
 		    &X0);
       X1 = arcend(node);
-      TEMP = ahlex(WITH->UU.U161.atype);
+      TEMP = ahlex(WITH->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	mpoarcahead(WITH->aat, X1, ahnum(WITH->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, WITH->UU.U161.height),
-		    qenv(node, XLarrowwid, WITH->UU.U161.width), lth,
-		    -fabs(WITH->UU.U161.aradius), WITH->UU.U161.endpos.ypos,
+	mpoarcahead(WITH->aat, X1, ahnum(WITH->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, WITH->UU.Uline.height),
+		    qenv(node, XLarrowwid, WITH->UU.Uline.width), lth,
+		    -fabs(WITH->UU.Uline.aradius), WITH->UU.Uline.endpos.ypos,
 		    &X1);
       mposetthick(lth);
       mpolinecap(lsp);
       printf("drw ");
       wpos(X0);
-      popgwarc(WITH->aat, fabs(WITH->UU.U161.aradius),
+      popgwarc(WITH->aat, fabs(WITH->UU.Uline.aradius),
 	       posangle(X0, WITH->aat), posangle(X1, WITH->aat),
-	       WITH->UU.U161.endpos.ypos);
+	       WITH->UU.Uline.endpos.ypos);
       mpodashdot(lsp, WITH->lparam, WITH->outlinep);
     }
     mpowrtext(WITH->textp, WITH->aat.xpos, WITH->aat.ypos);
@@ -11435,7 +11568,7 @@ void pgfsetthick(double lthick)
     else
       lthick = 0.8;
   }
-  /*Dif debuglevel > 0 then begin
+  /*D if debuglevel > 0 then begin
      writeln(log);
      write(log,'lthick='); wfloat(log,lthick);
      write(log,' lastthick='); wfloat(log,lastthick); writeln(log)
@@ -11472,7 +11605,7 @@ void pgfbox(postype ctr, double halfwid, double halfht, double rad)
 }
 
 
-void pgfahead(long atyp, postype *point, postype shaft, double ht,
+void pgfahead(int atyp, postype *point, postype shaft, double ht,
 		     double wid, double lth)
 {
   postype P, L, R, Px, Lx, Rx, Q;
@@ -11529,7 +11662,7 @@ void pgfahead(long atyp, postype *point, postype shaft, double ht,
 }
 
 
-void pgfstartdraw(long initial, primitive *node, long lsp)
+void pgfstartdraw(int initial, primitive *node, int lsp)
 {
   Char sep;
   double fill;
@@ -11548,15 +11681,15 @@ void pgfstartdraw(long initial, primitive *node, long lsp)
     break;
 
   case XLbox:
-    fill = node->UU.U157.boxfill;
+    fill = node->UU.Ubox.boxfill;
     break;
 
   case XLcircle:
-    fill = node->UU.U158.cfill;
+    fill = node->UU.Ucircle.cfill;
     break;
 
   case XLellipse:
-    fill = node->UU.U159.efill;
+    fill = node->UU.Uellipse.efill;
     break;
 
   case XLarc:
@@ -11564,7 +11697,7 @@ void pgfstartdraw(long initial, primitive *node, long lsp)
   case XLarrow:
   case XLmove:
   case XLspline:
-    fill = node->UU.U161.lfill;
+    fill = node->UU.Uline.lfill;
     break;
   }
   fill = (long)floor(fill * 1000000L + 0.5) / 1000000.0;
@@ -11649,7 +11782,7 @@ void pgfstartdraw(long initial, primitive *node, long lsp)
 }
 
 
-void pgfarcahead(postype C, postype point, long atyp, nametype *sou,
+void pgfarcahead(postype C, postype point, int atyp, nametype *sou,
 			double ht, double wid, double lth, double radius,
 			double arcangle, postype *P)
 {
@@ -11704,14 +11837,14 @@ void pgfarcahead(postype C, postype point, long atyp, nametype *sou,
 void pgfdraw(primitive *node)
 {
   /* node is always <> nil */
-  long lsp;
+  int lsp;
   postype X0, X1;
   primitive *tn;
   double x, y, lth;
   boolean v;
-  long TEMP;
+  int TEMP;
 
-  lsp = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   lth = qenv(node, XLlinethick, node->lthick);
   switch (node->ptype) {
 
@@ -11722,23 +11855,23 @@ void pgfdraw(primitive *node)
     if (node->ptype == XBLOCK)
       v = drawn(node, lsp, -1.0);
     else
-      v = drawn(node, lsp, node->UU.U157.boxfill);
+      v = drawn(node, lsp, node->UU.Ubox.boxfill);
     if (v) {
       pgfstartdraw(0, node, lsp);
-      pgfbox(node->aat, node->UU.U157.boxwidth / 2,
-	     node->UU.U157.boxheight / 2, node->UU.U157.boxradius);
+      pgfbox(node->aat, node->UU.Ubox.boxwidth / 2,
+	     node->UU.Ubox.boxheight / 2, node->UU.Ubox.boxradius);
     }
     pgfwrtext(node, node->textp, 0.5 * (east + west), 0.5 * (north + south));
     break;
 
   case XLellipse:
-    if (drawn(node, lsp, node->UU.U159.efill)) {
+    if (drawn(node, lsp, node->UU.Uellipse.efill)) {
       pgfstartdraw(0, node, lsp);
       wpos(node->aat);
       printf(" ellipse (");
-      wfloat(&output, node->UU.U159.elwidth / 2 / fsc / 2.54);
+      wfloat(&output, node->UU.Uellipse.elwidth / 2 / fsc / 2.54);
       printf("in and ");
-      wfloat(&output, node->UU.U159.elheight / 2 / fsc / 2.54);
+      wfloat(&output, node->UU.Uellipse.elheight / 2 / fsc / 2.54);
       printf("in)");
       pgfendpath();
     }
@@ -11746,11 +11879,11 @@ void pgfdraw(primitive *node)
     break;
 
   case XLcircle:
-    if (drawn(node, lsp, node->UU.U158.cfill)) {
+    if (drawn(node, lsp, node->UU.Ucircle.cfill)) {
       pgfstartdraw(0, node, lsp);
       wpos(node->aat);
       printf(" circle (");
-      wfloat(&output, node->UU.U158.radius / fsc / 2.54);
+      wfloat(&output, node->UU.Ucircle.radius / fsc / 2.54);
       printf("in)");
       pgfendpath();
     }
@@ -11759,77 +11892,77 @@ void pgfdraw(primitive *node)
 
   case XLspline:
     if (drawn(node, lsp, -1.0)) {
-      if (node->UU.U161.aradius == mdistmax)
+      if (node->UU.Uline.aradius == mdistmax)
 	x = 2.0 / 3;
       else
-	x = node->UU.U161.aradius;
+	x = node->UU.Uline.aradius;
       if (!isthen(node)) {  /* first spline */
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
 	spltot = primdepth(node);
 	splcount = spltot;
 	X0 = node->aat;
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
-	  pgfstartdraw(ahnum(node->UU.U161.atype), node, lsp);
-	  pgfahead(ahnum(tn->UU.U161.atype), &node->aat, node->UU.U161.endpos,
-		   qenv(node, XLarrowht, tn->UU.U161.height),
-		   qenv(node, XLarrowwid, tn->UU.U161.width),
+	  pgfstartdraw(ahnum(node->UU.Uline.atype), node, lsp);
+	  pgfahead(ahnum(tn->UU.Uline.atype), &node->aat, node->UU.Uline.endpos,
+		   qenv(node, XLarrowht, tn->UU.Uline.height),
+		   qenv(node, XLarrowwid, tn->UU.Uline.width),
 		   qenv(node, XLlinethick, tn->lthick));
 	}
 	/* pgflinecap(lsp); */
 	pgfstartdraw(0, node, lsp);
 	wpos(node->aat);
 	node->aat = X0;
-	if (node->UU.U161.aradius == mdistmax) {
+	if (node->UU.Uline.aradius == mdistmax) {
 	  ddash();
 	  if (spltot > 1) {
-	    wprop(node->UU.U161.endpos, node->aat, 1.0, 1.0, 2.0);
+	    wprop(node->UU.Uline.endpos, node->aat, 1.0, 1.0, 2.0);
 	    controls();
-	    wprop(node->aat, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	    wprop(node->aat, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
 	  }
 	} else if (spltot > 1) {
 	  controls();
-	  wprop(node->aat, node->UU.U161.endpos, 1 - x, x, 1.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1 - x, x, 1.0);
 	}
       } else if (splcount > 1) {
 	wrand();
-	wprop(node->aat, node->UU.U161.endpos, (1 + x) / 2, (1 - x) / 2, 1.0);
+	wprop(node->aat, node->UU.Uline.endpos, (1 + x) / 2, (1 - x) / 2, 1.0);
 	ddot();
-	wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	controls();
-	wprop(node->aat, node->UU.U161.endpos, (1 - x) / 2, (1 + x) / 2, 1.0);
+	wprop(node->aat, node->UU.Uline.endpos, (1 - x) / 2, (1 + x) / 2, 1.0);
       }
       if (splcount == 1) {
-	if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
+	if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
 	  wrand();
-	  wprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
 	  ddot();
-	  wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	  ddash();
-	} else if (node->UU.U161.aradius != distmax) {
+	} else if (node->UU.Uline.aradius != distmax) {
 	  wrand();
-	  wprop(node->aat, node->UU.U161.endpos, x, 1 - x, 1.0);
+	  wprop(node->aat, node->UU.Uline.endpos, x, 1 - x, 1.0);
 	  ddot();
 	}
-	X0 = node->UU.U161.endpos;
-	TEMP = ahlex(node->UU.U161.atype);
+	X0 = node->UU.Uline.endpos;
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
-	  x = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		     node->UU.U161.endpos.ypos - node->aat.ypos);
-	  switch (ahnum(node->UU.U161.atype)) {
+	  x = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		     node->UU.Uline.endpos.ypos - node->aat.ypos);
+	  switch (ahnum(node->UU.Uline.atype)) {
 
 	  case 0:
-	    y = ahoffset(qenv(node, XLarrowht, node->UU.U161.height),
-			 qenv(node, XLarrowwid, node->UU.U161.width),
+	    y = ahoffset(qenv(node, XLarrowht, node->UU.Uline.height),
+			 qenv(node, XLarrowwid, node->UU.Uline.width),
 			 lth / 72 * scale);
 	    break;
 
 	  case 3:
-	    y = qenv(node, XLarrowht, node->UU.U161.height) * (2.0 / 3);
+	    y = qenv(node, XLarrowht, node->UU.Uline.height) * (2.0 / 3);
 	    break;
 
 	  default:
-	    y = qenv(node, XLarrowht, node->UU.U161.height);
+	    y = qenv(node, XLarrowht, node->UU.Uline.height);
 	    break;
 	  }
 	  if (x != 0.0)
@@ -11837,12 +11970,12 @@ void pgfdraw(primitive *node)
 	}
 	wpos(X0);
 	pgfendpath();
-	TEMP = ahlex(node->UU.U161.atype);
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
-	  pgfstartdraw(ahnum(node->UU.U161.atype), node, lsp);
-	  pgfahead(ahnum(node->UU.U161.atype), &node->UU.U161.endpos,
-		   node->aat, qenv(node, XLarrowht, node->UU.U161.height),
-		   qenv(node, XLarrowwid, node->UU.U161.width), lth);
+	  pgfstartdraw(ahnum(node->UU.Uline.atype), node, lsp);
+	  pgfahead(ahnum(node->UU.Uline.atype), &node->UU.Uline.endpos,
+		   node->aat, qenv(node, XLarrowht, node->UU.Uline.height),
+		   qenv(node, XLarrowwid, node->UU.Uline.width), lth);
 	}
       }
       node->ptype = XLline;
@@ -11856,38 +11989,35 @@ void pgfdraw(primitive *node)
   case XLarrow:
   case XLmove:
     if (drawn(node, lsp, -1.0)) {
-      tn = node;
-      while (tn->son != NULL)
-	tn = tn->son;
       lth = qenv(node, XLlinethick, tn->lthick);
       if (!isthen(node)) {
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
-	  pgfstartdraw(ahnum(node->UU.U161.atype), node, lsp);
-	  pgfahead(ahnum(tn->UU.U161.atype), &node->aat, node->UU.U161.endpos,
-		   qenv(node, XLarrowht, tn->UU.U161.height),
-		   qenv(node, XLarrowwid, tn->UU.U161.width), lth);
+	  pgfstartdraw(ahnum(node->UU.Uline.atype), node, lsp);
+	  pgfahead(ahnum(tn->UU.Uline.atype), &node->aat, node->UU.Uline.endpos,
+		   qenv(node, XLarrowht, tn->UU.Uline.height),
+		   qenv(node, XLarrowwid, tn->UU.Uline.width), lth);
 	}
 	pgfstartdraw(0, node, lsp);
 	wpos(node->aat);
       }
-      TEMP = ahlex(tn->UU.U161.atype);
+      TEMP = ahlex(tn->UU.Uline.atype);
       if ((node->son == NULL) & (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)) {
-	switch (ahnum(node->UU.U161.atype)) {
+	switch (ahnum(node->UU.Uline.atype)) {
 
 	case 0:
-	  y = ahoffset(qenv(node, XLarrowht, tn->UU.U161.height),
-		       qenv(node, XLarrowwid, tn->UU.U161.width),
+	  y = ahoffset(qenv(node, XLarrowht, tn->UU.Uline.height),
+		       qenv(node, XLarrowwid, tn->UU.Uline.width),
 		       lth / 72 * scale);
 	  break;
 
 	case 3:
-	  y = qenv(node, XLarrowht, tn->UU.U161.height) * (2.0 / 3);
+	  y = qenv(node, XLarrowht, tn->UU.Uline.height) * (2.0 / 3);
 	  break;
 
 	default:
-	  y = qenv(node, XLarrowht, tn->UU.U161.height);
+	  y = qenv(node, XLarrowht, tn->UU.Uline.height);
 	  break;
 	}
 	/*D if debuglevel > 0 then begin
@@ -11898,55 +12028,55 @@ void pgfdraw(primitive *node)
 	    writeln(log)
 	    end; D*/
 	ddash();
-	wpos(affine(y, 0.0, node->UU.U161.endpos,
-		    affang(node->aat, node->UU.U161.endpos)));
+	wpos(affine(y, 0.0, node->UU.Uline.endpos,
+		    affang(node->aat, node->UU.Uline.endpos)));
 	pgfendpath();
-	pgfstartdraw(ahnum(node->UU.U161.atype), node, lsp);
-	pgfahead(ahnum(node->UU.U161.atype), &node->UU.U161.endpos, node->aat,
-		 qenv(node, XLarrowht, tn->UU.U161.height),
-		 qenv(node, XLarrowwid, tn->UU.U161.width), lth);
+	pgfstartdraw(ahnum(node->UU.Uline.atype), node, lsp);
+	pgfahead(ahnum(node->UU.Uline.atype), &node->UU.Uline.endpos, node->aat,
+		 qenv(node, XLarrowht, tn->UU.Uline.height),
+		 qenv(node, XLarrowwid, tn->UU.Uline.width), lth);
       } else if (node->son == NULL) {
 	/*D; if debuglevel > 0 then
 	        writeln(log,'pgfdraw: last node started');D*/
 	ddash();
-	wpos(node->UU.U161.endpos);
+	wpos(node->UU.Uline.endpos);
 	pgfendpath();
       } else {
 	ddash();
-	wpos(node->UU.U161.endpos);
+	wpos(node->UU.Uline.endpos);
       }
       /*D; if debuglevel > 0 then writeln(log,'pgfdraw: node ');D*/
       /* ptype := XLline */
     }
     pgfwrtext(node, node->textp,
-	      0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	      0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+	      0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	      0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLarc:
     if (drawn(node, lsp, -1.0)) {
       getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
       X0 = arcstart(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	pgfarcahead(node->aat, X0, ahnum(node->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, node->UU.U161.height),
-		    qenv(node, XLarrowwid, node->UU.U161.width), lth,
-		    fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	pgfarcahead(node->aat, X0, ahnum(node->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, node->UU.Uline.height),
+		    qenv(node, XLarrowwid, node->UU.Uline.width), lth,
+		    fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		    &X0);
       X1 = arcend(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	pgfarcahead(node->aat, X1, ahnum(node->UU.U161.atype), soutline,
-		    qenv(node, XLarrowht, node->UU.U161.height),
-		    qenv(node, XLarrowwid, node->UU.U161.width), lth,
-		    -fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	pgfarcahead(node->aat, X1, ahnum(node->UU.Uline.atype), soutline,
+		    qenv(node, XLarrowht, node->UU.Uline.height),
+		    qenv(node, XLarrowwid, node->UU.Uline.width), lth,
+		    -fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		    &X1);
       pgfstartdraw(0, node, lsp);
       wpos(X0);
-      popgwarc(node->aat, fabs(node->UU.U161.aradius),
+      popgwarc(node->aat, fabs(node->UU.Uline.aradius),
 	       posangle(X0, node->aat), posangle(X1, node->aat),
-	       node->UU.U161.endpos.ypos);
+	       node->UU.Uline.endpos.ypos);
     }
     pgfendpath();
     pgfwrtext(node, node->textp, node->aat.xpos, node->aat.ypos);
@@ -11989,7 +12119,7 @@ void psprelude(double n, double s, double e, double w, double lth)
   ex = e / fsc + lth / 2;
   nx = n / fsc + lth / 2;
   sx = s / fsc - lth / 2;
-  printf("%%%%BoundingBox: %ld %ld %ld %ld\n",
+  printf("%%%%BoundingBox: %d %d %d %d\n",
 	 Floor((long)floor(wx * 1000000L + 0.5) / 1000000.0),
 	 Floor((long)floor(sx * 1000000L + 0.5) / 1000000.0),
 	 Ceil((long)floor(ex * 1000000L + 0.5) / 1000000.0),
@@ -12090,10 +12220,10 @@ void pswpos(postype pos)
 
 void pswstring(nametype *p)
 {
-  long i;
+  int i;
   Char c;
   boolean waswhite, iswhite;
-  long FORLIM;
+  int FORLIM;
 
   waswhite = false;
   if (p == NULL)
@@ -12105,8 +12235,8 @@ void pswstring(nametype *p)
     c = p->segmnt[p->seginx + i];
     iswhite = (c == etxch || c == nlch || c == tabch || c == ' ');
     if (!iswhite || !waswhite) {
-      if (c == '\\' || c == ')' || c == '(')
-	putchar('\\');
+      if (c == bslch || c == ')' || c == '(')
+	putchar(bslch);
       putchar(c);
     }
     waswhite = iswhite;
@@ -12116,7 +12246,7 @@ void pswstring(nametype *p)
 
 void pswtext(nametype *tp, double x, double y)
 {
-  long i;
+  int i;
   nametype *tx;
   boolean L, R, A, B;
 
@@ -12129,7 +12259,7 @@ void pswtext(nametype *tp, double x, double y)
     } while (tx != NULL);
     printf(" setcapht");
     pswcoord(&output, x, y);
-    printf(" %ld postext\n", i);
+    printf(" %d postext\n", i);
     do {
       printf(" vjust (");
       checkjust(tp, &A, &B, &L, &R);
@@ -12237,7 +12367,6 @@ void pslinearfill(double f, nametype *ss)
   if (ss == NULL)
     return;
   printf(" gsave\n");
-  printf(" currentrgbcolor ");
   wstring(&output, ss);
   printf(" setrgbcolor fill grestore\n");
 }
@@ -12253,7 +12382,7 @@ void pssetcolor(nametype *op)
 }
 
 
-void pslineopts(long lspec, double param, nametype *op)
+void pslineopts(int lspec, double param, nametype *op)
 {
   if (lspec == XLdashed) {
     if (param == mdistmax)
@@ -12300,7 +12429,7 @@ void pswarc(postype C, postype S, postype E, double r, double ccw)
 }
 
 
-void psarcahead(postype C, long atyp, postype *point, double ht,
+void psarcahead(postype C, int atyp, postype *point, double ht,
 		       double wid, double lth, double radius, double angle,
 		       nametype *sou)
 {
@@ -12337,7 +12466,7 @@ void psarcahead(postype C, long atyp, postype *point, double ht,
 }
 
 
-void psahead(long atyp, postype *point, postype shaft, double ht,
+void psahead(int atyp, postype *point, postype shaft, double ht,
 		    double wid, double lth, nametype *sou)
 {
   postype P, L, R, Px, Lx, Rx, Q;
@@ -12373,7 +12502,7 @@ void psahead(long atyp, postype *point, postype shaft, double ht,
 
 void psbox(postype aat, double halfwid, double halfht, double rad)
 {
-  long i;
+  int i;
   postype corner[4];
 
   psnewpath();
@@ -12450,13 +12579,13 @@ void psellipse(double x, double y)
 void psdraw(primitive *node)
 {
   /* node is always <> nil */
-  long lsp;
+  int lsp;
   postype X0, X1, X2;
   primitive *tn;
   double h, w, x, y, lth, fill;
-  long TEMP;
+  int TEMP;
 
-  lsp = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   lth = qenv(node, XLlinethick, node->lthick);   /* printobject(node); */
   /*D if debuglevel > 0 then begin write(log,'psdraw: ');
      snaptype(log,ptype); D*/
@@ -12464,8 +12593,8 @@ void psdraw(primitive *node)
            write(log,' lth='); wfloat(log,lth);
            writeln(log)
            end;
-        if linesignal > 0 then begin write(stderr,'psdraw: ');
-           snaptype(stderr,ptype); writeln(stderr) end D*/
+        if linesignal > 0 then begin write(errout,'psdraw: ');
+           snaptype(errout,ptype); writeln(errout) end D*/
   switch (node->ptype) {
 
   case XLbox:
@@ -12473,15 +12602,15 @@ void psdraw(primitive *node)
     initnesw();
     nesw(node);
     if (node->ptype == XLbox) {
-      if (node->UU.U157.boxfill >= 0.0 && node->UU.U157.boxfill <= 1.0 ||
+      if (node->UU.Ubox.boxfill >= 0.0 && node->UU.Ubox.boxfill <= 1.0 ||
 	  node->shadedp != NULL) {
-	psbox(node->aat, node->UU.U157.boxwidth / 2,
-	      node->UU.U157.boxheight / 2, node->UU.U157.boxradius);
+	psbox(node->aat, node->UU.Ubox.boxwidth / 2,
+	      node->UU.Ubox.boxheight / 2, node->UU.Ubox.boxradius);
 	pssetthick(lth);
 	if (drawn(node, lsp, -1.0)) {
 	  printf(" gsave\n");
 	  if (node->shadedp == NULL) {
-	    pswfloat(&output, node->UU.U157.boxfill);
+	    pswfloat(&output, node->UU.Ubox.boxfill);
 	    printf(" setgray");
 	  } else {
 	    putchar(' ');
@@ -12493,7 +12622,7 @@ void psdraw(primitive *node)
 	  psendline(node->outlinep);
 	} else if (node->shadedp == NULL) {
 	  printf(" currentgray");
-	  pswfloat(&output, node->UU.U157.boxfill);
+	  pswfloat(&output, node->UU.Ubox.boxfill);
 	  printf(" setgray fill setgray setlineparms\n");
 	} else {
 	  printf(" currentrgbcolor ");
@@ -12501,8 +12630,8 @@ void psdraw(primitive *node)
 	  printf(" setrgbcolor fill setrgbcolor setlineparms\n");
 	}
       } else if (drawn(node, lsp, -1.0)) {
-	psbox(node->aat, node->UU.U157.boxwidth / 2,
-	      node->UU.U157.boxheight / 2, node->UU.U157.boxradius);
+	psbox(node->aat, node->UU.Ubox.boxwidth / 2,
+	      node->UU.Ubox.boxheight / 2, node->UU.Ubox.boxradius);
 	pssetthick(lth);
 	pslineopts(lsp, node->lparam, node->outlinep);
 	psendline(node->outlinep);
@@ -12514,11 +12643,11 @@ void psdraw(primitive *node)
   case XLellipse:
   case XLcircle:
     if (node->ptype == XLellipse) {
-      x = node->UU.U159.elwidth;
-      y = node->UU.U159.elheight;
-      fill = node->UU.U159.efill;
+      x = node->UU.Uellipse.elwidth;
+      y = node->UU.Uellipse.elheight;
+      fill = node->UU.Uellipse.efill;
     } else
-      fill = node->UU.U158.cfill;
+      fill = node->UU.Ucircle.cfill;
     if (fill >= 0.0 && fill <= 1.0 || node->shadedp != NULL) {
       pssetthick(lth);
       printf(" gsave ");
@@ -12527,7 +12656,7 @@ void psdraw(primitive *node)
       if (node->ptype == XLellipse)
 	psellipse(x, y);
       else
-	pscircle(node->UU.U158.radius);
+	pscircle(node->UU.Ucircle.radius);
       printf(" gsave ");
       if (node->shadedp == NULL) {
 	pswfloat(&output, fill);
@@ -12550,7 +12679,7 @@ void psdraw(primitive *node)
       if (node->ptype == XLellipse)
 	psellipse(x, y);
       else
-	pscircle(node->UU.U158.radius);
+	pscircle(node->UU.Ucircle.radius);
       pslineopts(lsp, node->lparam, node->outlinep);
       psendline(node->outlinep);
       printf(" grestore\n");
@@ -12562,76 +12691,75 @@ void psdraw(primitive *node)
     if (drawn(node, lsp, -1.0)) {
       if (!isthen(node)) {  /* first spline */
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
-	lsp = lspec(tn->spec);
 	lth = qenv(tn, XLlinethick, tn->lthick);
 	spltot = primdepth(node);
 	splcount = spltot;
 	X0 = node->aat;
 	pssetthick(lth);
 	pssetcolor(soutline);
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  psahead(ahnum(tn->UU.U161.atype), &node->aat, node->UU.U161.endpos,
-		  qenv(tn, XLarrowht, tn->UU.U161.height),
-		  qenv(tn, XLarrowwid, tn->UU.U161.width), lth, soutline);
+	  psahead(ahnum(tn->UU.Uline.atype), &node->aat, node->UU.Uline.endpos,
+		  qenv(tn, XLarrowht, tn->UU.Uline.height),
+		  qenv(tn, XLarrowwid, tn->UU.Uline.width), lth, soutline);
 	psnewpath();
 	pswpos(node->aat);
 	node->aat = X0;
 	printf(" moveto\n");
-	if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
-	  pswprop(node->UU.U161.endpos, node->aat, 1.0, 1.0, 2.0);
+	if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
+	  pswprop(node->UU.Uline.endpos, node->aat, 1.0, 1.0, 2.0);
 	  printf(" lineto\n");
-	  pswprop(node->aat, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	  pswprop(node->aat, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
 	} else if (spltot > 1)
-	  pswprop(node->aat, node->UU.U161.endpos, 1 - node->UU.U161.aradius,
-		  node->UU.U161.aradius, 1.0);
-      } else if (splcount > 1 && node->UU.U161.aradius == mdistmax) {
-	pswprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
-	pswprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	  pswprop(node->aat, node->UU.Uline.endpos, 1 - node->UU.Uline.aradius,
+		  node->UU.Uline.aradius, 1.0);
+      } else if (splcount > 1 && node->UU.Uline.aradius == mdistmax) {
+	pswprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
+	pswprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	printf(" curveto\n");
-	pswprop(node->aat, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	pswprop(node->aat, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
       } else if (splcount > 1) {
-	pswprop(node->aat, node->UU.U161.endpos,
-		0.5 + node->UU.U161.aradius / 2,
-		0.5 - node->UU.U161.aradius / 2, 1.0);
-	pswprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	pswprop(node->aat, node->UU.Uline.endpos,
+		0.5 + node->UU.Uline.aradius / 2,
+		0.5 - node->UU.Uline.aradius / 2, 1.0);
+	pswprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	printf(" curveto\n");
-	pswprop(node->aat, node->UU.U161.endpos,
-		0.5 - node->UU.U161.aradius / 2,
-		0.5 + node->UU.U161.aradius / 2, 1.0);
+	pswprop(node->aat, node->UU.Uline.endpos,
+		0.5 - node->UU.Uline.aradius / 2,
+		0.5 + node->UU.Uline.aradius / 2, 1.0);
       }
       if (splcount == 1) {
-	if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
-	  pswprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
-	  pswprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
+	  pswprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
+	  pswprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	  printf(" curveto\n");
 	} else if (spltot > 1)
-	  pswprop(node->aat, node->UU.U161.endpos, node->UU.U161.aradius,
-		  1 - node->UU.U161.aradius, 1.0);
-	X0 = node->UU.U161.endpos;
-	TEMP = ahlex(node->UU.U161.atype);
+	  pswprop(node->aat, node->UU.Uline.endpos, node->UU.Uline.aradius,
+		  1 - node->UU.Uline.aradius, 1.0);
+	X0 = node->UU.Uline.endpos;
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
-	  x = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		     node->UU.U161.endpos.ypos - node->aat.ypos);
-	  y = ahoffset(qenv(node, XLarrowht, node->UU.U161.height),
-		       qenv(tn, XLarrowwid, node->UU.U161.width),
+	  x = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		     node->UU.Uline.endpos.ypos - node->aat.ypos);
+	  y = ahoffset(qenv(node, XLarrowht, node->UU.Uline.height),
+		       qenv(node, XLarrowwid, node->UU.Uline.width),
 		       lth / 72 * scale);
 	  if (x != 0.0)
 	    pprop(node->aat, &X0, y, x - y, x);
 	}
 	pswpos(X0);
-	if (node->UU.U161.aradius == mdistmax)
+	if (node->UU.Uline.aradius == mdistmax)
 	  printf(" lineto");
 	else
 	  printf(" curveto");
-	pslinearfill(node->UU.U161.lfill, sshade);
+	pslinearfill(node->UU.Uline.lfill, sshade);
 	pslineopts(lsp, node->lparam, NULL);
 	printf(" endstroke \n");
-	TEMP = ahlex(node->UU.U161.atype);
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
-	  psahead(ahnum(node->UU.U161.atype), &node->UU.U161.endpos,
-		  node->aat, qenv(node, XLarrowht, node->UU.U161.height),
-		  qenv(node, XLarrowwid, node->UU.U161.width), lth, soutline);
+	  psahead(ahnum(node->UU.Uline.atype), &node->UU.Uline.endpos,
+		  node->aat, qenv(node, XLarrowht, node->UU.Uline.height),
+		  qenv(node, XLarrowwid, node->UU.Uline.width), lth, soutline);
 	if (soutline != NULL)
 	  printf(" setrgbcolor\n");
       }
@@ -12647,48 +12775,47 @@ void psdraw(primitive *node)
     if (drawn(node, lsp, -1.0)) {
       if (!isthen(node)) {
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
-	lsp = lspec(tn->spec);
 	lth = qenv(tn, XLlinethick, tn->lthick);
 	pssetthick(lth);
 	pssetcolor(soutline);
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  psahead(ahnum(tn->UU.U161.atype), &node->aat, node->UU.U161.endpos,
-		  qenv(tn, XLarrowht, tn->UU.U161.height),
-		  qenv(tn, XLarrowwid, tn->UU.U161.width), lth, soutline);
+	  psahead(ahnum(tn->UU.Uline.atype), &node->aat, node->UU.Uline.endpos,
+		  qenv(tn, XLarrowht, tn->UU.Uline.height),
+		  qenv(tn, XLarrowwid, tn->UU.Uline.width), lth, soutline);
 	psnewpath();
 	pswpos(node->aat);
 	printf(" moveto\n");
       }
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if ((node->son == NULL) & (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)) {
-	x = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		   node->UU.U161.endpos.ypos - node->aat.ypos);
-	y = ahoffset(qenv(tn, XLarrowht, tn->UU.U161.height),
-		     qenv(tn, XLarrowwid, tn->UU.U161.width),
+	x = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		   node->UU.Uline.endpos.ypos - node->aat.ypos);
+	y = ahoffset(qenv(tn, XLarrowht, tn->UU.Uline.height),
+		     qenv(tn, XLarrowwid, tn->UU.Uline.width),
 		     lth / 72 * scale);
-	pswprop(node->aat, node->UU.U161.endpos, y, x - y, x);
+	pswprop(node->aat, node->UU.Uline.endpos, y, x - y, x);
 	printf(" lineto\n");
 	pslineopts(lsp, node->lparam, NULL);
 	printf(" endstroke \n");
-	psahead(ahnum(node->UU.U161.atype), &node->UU.U161.endpos, node->aat,
-		qenv(node, XLarrowht, node->UU.U161.height),
-		qenv(node, XLarrowwid, node->UU.U161.width), lth, soutline);
+	psahead(ahnum(node->UU.Uline.atype), &node->UU.Uline.endpos, node->aat,
+		qenv(node, XLarrowht, node->UU.Uline.height),
+		qenv(node, XLarrowwid, node->UU.Uline.width), lth, soutline);
 	if (soutline != NULL)
 	  printf(" setrgbcolor\n");
       } else if (node->son == NULL) {
-	pswpos(node->UU.U161.endpos);
+	pswpos(node->UU.Uline.endpos);
 	printf(" lineto\n");
-	pslinearfill(node->UU.U161.lfill, sshade);
+	pslinearfill(node->UU.Uline.lfill, sshade);
 	pslineopts(lsp, node->lparam, NULL);
 	psendline(soutline);
       } else {
-	pswpos(node->UU.U161.endpos);
+	pswpos(node->UU.Uline.endpos);
 	printf(" lineto\n");
       }
     }
-    pswtext(node->textp, 0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	    0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+    pswtext(node->textp, 0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	    0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLarc:
@@ -12697,27 +12824,26 @@ void psdraw(primitive *node)
       getlinshade(node, &tn, &sshade, &soutline, &vfill, &sfill);
       pssetcolor(soutline);
       X1 = arcstart(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
 	startarc(node, X1, lth, &h, &w);
-	psarcahead(node->aat, ahnum(node->UU.U161.atype), &X1, h, w, lth,
-		   fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	psarcahead(node->aat, ahnum(node->UU.Uline.atype), &X1, h, w, lth,
+		   fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		   soutline);
       }
       X2 = arcend(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
 	endarc(node, X2, lth, &h, &w);
-	psarcahead(node->aat, ahnum(node->UU.U161.atype), &X2, h, w, lth,
-		   -fabs(node->UU.U161.aradius), node->UU.U161.endpos.ypos,
+	psarcahead(node->aat, ahnum(node->UU.Uline.atype), &X2, h, w, lth,
+		   -fabs(node->UU.Uline.aradius), node->UU.Uline.endpos.ypos,
 		   soutline);
       }
       psnewpath();
-      pswarc(node->aat, X1, X2, node->UU.U161.aradius,
-	     node->UU.U161.endpos.ypos);
+      pswarc(node->aat, X1, X2, node->UU.Uline.aradius,
+	     node->UU.Uline.endpos.ypos);
       pssetthick(lth);
-      lsp = lspec(tn->spec);
-      pslinearfill(node->UU.U161.lfill, sshade);
+      pslinearfill(node->UU.Uline.lfill, sshade);
       pslineopts(lsp, node->lparam, NULL);
       psendline(soutline);
     }
@@ -12743,11 +12869,9 @@ void psdraw(primitive *node)
 
 
 /* # include 'mps.h' */
-
 /* include tex.h */
 /* tex.x */
 /* Output routines for TeX, tTeX (eepicemu), pict2e */
-
 void texprelude(double n, double s, double e, double w)
 {
   printf("\\setlength{\\unitlength}{1in}\n");
@@ -12769,7 +12893,7 @@ void texprelude(double n, double s, double e, double w)
     break;
 
   case tTeX:
-    printf("-t (eepicemu)\n");
+    printf("-t (eepicemu)");
     break;
   }
   printf(" for LaTeX\n");
@@ -12779,7 +12903,7 @@ void texprelude(double n, double s, double e, double w)
 void texpostlude(void)
 {
   printf("\\end{picture}\n");
-  /*Dif debuglevel > 0 then writeln(log,'texpostlude done');D*/
+  /*D if debuglevel > 0 then writeln(log,'texpostlude done');D*/
 }
 
 
@@ -12838,8 +12962,7 @@ void p2ahead(postype *point, postype shaft, double ht)
       write(log,' shaft='); wpair(log,shaft.xpos,shaft.ypos);
       butx := affang(shaft,point);
       write(log,' affang='); wpair(log,butx.xpos,butx.ypos);
-      write(log,' ht= '); wfloat(log,ht);
-      writeln(log) end ;D*/
+      wlogfl('ht',ht,1) end; D*/
   /* affang contains direction cosines */
   butx = affine(ht, 0.0, *point, affang(shaft, *point));
   /*D; if debuglevel > 0 then begin
@@ -12867,13 +12990,13 @@ void p2setthick(double lt)
 
 void texdraw(primitive *node)
 {
-  long i, npts, lsp;
+  int i, npts, lsp;
   double r, x, y, x1, y1, ct, st, lgth, lth;
   primitive *tn, *p;
   postype tmpat, X0, X3;
-  long TEMP;
+  int TEMP;
 
-  lsp = lspec(node->spec);
+  getlinespec(node, &lsp, &tn);
   lth = qenv(node, XLlinethick, node->lthick);
   switch (node->ptype) {
 
@@ -12903,9 +13026,9 @@ void texdraw(primitive *node)
 	printf("{0.01}");
       }
       if (node->ptype == XLbox)
-	wcoord(&output, node->UU.U157.boxwidth, node->UU.U157.boxheight);
+	wcoord(&output, node->UU.Ubox.boxwidth, node->UU.Ubox.boxheight);
       else
-	wcoord(&output, node->UU.U26.blockwidth, node->UU.U26.blockheight);
+	wcoord(&output, node->UU.Ublock.blockwidth, node->UU.Ublock.blockheight);
       putchar('{');
       texstacktext(node->textp);
       printf("}}\n");
@@ -12915,38 +13038,37 @@ void texdraw(primitive *node)
   case XLline:
   case XLarrow:
     if (drawn(node, lsp, -1.0)) {
-      tn = node;
-      while (tn->son != NULL)
-	tn = tn->son;
       if (!isthen(node)) {  /* first segment */
 	if (drawmode == pict2e)
 	  p2setthick(lth);
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  p2ahead(&node->aat, node->UU.U161.endpos,
-		  qenv(node, XLarrowht, tn->UU.U161.height));
+	  p2ahead(&node->aat, node->UU.Uline.endpos,
+		  qenv(node, XLarrowht, tn->UU.Uline.height));
       }
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if ((node->son == NULL) & (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD))
-	p2ahead(&node->UU.U161.endpos, node->aat,
-		qenv(node, XLarrowht, tn->UU.U161.height));
-      lgth = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		    node->UU.U161.endpos.ypos - node->aat.ypos);
+	p2ahead(&node->UU.Uline.endpos, node->aat,
+		qenv(node, XLarrowht, tn->UU.Uline.height));
+      lgth = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		    node->UU.Uline.endpos.ypos - node->aat.ypos);
       if (drawmode == pict2e ||
 	  lsp == XLsolid && (lgth > 0.18 || drawmode == tTeX)) {
-	printf("\\put");
-	wpos(node->aat);
-	printf("{\\line");
-	wrslope(node->UU.U161.endpos.xpos - node->aat.xpos,
-		node->UU.U161.endpos.ypos - node->aat.ypos, false);
-	printf("}\n");
+	if (lgth > 0) {
+	  printf("\\put");
+	  wpos(node->aat);
+	  printf("{\\line");
+	  wrslope(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		  node->UU.Uline.endpos.ypos - node->aat.ypos, false);
+	  printf("}\n");
+	}
       } else if (lsp == XLsolid) {
 	npts = (long)floor(lgth / 0.005 + 0.5);
 	printf("\\multiput");
 	wpos(node->aat);
-	wcoord(&output, (node->UU.U161.endpos.xpos - node->aat.xpos) / npts,
-	       (node->UU.U161.endpos.ypos - node->aat.ypos) / npts);
-	printf("{%ld}", npts + 1);
+	wcoord(&output, (node->UU.Uline.endpos.xpos - node->aat.xpos) / npts,
+	       (node->UU.Uline.endpos.ypos - node->aat.ypos) / npts);
+	printf("{%d}", npts + 1);
 	printf("{\\makebox(0.005555,0.00825){\\tiny .}}\n");
       } else if (lsp == XLdashed) {
 	printf("\\put");
@@ -12957,127 +13079,127 @@ void texdraw(primitive *node)
 	else
 	  wbrace(venv(node, XLdashwid) / fsc);
 	printf("(0,0)");
-	wcoord(&output, node->UU.U161.endpos.xpos - node->aat.xpos,
-	       node->UU.U161.endpos.ypos - node->aat.ypos);
+	wcoord(&output, node->UU.Uline.endpos.xpos - node->aat.xpos,
+	       node->UU.Uline.endpos.ypos - node->aat.ypos);
 	printf("}\n");
       } else if (lsp == XLdotted) {
-	printf("\\dottedline{%7.4f}", 0.05 / fsc);
+	printf("\\dottedline{");
+	wfloat(&output, 0.05 / fsc);
+	putchar('}');
 	wpos(node->aat);
-	wpos(node->UU.U161.endpos);
+	wpos(node->UU.Uline.endpos);
+	putchar('\n');
       }
     }
-    texwrtext(node->textp, 0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	      0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+    texwrtext(node->textp, 0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	      0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLspline:
     if ((drawmode == pict2e) & drawn(node, lsp, -1.0)) {
       if (!isthen(node)) {  /* first spline */
-	tn = node;
-	while (tn->son != NULL)
-	  tn = tn->son;
 	spltot = primdepth(node);
 	splcount = spltot;
 	tmpat = node->aat;
 	p2setthick(lth);
-	TEMP = ahlex(tn->UU.U161.atype);
+	TEMP = ahlex(tn->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD)
-	  p2ahead(&node->aat, node->UU.U161.endpos,
-		  qenv(node, XLarrowht, tn->UU.U161.height));
+	  p2ahead(&node->aat, node->UU.Uline.endpos,
+		  qenv(node, XLarrowht, tn->UU.Uline.height));
 	/* p2lineopts(lsp,lparam,outlinep); */
-	if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
+	if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
 	  printf("\\put");
 	  wcoord(&output, node->aat.xpos, node->aat.ypos);
 	  printf("{\\line");
-	  wrslope((node->UU.U161.endpos.xpos - node->aat.xpos) / 2,
-		  (node->UU.U161.endpos.ypos - node->aat.ypos) / 2, false);
+	  wrslope((node->UU.Uline.endpos.xpos - node->aat.xpos) / 2,
+		  (node->UU.Uline.endpos.ypos - node->aat.ypos) / 2, false);
 	  printf("}\n");
 	  printf("\\cbezier");
-	  wprop(node->UU.U161.endpos, node->aat, 1.0, 1.0, 2.0);
-	  wprop(node->aat, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	  wprop(node->UU.Uline.endpos, node->aat, 1.0, 1.0, 2.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
 	} else if (spltot > 1) {
 	  printf("\\cbezier");
 	  wpos(node->aat);
 	  node->aat = tmpat;
-	  wprop(node->aat, node->UU.U161.endpos, 1 - node->UU.U161.aradius,
-		node->UU.U161.aradius, 1.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1 - node->UU.Uline.aradius,
+		node->UU.Uline.aradius, 1.0);
 	}
-      } else if (splcount > 1 && node->UU.U161.aradius == mdistmax) {
-	wprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
-	wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+      } else if (splcount > 1 && node->UU.Uline.aradius == mdistmax) {
+	wprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	printf("%%\n");
 	printf("\\cbezier");
-	wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
-	wprop(node->aat, node->UU.U161.endpos, 1.0, 5.0, 6.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1.0, 5.0, 6.0);
       } else if (splcount > 1) {
-	wprop(node->aat, node->UU.U161.endpos,
-	      0.5 + node->UU.U161.aradius / 2,
-	      0.5 - node->UU.U161.aradius / 2, 1.0);
-	wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	wprop(node->aat, node->UU.Uline.endpos,
+	      0.5 + node->UU.Uline.aradius / 2,
+	      0.5 - node->UU.Uline.aradius / 2, 1.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	printf("%%\n");
 	printf("\\cbezier");
-	wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
-	wprop(node->aat, node->UU.U161.endpos,
-	      0.5 - node->UU.U161.aradius / 2,
-	      0.5 + node->UU.U161.aradius / 2, 1.0);
+	wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
+	wprop(node->aat, node->UU.Uline.endpos,
+	      0.5 - node->UU.Uline.aradius / 2,
+	      0.5 + node->UU.Uline.aradius / 2, 1.0);
       }
       if (splcount == 1) {
-	tmpat = node->UU.U161.endpos;
-	TEMP = ahlex(node->UU.U161.atype);
+	tmpat = node->UU.Uline.endpos;
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
-	  x = linlen(node->UU.U161.endpos.xpos - node->aat.xpos,
-		     node->UU.U161.endpos.ypos - node->aat.ypos);
-	  y = qenv(node, XLarrowht, node->UU.U161.height);
-	  pprop(node->aat, &node->UU.U161.endpos, y, x - y, x);
+	  x = linlen(node->UU.Uline.endpos.xpos - node->aat.xpos,
+		     node->UU.Uline.endpos.ypos - node->aat.ypos);
+	  y = qenv(node, XLarrowht, node->UU.Uline.height);
+	  pprop(node->aat, &node->UU.Uline.endpos, y, x - y, x);
 	}
-	if (spltot > 1 && node->UU.U161.aradius == mdistmax) {
-	  wprop(node->aat, node->UU.U161.endpos, 5.0, 1.0, 6.0);
-	  wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	if (spltot > 1 && node->UU.Uline.aradius == mdistmax) {
+	  wprop(node->aat, node->UU.Uline.endpos, 5.0, 1.0, 6.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	  printf("%%\n");
 	  printf("\\put");
-	  wprop(node->aat, node->UU.U161.endpos, 1.0, 1.0, 2.0);
+	  wprop(node->aat, node->UU.Uline.endpos, 1.0, 1.0, 2.0);
 	  printf("{\\line");
-	  wrslope((node->UU.U161.endpos.xpos - node->aat.xpos) / 2,
-		  (node->UU.U161.endpos.ypos - node->aat.ypos) / 2, false);
+	  wrslope((node->UU.Uline.endpos.xpos - node->aat.xpos) / 2,
+		  (node->UU.Uline.endpos.ypos - node->aat.ypos) / 2, false);
 	  printf("}\n");
 	} else if (spltot > 1) {
-	  wprop(node->aat, node->UU.U161.endpos, node->UU.U161.aradius,
-		1 - node->UU.U161.aradius, 1.0);
-	  wpos(node->UU.U161.endpos);
+	  wprop(node->aat, node->UU.Uline.endpos, node->UU.Uline.aradius,
+		1 - node->UU.Uline.aradius, 1.0);
+	  wpos(node->UU.Uline.endpos);
 	  printf("%%\n");
 	}
-	TEMP = ahlex(node->UU.U161.atype);
+	TEMP = ahlex(node->UU.Uline.atype);
 	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)
 	  p2ahead(&tmpat, node->aat,
-		  qenv(node, XLarrowht, node->UU.U161.height));
+		  qenv(node, XLarrowht, node->UU.Uline.height));
       }
       node->ptype = XLline;
       /*D; if debuglevel > 0 then writeln(log,'node ',splcount:1) ;D*/
       splcount--;
     } else if (lsp == XLdotted || lsp == XLdashed || lsp == XLsolid) {
-      if ((!isthen(node)) & ((ahlex(node->UU.U161.atype) == XDOUBLEHEAD) |
-			     (ahlex(node->UU.U161.atype) == XLEFTHEAD)))
+      if ((!isthen(node)) & ((ahlex(node->UU.Uline.atype) == XDOUBLEHEAD) |
+			     (ahlex(node->UU.Uline.atype) == XLEFTHEAD)))
 	    /* first spline */
 	      arrowhead(node->aat.xpos, node->aat.ypos,
-			node->UU.U161.endpos.xpos, node->UU.U161.endpos.ypos);
+			node->UU.Uline.endpos.xpos, node->UU.Uline.endpos.ypos);
       printf("\\spline");
       wpos(node->aat);
-      wpos(node->UU.U161.endpos);
+      wpos(node->UU.Uline.endpos);
       if (node->son == NULL)
 	putchar('\n');
       else if (node->son->son == NULL) {
-	wpos(node->son->UU.U161.endpos);
-	if ((ahlex(node->UU.U161.atype) == XRIGHTHEAD) |
-	    (ahlex(node->UU.U161.atype) == XDOUBLEHEAD))
-	  arrowhead(node->son->UU.U161.endpos.xpos,
-		    node->son->UU.U161.endpos.ypos, node->son->aat.xpos,
+	wpos(node->son->UU.Uline.endpos);
+	if ((ahlex(node->UU.Uline.atype) == XRIGHTHEAD) |
+	    (ahlex(node->UU.Uline.atype) == XDOUBLEHEAD))
+	  arrowhead(node->son->UU.Uline.endpos.xpos,
+		    node->son->UU.Uline.endpos.ypos, node->son->aat.xpos,
 		    node->son->aat.ypos);
 	node->ptype = XLline;
 	putchar('\n');
 	/* son := nil */
 	deletetree(&node->son);
       } else {
-	pprop(node->son->UU.U161.endpos, &node->son->aat, 1.0, 1.0, 2.0);
+	pprop(node->son->UU.Uline.endpos, &node->son->aat, 1.0, 1.0, 2.0);
 	wpos(node->son->aat);
 	node->ptype = XLline;
 	putchar('\n');
@@ -13086,8 +13208,8 @@ void texdraw(primitive *node)
     break;
 
   case XLmove:
-    texwrtext(node->textp, 0.5 * (node->UU.U161.endpos.xpos + node->aat.xpos),
-	      0.5 * (node->aat.ypos + node->UU.U161.endpos.ypos));
+    texwrtext(node->textp, 0.5 * (node->UU.Uline.endpos.xpos + node->aat.xpos),
+	      0.5 * (node->aat.ypos + node->UU.Uline.endpos.ypos));
     break;
 
   case XLellipse:
@@ -13097,12 +13219,12 @@ void texdraw(primitive *node)
     wpos(node->aat);
     if (drawmode == TeX) {
       printf("{\\ellipse");
-      wbrace(node->UU.U159.elwidth / fsc);
-      wbrace(node->UU.U159.elheight / fsc);
+      wbrace(node->UU.Uellipse.elwidth / fsc);
+      wbrace(node->UU.Uellipse.elheight / fsc);
       printf("}\n");
     } else {
       printf("{\\oval");
-      wcoord(&output, node->UU.U159.elwidth, node->UU.U159.elheight);
+      wcoord(&output, node->UU.Uellipse.elwidth, node->UU.Uellipse.elheight);
       printf("}\n");
     }
     texwrtext(node->textp, node->aat.xpos, node->aat.ypos);
@@ -13115,7 +13237,7 @@ void texdraw(primitive *node)
       printf("\\put");
       wpos(node->aat);
       printf("{\\circle");
-      wbrace(2.0 * node->UU.U158.radius / fsc);
+      wbrace(2.0 * node->UU.Ucircle.radius / fsc);
       printf("}\n");
     }
     texwrtext(node->textp, node->aat.xpos, node->aat.ypos);
@@ -13125,62 +13247,62 @@ void texdraw(primitive *node)
     if ((drawmode == pict2e) & drawn(node, lsp, -1.0)) {
       p2setthick(node->lthick);   /* p2linecap(lsp); */
       X0 = arcstart(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
-	if (node->UU.U161.aradius == 0.0)
+	if (node->UU.Uline.aradius == 0.0)
 	  x = 0.0;
 	else
-	  x = atan(qenv(node, XLarrowht, node->UU.U161.height) /
-		   node->UU.U161.aradius);
-	if (node->UU.U161.endpos.ypos >= 0.0) {
-	  node->UU.U161.endpos.xpos += x;
-	  node->UU.U161.endpos.ypos -= x;
+	  x = atan(qenv(node, XLarrowht, node->UU.Uline.height) /
+		   node->UU.Uline.aradius);
+	if (node->UU.Uline.endpos.ypos >= 0.0) {
+	  node->UU.Uline.endpos.xpos += x;
+	  node->UU.Uline.endpos.ypos -= x;
 	} else {
-	  node->UU.U161.endpos.xpos -= x;
-	  node->UU.U161.endpos.ypos += x;
+	  node->UU.Uline.endpos.xpos -= x;
+	  node->UU.Uline.endpos.ypos += x;
 	}
 	tmpat = X0;
 	X0 = arcstart(node);
-	p2ahead(&tmpat, X0, qenv(node, XLarrowht, node->UU.U161.height));
+	p2ahead(&tmpat, X0, qenv(node, XLarrowht, node->UU.Uline.height));
       }
       X3 = arcend(node);
-      TEMP = ahlex(node->UU.U161.atype);
+      TEMP = ahlex(node->UU.Uline.atype);
       if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
-	if (node->UU.U161.aradius == 0.0)
+	if (node->UU.Uline.aradius == 0.0)
 	  x = 0.0;
 	else
-	  x = atan(qenv(node, XLarrowht, node->UU.U161.height) /
-		   node->UU.U161.aradius);
-	if (node->UU.U161.endpos.ypos >= 0.0)
-	  node->UU.U161.endpos.ypos -= x;
+	  x = atan(qenv(node, XLarrowht, node->UU.Uline.height) /
+		   node->UU.Uline.aradius);
+	if (node->UU.Uline.endpos.ypos >= 0.0)
+	  node->UU.Uline.endpos.ypos -= x;
 	else
-	  node->UU.U161.endpos.ypos += x;
+	  node->UU.Uline.endpos.ypos += x;
 	tmpat = X3;
 	X3 = arcend(node);
-	p2ahead(&tmpat, X3, qenv(node, XLarrowht, node->UU.U161.height));
+	p2ahead(&tmpat, X3, qenv(node, XLarrowht, node->UU.Uline.height));
       }
-      npts = (long)(1.0 + fabs(node->UU.U161.endpos.ypos) / pi);
-      node->UU.U161.endpos.ypos /= npts;
+      npts = (long)(1.0 + fabs(node->UU.Uline.endpos.ypos) / pi);
+      node->UU.Uline.endpos.ypos /= npts;
       while (npts > 0) {
 	printf("\\cbezier");
 	wpos(X0);
-	x = cos(node->UU.U161.endpos.ypos / 2);
-	y = sin(node->UU.U161.endpos.ypos / 2);
+	x = cos(node->UU.Uline.endpos.ypos / 2);
+	y = sin(node->UU.Uline.endpos.ypos / 2);
 	x1 = (4 - x) / 3;
 	if (y != 0.0)
 	  y1 = (1.0 - x * x1) / y;
 	else
 	  y1 = 0.0;
 	tmpat.xpos = cos(
-	    node->UU.U161.endpos.xpos + node->UU.U161.endpos.ypos / 2.0);
+	    node->UU.Uline.endpos.xpos + node->UU.Uline.endpos.ypos / 2.0);
 	tmpat.ypos = sin(
-	    node->UU.U161.endpos.xpos + node->UU.U161.endpos.ypos / 2.0);
-	wpos(affine(node->UU.U161.aradius * x1, -node->UU.U161.aradius * y1,
+	    node->UU.Uline.endpos.xpos + node->UU.Uline.endpos.ypos / 2.0);
+	wpos(affine(node->UU.Uline.aradius * x1, -node->UU.Uline.aradius * y1,
 		    node->aat, tmpat));
-	wpos(affine(node->UU.U161.aradius * x1, node->UU.U161.aradius * y1,
+	wpos(affine(node->UU.Uline.aradius * x1, node->UU.Uline.aradius * y1,
 		    node->aat, tmpat));
 	if (npts > 1) {
-	  node->UU.U161.endpos.xpos += node->UU.U161.endpos.ypos;
+	  node->UU.Uline.endpos.xpos += node->UU.Uline.endpos.ypos;
 	  X0 = arcstart(node);
 	  wpos(X0);
 	  printf("%%\n");
@@ -13189,53 +13311,53 @@ void texdraw(primitive *node)
       }
       wpos(X3);
       printf("%%\n");   /*; p2dashdot(lsp,lparam,outlinep) */
-    } else if (iscorner(principal(node->UU.U161.endpos.xpos, 0.5 * pi)) &&
-	       fabs(fabs(node->UU.U161.endpos.ypos) - pi / 2.0) < 0.001) {
+    } else if (iscorner(principal(node->UU.Uline.endpos.xpos, 0.5 * pi)) &&
+	       fabs(fabs(node->UU.Uline.endpos.ypos) - pi / 2.0) < 0.001) {
       if (drawmode == pict2e)
 	p2setthick(lth);
       printf("\\put");
       wpos(node->aat);
       printf("{\\oval");
-      wcoord(&output, 2 * node->UU.U161.aradius / fsc,
-	     2 * node->UU.U161.aradius / fsc);
+      wcoord(&output, 2 * node->UU.Uline.aradius / fsc,
+	     2 * node->UU.Uline.aradius / fsc);
       if (node->direction != XLdown && node->direction != XLup &&
 	  node->direction != XLright && node->direction != XLleft) {
 	p = findenv(node);
 	if (p != NULL)
 	  node->direction = p->direction;
       }
-      if (node->direction == XLleft && node->UU.U161.endpos.ypos < 0.0 ||
-	  node->direction == XLdown && node->UU.U161.endpos.ypos > 0.0)
+      if (node->direction == XLleft && node->UU.Uline.endpos.ypos < 0.0 ||
+	  node->direction == XLdown && node->UU.Uline.endpos.ypos > 0.0)
 	printf("[bl]}\n");
-      else if (node->direction == XLleft && node->UU.U161.endpos.ypos > 0.0 ||
-	       node->direction == XLup && node->UU.U161.endpos.ypos < 0.0)
+      else if (node->direction == XLleft && node->UU.Uline.endpos.ypos > 0.0 ||
+	       node->direction == XLup && node->UU.Uline.endpos.ypos < 0.0)
 	printf("[tl]}\n");
-      else if (node->direction == XLright && node->UU.U161.endpos.ypos < 0.0 ||
-	       node->direction == XLup && node->UU.U161.endpos.ypos > 0.0)
+      else if (node->direction == XLright && node->UU.Uline.endpos.ypos < 0.0 ||
+	       node->direction == XLup && node->UU.Uline.endpos.ypos > 0.0)
 	printf("[tr]}\n");
       else
 	printf("[br]}\n");
       texwrtext(node->textp, node->aat.xpos, node->aat.ypos);
     } else if (((1L << ((long)drawmode)) &
 		((1L << ((long)TeX)) | (1L << ((long)pict2e)))) != 0 &&
-	       node->UU.U161.aradius > 0.0) {
-      if (node->UU.U161.aradius >= 0.05 / sin(pi / 18.0)) {
-	npts = (long)floor(fabs(node->UU.U161.endpos.ypos) / (pi / 18.0) + 0.5);
+	       node->UU.Uline.aradius > 0.0) {
+      if (node->UU.Uline.aradius >= 0.05 / sin(pi / 18.0)) {
+	npts = (long)floor(fabs(node->UU.Uline.endpos.ypos) / (pi / 18.0) + 0.5);
 	if (npts < 4)
 	  npts = 4;
       } else
-	npts = (long)floor(fabs(node->UU.U161.endpos.ypos) / atan(
-			     0.05 / node->UU.U161.aradius) + 0.5);
-      r = node->UU.U161.endpos.ypos / npts;
+	npts = (long)floor(fabs(node->UU.Uline.endpos.ypos) / atan(
+			     0.05 / node->UU.Uline.aradius) + 0.5);
+      r = node->UU.Uline.endpos.ypos / npts;
       ct = cos(r);
       st = sin(r);
-      x = node->UU.U161.aradius * cos(node->UU.U161.endpos.xpos);
-      y = node->UU.U161.aradius * sin(node->UU.U161.endpos.xpos);
-      /*D            if debuglevel = 2 then writeln(log,'x,y',x:7:4,y:7:4);  D*/
+      x = node->UU.Uline.aradius * cos(node->UU.Uline.endpos.xpos);
+      y = node->UU.Uline.aradius * sin(node->UU.Uline.endpos.xpos);
+      /*D if debuglevel = 2 then writeln(log,'x,y',x:7:4,y:7:4); D*/
       for (i = 1; i <= npts; i++) {
 	x1 = ct * x - st * y;
 	y1 = st * x + ct * y;
-	/*D               if debuglevel = 2 then writeln(log,x1:7:4,y1:7:4);   D*/
+	/*D if debuglevel = 2 then writeln(log,x1:7:4,y1:7:4); D*/
 	printf("\\put");
 	wcoord(&output, node->aat.xpos + x, node->aat.ypos + y);
 	printf("{\\line");
@@ -13245,12 +13367,12 @@ void texdraw(primitive *node)
 	else
 	  wbrace(fabs(y1 - y) / fsc);
 	printf("}\n");
-	if ((i == 1) & ((ahlex(node->UU.U161.atype) == XDOUBLEHEAD) |
-			(ahlex(node->UU.U161.atype) == XLEFTHEAD)))
+	if ((i == 1) & ((ahlex(node->UU.Uline.atype) == XDOUBLEHEAD) |
+			(ahlex(node->UU.Uline.atype) == XLEFTHEAD)))
 	  arrowhead(node->aat.xpos + x, node->aat.ypos + y,
 		    node->aat.xpos + x1, node->aat.ypos + y1);
-	else if ((i == npts) & ((ahlex(node->UU.U161.atype) == XDOUBLEHEAD) |
-				(ahlex(node->UU.U161.atype) == XRIGHTHEAD)))
+	else if ((i == npts) & ((ahlex(node->UU.Uline.atype) == XDOUBLEHEAD) |
+				(ahlex(node->UU.Uline.atype) == XRIGHTHEAD)))
 	  arrowhead(node->aat.xpos + x1, node->aat.ypos + y1,
 		    node->aat.xpos + x, node->aat.ypos + y);
 	x = x1;
@@ -13333,6 +13455,59 @@ void treedraw(primitive *node)
 }
 
 
+/*
+procedure treedraw( node: primitivep ); */
+/* without recursion */
+/*
+var nd: primitivep;
+begin
+   if node <> nil then nd := node^.parent else nd := nil;
+   while node <> nd do if node^.ptype < XLlastenv then begin
+      case drawmode of
+         TeX,tTeX,pict2e: texdraw(node);
+         PGF: pgfdraw(node);
+         PSTricks: pstdraw(node);
+         MFpic: mfpdraw(node);
+         PS,PSfrag: psdraw(node);
+         */
+/* PSmps: mpsdraw(node); */
+/*
+         MPost: begin mpodraw(node); if sfill then mpodraw(node) end;
+         SVG: svgdraw(node);
+         xfig: xfigdraw(node)
+         end;
+      if node^.son <> nil then begin
+         node^.ptype := node^.ptype + XLlastenv;
+         node := node^.son
+         end
+      else if node^.next <> nil then begin
+         node^.ptype := node^.ptype + 2*XLlastenv;
+         node := node^.next
+         end
+      else node := node^.parent
+      end
+   else if node^.ptype < 2*XLlastenv then begin
+      if drawmode <> xfig then begin end
+      else if (node^.ptype = (XBLOCK + XLlastenv))
+         and (node^.direction = -1) then writeln('-6');
+      sfill := false; sshade := nil; soutline := nil;
+      if node^.next <> nil then begin
+         node^.ptype := node^.ptype + XLlastenv;
+         node := node^.next
+         end
+      else begin
+         node^.ptype := node^.ptype - XLlastenv;
+         node := node^.parent
+         end
+      end
+   else begin
+      node^.ptype := node^.ptype - 2*XLlastenv;
+      node := node^.parent
+      end
+   */
+/* D; if debuglevel > 0 then writeln(log,' treedraw done') D */
+/*
+   end; */
 void drawtree(double n, double s, double e, double w, primitive *eb)
 {
   /* n,s,e,w: real; eb: primitivep */
@@ -13421,33 +13596,17 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
 /* G end. G */
 /* onefile */
 /*GH#include 'dpic2.p'HG*/
-
 /*--------------------------------------------------------------------*/
-
-/* X
-procedure openerror;
-begin
-   rewrite(stderr,'NAME=/dev/tty')
-   end;
-procedure openfiles;
-begin
-   infname := substr(parms,1,length(parms)-1);
-   reset(input,'NAME='||infname);
-   reset(dpictabl,'NAME=DPICTABL')
-   end;
-X */
-
 /*DUGHM
 procedure openlogfile;
 begin
    rewrite(log,'log');
+   writeln(log);
    writeln(log,'Dpic log file')
    end; MHGUD*/
-
-
-long checkfile(Char *ifn, boolean isverbose)
+int checkfile(Char *ifn, boolean isverbose)
 {
-  long cf, i, j;
+  int cf, i, j;
 
   j = FILENAMELEN;
   i = 0;
@@ -13463,21 +13622,20 @@ long checkfile(Char *ifn, boolean isverbose)
     fatal(1);
   ifn[j - 1] = '\0';
   cf = access(ifn, 4);
-  /*G  cf := 4-Access(ifn,4); G*/
+  /*G cf := 4-Access(ifn,4); G*/
   if (!(isverbose && cf != 0))
     return cf;
-  fprintf(stderr_, " *** dpic: Searching for file \"");
+  fprintf(errout, " *** dpic: Searching for file \"");
   for (i = 0; i <= j - 2; i++)
-    putc(ifn[i], stderr_);
-  fprintf(stderr_, "\" returns %ld\n", cf);
+    putc(ifn[i], errout);
+  fprintf(errout, "\" returns %d\n", cf);
   return cf;
 }
 
 
 void openerror(void)
 {
-  if (isatty(2)) stderr_ = stderr;
-  else stderr_ = stdout;
+  errout = stderr;
 }
 
 
@@ -13486,14 +13644,11 @@ void openfiles(void)
   /*DUGHM if (oflag>0) then openlogfile; MHGUD*/
   savebuf = NULL;
   output = stdout; input = stdin;
-
   if (argct >= P_argc)
     return;
-
   P_sun_argv(infname, sizeof(mstring), argct);
   /*GH if argct <= ParamCount then begin
      infname := ParamStr(argct); HG*/
-
   if (checkfile(infname, true) != 0)
     fatal(1);
   if (input != NULL)
@@ -13508,7 +13663,7 @@ void openfiles(void)
 /*B
 procedure openerror;
 begin
- rewrite(stderr)
+ rewrite(errout)
  end;
 procedure openfiles;
 begin
@@ -13518,8 +13673,41 @@ begin
    reset(dpictabl)
    end;
 B*/
-
+/* X
+procedure openerror;
+begin
+   rewrite(errout,'NAME=/dev/tty')
+   end;
+procedure openfiles;
+begin
+   infname := substr(parms,1,length(parms)-1);
+   reset(input,'NAME='||infname);
+   reset(dpictabl,'NAME=DPICTABL')
+   end;
+X */
 /*--------------------------------------------------------------------*/
+/*D procedure wrchar( c: char );
+begin
+   write(log,'ch(',ord(c):1,')="');
+   case ord(c) of
+      ordETX: write(log,'^C');
+      ordNL: writeln(log);
+      ordCR: write(log,'\r');
+      ordTAB: write(log,'\t');
+      otherwise write(log,c)
+      end;
+   write(log,'"')
+   end; D*/
+/*D procedure wlogfl D*/
+/* nm: string; v: real; cr: integer */
+/*D;
+begin
+   write(log,' ',nm,'=');
+   if v=MaxReal then write(log,'MaxReal')
+   else if v= -MaxReal then write(log,'-MaxReal')
+   else wfloat(log,v);
+   if cr<>0 then writeln(log)
+   end; D*/
 /*D procedure wrbuf D*/
 /* p: fbufferp; job,r: integer */
 /*D;
@@ -13534,10 +13722,11 @@ begin
         if p^.nextb<>nil then write(log,ordp(p^.nextb):1);
         write(log,']')
         end;
-     if job > 1 then write(log,' readx=',readx:1,' savedlen=',savedlen:1);
+     if job > 1 then
+       write(log,' readx=',readx:1,' savedlen=',savedlen:1,' attrib=',attrib:1);
      if r = 0 then j := 1 else if r < 0 then j := -r else j := readx;
      if job > 0 then write(log,'(',j:1,',',savedlen:1,')');
-     write(log,'|');
+     writeln(log);write(log,'|');
      if carray = nil then write(log,'nil')
      else for i:=j to savedlen do case ord(carray^[i]) of
         ordETX: write(log,'^C');
@@ -13546,1088 +13735,1083 @@ begin
         ordTAB: write(log,'\t');
         otherwise write(log,carray^[i])
         end;
-
      writeln(log,'|')
      end
   end; D*/
 /*--------------------------------------------------------------------*/
-
 void writeerror(void)
 {
-  long inx, startlin, emi, symb_, j, FORLIM, FORLIM1;
+  int inx, startlin, emi, j, FORLIM, FORLIM1;
 
   if (errmp <= 0)
     return;
   /*D if debuglevel > 0 then begin write(log,'writeerror[');
       if inbuf=nil then write(log,'nil') else write(log,ordp(inbuf):1);
       writeln(log,']') end; D*/
-  /* Write current line              */
+  /* Write current line */
   currentline(&startlin);
-  /* Put the error numbers below it  */
+  /* Put the error numbers below it */
   emi = startlin + 1;
   FORLIM = errmp;
   for (inx = 1; inx <= FORLIM; inx++) {
     FORLIM1 = errmsg[inx].col;
     for (j = emi; j < FORLIM1; j++)
-      putc(' ', stderr_);
-    fprintf(stderr_, "%ld", inx);
+      putc(' ', errout);
+    fprintf(errout, "%d", inx);
     emi = errmsg[inx].col + 1;
   }
-  putc('\n', stderr_);
+  putc('\n', errout);
   consoleflush();
   FORLIM = errmp;
-  /* Error message for each error    */
+  /* Error message for each error */
   for (inx = 1; inx <= FORLIM; inx++) {
     emi = errmsg[inx].no;
-    fprintf(stderr_, "dpic: line %ld ", lineno);
+    fprintf(errout, "dpic: line %d ", lineno);
     if (emi < 900)
-      fprintf(stderr_, "ERROR");
+      fprintf(errout, "ERROR");
     else
-      fprintf(stderr_, "WARNING");
-    fprintf(stderr_, " %ld: ", inx);
+      fprintf(errout, "WARNING");
+    fprintf(errout, " %d: ", inx);
     if (emi < 800) {
-      symb_ = errmsg[inx].symb_;
-      if (symb_ == XLname)
-	fprintf(stderr_, "Name");
-      else if (symb_ == XLabel)
-	fprintf(stderr_, "Label");
-      else if (symb_ == XLstring)
-	fprintf(stderr_, "String");
-      else if (symb_ == XLaTeX)
-	fprintf(stderr_, "LaTeX");
-      else if (symb_ == XLfloat)
-	fprintf(stderr_, "Float");
-      else if (symb_ == XERROR)
-	fprintf(stderr_, "Error");
-      else {
-	switch (symb_) {
-
-	/* include controlerr.i */
-
-	case 4:
-	  putc('<', stderr_);
-	  break;
-
-	case 5:
-	  fprintf(stderr_, "cw");
-	  break;
-
-	case 6:
-	  fprintf(stderr_, "ccw");
-	  break;
-
-	case 7:
-	  putc('(', stderr_);
-	  break;
-
-	case 8:
-	  fprintf(stderr_, "Possibly unbalanced parentheses: )");
-	  break;
-
-	case 9:
-	  putc('*', stderr_);
-	  break;
-
-	case 10:
-	  putc('+', stderr_);
-	  break;
-
-	case 11:
-	  putc('-', stderr_);
-	  break;
-
-	case 12:
-	  putc('/', stderr_);
-	  break;
-
-	case 13:
-	  putc('%', stderr_);
-	  break;
-
-	case 14:
-	  fprintf(stderr_, "; or end of line");
-	  break;
-
-	case 16:
-	  putc('!', stderr_);
-	  break;
-
-	case 17:
-	  fprintf(stderr_, "&&");
-	  break;
-
-	case 18:
-	  fprintf(stderr_, "||");
-	  break;
-
-	case 19:
-	  putc(',', stderr_);
-	  break;
-
-	case 20:
-	  putc(':', stderr_);
-	  break;
-
-	case 21:
-	  putc('[', stderr_);
-	  break;
-
-	case 22:
-	  fprintf(stderr_, "Possibly unbalanced brackets: ]");
-	  break;
-
-	case 23:
-	  putc('{', stderr_);
-	  break;
-
-	case 24:
-	  fprintf(stderr_, "Possibly unbalanced braces: }");
-	  break;
-
-	case 25:
-	  putc('.', stderr_);
-	  break;
-
-	case 26:
-	  fprintf(stderr_, "[]");
-	  break;
-
-	case 27:
-	  putc('`', stderr_);
-	  break;
-
-	case 28:
-	  putc('\'', stderr_);
-	  break;
-
-	case 29:
-	  putc('=', stderr_);
-	  break;
-
-	case 30:
-	  fprintf(stderr_, ":=");
-	  break;
-
-	case 31:
-	  fprintf(stderr_, "+=");
-	  break;
-
-	case 32:
-	  fprintf(stderr_, "-=");
-	  break;
-
-	case 33:
-	  fprintf(stderr_, "*=");
-	  break;
-
-	case 34:
-	  fprintf(stderr_, "/=");
-	  break;
-
-	case 35:
-	  fprintf(stderr_, "%%=");
-	  break;
-
-	case 36:
-	  putc('&', stderr_);
-	  break;
-
-	case 41:
-	  fprintf(stderr_, "\" or string");
-	  break;
-
-	case 42:
-	  putc('#', stderr_);
-	  break;
-
-	case 43:
-	  fprintf(stderr_, "End of \"for\" body");
-	  break;
-
-	case 44:
-	  fprintf(stderr_, "$ or argument reference");
-	  break;
-
-	case 47:
-	  fprintf(stderr_, "height or ht");
-	  break;
-
-	case 48:
-	  fprintf(stderr_, "wid or width");
-	  break;
-
-	case 49:
-	  fprintf(stderr_, "rad or radius");
-	  break;
-
-	case 50:
-	  fprintf(stderr_, "diam or diameter");
-	  break;
-
-	case 51:
-	  fprintf(stderr_, "thick or thickness");
-	  break;
-
-	case 52:
-	  fprintf(stderr_, "scaled");
-	  break;
-
-	case 53:
-	  fprintf(stderr_, "from");
-	  break;
-
-	case 54:
-	  fprintf(stderr_, "to");
-	  break;
-
-	case 55:
-	  fprintf(stderr_, "at");
-	  break;
-
-	case 56:
-	  fprintf(stderr_, "with");
-	  break;
-
-	case 57:
-	  fprintf(stderr_, "by");
-	  break;
-
-	case 58:
-	  fprintf(stderr_, "then");
-	  break;
-
-	case 59:
-	  fprintf(stderr_, "continue");
-	  break;
-
-	case 60:
-	  fprintf(stderr_, "chop");
-	  break;
-
-	case 61:
-	  fprintf(stderr_, "same");
-	  break;
-
-	case 62:
-	  fprintf(stderr_, "of");
-	  break;
-
-	case 63:
-	  fprintf(stderr_, "the");
-	  break;
-
-	case 64:
-	  fprintf(stderr_, "way");
-	  break;
-
-	case 65:
-	  fprintf(stderr_, "between");
-	  break;
-
-	case 66:
-	  fprintf(stderr_, "and");
-	  break;
-
-	case 67:
-	  fprintf(stderr_, "Here");
-	  break;
-
-	case 68:
-	  fprintf(stderr_, "nd or rd or st or th");
-	  break;
-
-	case 69:
-	  fprintf(stderr_, "last");
-	  break;
-
-	case 70:
-	  fprintf(stderr_, "fill or filled");
-	  break;
-
-	case 71:
-	  fprintf(stderr_, ".x");
-	  break;
-
-	case 72:
-	  fprintf(stderr_, ".y");
-	  break;
-
-	case 73:
-	  fprintf(stderr_, "print");
-	  break;
-
-	case 74:
-	  fprintf(stderr_, "copy");
-	  break;
-
-	case 75:
-	  fprintf(stderr_, "reset");
-	  break;
-
-	case 76:
-	  fprintf(stderr_, "exec");
-	  break;
-
-	case 77:
-	  fprintf(stderr_, "sh");
-	  break;
-
-	case 78:
-	  fprintf(stderr_, "command");
-	  break;
-
-	case 79:
-	  fprintf(stderr_, "define");
-	  break;
-
-	case 80:
-	  fprintf(stderr_, "undef or undefine");
-	  break;
-
-	case 81:
-	  fprintf(stderr_, "rand");
-	  break;
-
-	case 82:
-	  fprintf(stderr_, "if");
-	  break;
-
-	case 83:
-	  fprintf(stderr_, "else");
-	  break;
-
-	case 84:
-	  fprintf(stderr_, "for");
-	  break;
-
-	case 85:
-	  fprintf(stderr_, "do");
-	  break;
-
-	case 86:
-	  fprintf(stderr_, "sprintf");
-	  break;
-
-	case 88:
-	  fprintf(stderr_, ".ne");
-	  break;
-
-	case 89:
-	  fprintf(stderr_, ".se");
-	  break;
-
-	case 90:
-	  fprintf(stderr_, ".nw");
-	  break;
-
-	case 91:
-	  fprintf(stderr_, ".sw");
-	  break;
-
-	case 92:
-	  fprintf(stderr_, ".n or .north or .t or .top or top");
-	  break;
-
-	case 93:
-	  fprintf(stderr_, ".b or .bot or .bottom or .s or .south or bottom");
-	  break;
-
-	case 94:
-	  fprintf(stderr_, ".e or .east or .r or .right");
-	  break;
-
-	case 95:
-	  fprintf(stderr_, ".l or .left or .w or .west");
-	  break;
-
-	case 96:
-	  fprintf(stderr_, ".start or start");
-	  break;
-
-	case 97:
-	  fprintf(stderr_, ".end or end");
-	  break;
-
-	case 98:
-	  fprintf(stderr_, ".c or .center or .centre");
-	  break;
-
-	case 100:
-	  fprintf(stderr_, "==");
-	  break;
-
-	case 101:
-	  fprintf(stderr_, "!=");
-	  break;
-
-	case 102:
-	  fprintf(stderr_, ">=");
-	  break;
-
-	case 103:
-	  fprintf(stderr_, "<=");
-	  break;
-
-	case 105:
-	  putc('>', stderr_);
-	  break;
-
-	case 107:
-	  fprintf(stderr_, ".height or .ht");
-	  break;
-
-	case 108:
-	  fprintf(stderr_, ".wid or .width");
-	  break;
-
-	case 109:
-	  fprintf(stderr_, ".rad or .radius");
-	  break;
-
-	case 110:
-	  fprintf(stderr_, ".diam or .diameter");
-	  break;
-
-	case 112:
-	  fprintf(stderr_, "abs");
-	  break;
-
-	case 113:
-	  fprintf(stderr_, "acos");
-	  break;
-
-	case 114:
-	  fprintf(stderr_, "asin");
-	  break;
-
-	case 115:
-	  fprintf(stderr_, "cos");
-	  break;
-
-	case 116:
-	  fprintf(stderr_, "exp");
-	  break;
-
-	case 117:
-	  fprintf(stderr_, "expe");
-	  break;
-
-	case 118:
-	  fprintf(stderr_, "int");
-	  break;
-
-	case 119:
-	  fprintf(stderr_, "log");
-	  break;
-
-	case 120:
-	  fprintf(stderr_, "loge");
-	  break;
-
-	case 121:
-	  fprintf(stderr_, "sign");
-	  break;
-
-	case 122:
-	  fprintf(stderr_, "sin");
-	  break;
-
-	case 123:
-	  fprintf(stderr_, "sqrt");
-	  break;
-
-	case 124:
-	  fprintf(stderr_, "tan");
-	  break;
-
-	case 125:
-	  fprintf(stderr_, "floor");
-	  break;
-
-	case 127:
-	  fprintf(stderr_, "atan2");
-	  break;
-
-	case 128:
-	  fprintf(stderr_, "max");
-	  break;
-
-	case 129:
-	  fprintf(stderr_, "min");
-	  break;
-
-	case 130:
-	  fprintf(stderr_, "pmod");
-	  break;
-
-	case 132:
-	  fprintf(stderr_, "solid");
-	  break;
-
-	case 133:
-	  fprintf(stderr_, "dotted");
-	  break;
-
-	case 134:
-	  fprintf(stderr_, "dashed");
-	  break;
-
-	case 135:
-	  fprintf(stderr_, "invis or invisible");
-	  break;
-
-	case 136:
-	  fprintf(stderr_, "path");
-	  break;
-
-	case 138:
-	  fprintf(stderr_, "color or colored or colour or coloured");
-	  break;
-
-	case 139:
-	  fprintf(stderr_, "outline or outlined");
-	  break;
-
-	case 140:
-	  fprintf(stderr_, "shade or shaded");
-	  break;
-
-	case 142:
-	  fprintf(stderr_, "center or centre");
-	  break;
-
-	case 143:
-	  fprintf(stderr_, "ljust");
-	  break;
-
-	case 144:
-	  fprintf(stderr_, "rjust");
-	  break;
-
-	case 145:
-	  fprintf(stderr_, "above");
-	  break;
-
-	case 146:
-	  fprintf(stderr_, "below");
-	  break;
-
-	case 148:
-	  fprintf(stderr_, "<-");
-	  break;
-
-	case 149:
-	  fprintf(stderr_, "->");
-	  break;
-
-	case 150:
-	  fprintf(stderr_, "<->");
-	  break;
-
-	case 152:
-	  fprintf(stderr_, "up");
-	  break;
-
-	case 153:
-	  fprintf(stderr_, "down");
-	  break;
-
-	case 154:
-	  fprintf(stderr_, "right");
-	  break;
-
-	case 155:
-	  fprintf(stderr_, "left");
-	  break;
-
-	case 157:
-	  fprintf(stderr_, "box");
-	  break;
-
-	case 158:
-	  fprintf(stderr_, "circle");
-	  break;
-
-	case 159:
-	  fprintf(stderr_, "ellipse");
-	  break;
-
-	case 160:
-	  fprintf(stderr_, "arc");
-	  break;
-
-	case 161:
-	  fprintf(stderr_, "line");
-	  break;
-
-	case 162:
-	  fprintf(stderr_, "arrow");
-	  break;
-
-	case 163:
-	  fprintf(stderr_, "move");
-	  break;
-
-	case 164:
-	  fprintf(stderr_, "spline");
-	  break;
-
-	case 166:
-	  fprintf(stderr_, "arcrad");
-	  break;
-
-	case 167:
-	  fprintf(stderr_, "arrowht");
-	  break;
-
-	case 168:
-	  fprintf(stderr_, "arrowwid");
-	  break;
-
-	case 169:
-	  fprintf(stderr_, "boxht");
-	  break;
-
-	case 170:
-	  fprintf(stderr_, "boxrad");
-	  break;
-
-	case 171:
-	  fprintf(stderr_, "boxwid");
-	  break;
-
-	case 172:
-	  fprintf(stderr_, "circlerad");
-	  break;
-
-	case 173:
-	  fprintf(stderr_, "dashwid");
-	  break;
-
-	case 174:
-	  fprintf(stderr_, "ellipseht");
-	  break;
-
-	case 175:
-	  fprintf(stderr_, "ellipsewid");
-	  break;
-
-	case 176:
-	  fprintf(stderr_, "lineht");
-	  break;
-
-	case 177:
-	  fprintf(stderr_, "linewid");
-	  break;
-
-	case 178:
-	  fprintf(stderr_, "moveht");
-	  break;
-
-	case 179:
-	  fprintf(stderr_, "movewid");
-	  break;
-
-	case 180:
-	  fprintf(stderr_, "textht");
-	  break;
-
-	case 181:
-	  fprintf(stderr_, "textoffset");
-	  break;
-
-	case 182:
-	  fprintf(stderr_, "textwid");
-	  break;
-
-	case 183:
-	  fprintf(stderr_, "arrowhead");
-	  break;
-
-	case 184:
-	  fprintf(stderr_, "fillval");
-	  break;
-
-	case 185:
-	  fprintf(stderr_, "linethick");
-	  break;
-
-	case 186:
-	  fprintf(stderr_, "maxpsht");
-	  break;
-
-	case 187:
-	  fprintf(stderr_, "maxpswid");
-	  break;
-
-	case 188:
-	  fprintf(stderr_, "scale");
-	  break;
-	  /*B%include controlerrB*/
-
-	default:
-	  fprintf(stderr_, "Punctuation characters");
-	  break;
-	}
+      switch (errmsg[inx].symb_) {
+
+      case XLname:
+	fprintf(errout, "Name");
+	break;
+
+      case XLabel:
+	fprintf(errout, "Label");
+	break;
+
+      case XLaTeX:
+	fprintf(errout, "Backslash not followed by line end (LaTeX macro?)");
+	break;
+
+      case XLfloat:
+	fprintf(errout, "Float");
+	break;
+
+      case XERROR:
+	fprintf(errout, "Error");
+	break;
+
+      /* include controlerr.i */
+      case 4:
+	putc('<', errout);
+	break;
+
+      case 5:
+	fprintf(errout, "cw");
+	break;
+
+      case 6:
+	fprintf(errout, "ccw");
+	break;
+
+      case 7:
+	putc('(', errout);
+	break;
+
+      case 8:
+	fprintf(errout, "Possibly unbalanced parentheses: )");
+	break;
+
+      case 9:
+	putc('*', errout);
+	break;
+
+      case 10:
+	putc('+', errout);
+	break;
+
+      case 11:
+	putc('-', errout);
+	break;
+
+      case 12:
+	putc('/', errout);
+	break;
+
+      case 13:
+	putc('%', errout);
+	break;
+
+      case 14:
+	fprintf(errout, "; or end of line");
+	break;
+
+      case 15:
+	putc('^', errout);
+	break;
+
+      case 16:
+	putc('!', errout);
+	break;
+
+      case 17:
+	fprintf(errout, "&&");
+	break;
+
+      case 18:
+	fprintf(errout, "||");
+	break;
+
+      case 19:
+	putc(',', errout);
+	break;
+
+      case 20:
+	putc(':', errout);
+	break;
+
+      case 21:
+	putc('[', errout);
+	break;
+
+      case 22:
+	fprintf(errout, "Possibly unbalanced brackets: ]");
+	break;
+
+      case 23:
+	putc('{', errout);
+	break;
+
+      case 24:
+	fprintf(errout, "Possibly unbalanced braces: }");
+	break;
+
+      case 25:
+	putc('.', errout);
+	break;
+
+      case 26:
+	fprintf(errout, "[]");
+	break;
+
+      case 27:
+	putc('`', errout);
+	break;
+
+      case 28:
+	putc('\'', errout);
+	break;
+
+      case 29:
+	putc('=', errout);
+	break;
+
+      case 30:
+	fprintf(errout, ":=");
+	break;
+
+      case 31:
+	fprintf(errout, "+=");
+	break;
+
+      case 32:
+	fprintf(errout, "-=");
+	break;
+
+      case 33:
+	fprintf(errout, "*=");
+	break;
+
+      case 34:
+	fprintf(errout, "/=");
+	break;
+
+      case 35:
+	fprintf(errout, "%%=");
+	break;
+
+      case 36:
+	putc('&', errout);
+	break;
+
+      case 41:
+	fprintf(errout, "\" or string");
+	break;
+
+      case 42:
+	putc('#', errout);
+	break;
+
+      case 43:
+	fprintf(errout, "$ or argument reference");
+	break;
+
+      case 46:
+	fprintf(errout, "height or ht");
+	break;
+
+      case 47:
+	fprintf(errout, "wid or width");
+	break;
+
+      case 48:
+	fprintf(errout, "rad or radius");
+	break;
+
+      case 49:
+	fprintf(errout, "diam or diameter");
+	break;
+
+      case 50:
+	fprintf(errout, "thick or thickness");
+	break;
+
+      case 51:
+	fprintf(errout, "scaled");
+	break;
+
+      case 52:
+	fprintf(errout, "from");
+	break;
+
+      case 53:
+	fprintf(errout, "to");
+	break;
+
+      case 54:
+	fprintf(errout, "at");
+	break;
+
+      case 55:
+	fprintf(errout, "with");
+	break;
+
+      case 56:
+	fprintf(errout, "by");
+	break;
+
+      case 57:
+	fprintf(errout, "then");
+	break;
+
+      case 58:
+	fprintf(errout, "continue");
+	break;
+
+      case 59:
+	fprintf(errout, "chop");
+	break;
+
+      case 60:
+	fprintf(errout, "same");
+	break;
+
+      case 61:
+	fprintf(errout, "of");
+	break;
+
+      case 62:
+	fprintf(errout, "the");
+	break;
+
+      case 63:
+	fprintf(errout, "way");
+	break;
+
+      case 64:
+	fprintf(errout, "between");
+	break;
+
+      case 65:
+	fprintf(errout, "and");
+	break;
+
+      case 66:
+	fprintf(errout, "Here");
+	break;
+
+      case 67:
+	fprintf(errout, "nd or rd or st or th");
+	break;
+
+      case 68:
+	fprintf(errout, "last");
+	break;
+
+      case 69:
+	fprintf(errout, "fill or filled");
+	break;
+
+      case 70:
+	fprintf(errout, ".x");
+	break;
+
+      case 71:
+	fprintf(errout, ".y");
+	break;
+
+      case 72:
+	fprintf(errout, "print");
+	break;
+
+      case 73:
+	fprintf(errout, "copy");
+	break;
+
+      case 74:
+	fprintf(errout, "reset");
+	break;
+
+      case 75:
+	fprintf(errout, "exec");
+	break;
+
+      case 76:
+	fprintf(errout, "sh");
+	break;
+
+      case 77:
+	fprintf(errout, "command");
+	break;
+
+      case 78:
+	fprintf(errout, "define");
+	break;
+
+      case 79:
+	fprintf(errout, "undef or undefine");
+	break;
+
+      case 80:
+	fprintf(errout, "rand");
+	break;
+
+      case 81:
+	fprintf(errout, "if");
+	break;
+
+      case 82:
+	fprintf(errout, "else");
+	break;
+
+      case 83:
+	fprintf(errout, "for");
+	break;
+
+      case 84:
+	fprintf(errout, "do");
+	break;
+
+      case 86:
+	fprintf(errout, "sprintf");
+	break;
+
+      case 88:
+	fprintf(errout, ".ne");
+	break;
+
+      case 89:
+	fprintf(errout, ".se");
+	break;
+
+      case 90:
+	fprintf(errout, ".nw");
+	break;
+
+      case 91:
+	fprintf(errout, ".sw");
+	break;
+
+      case 92:
+	fprintf(errout, ".n or .north or .t or .top or top");
+	break;
+
+      case 93:
+	fprintf(errout, ".b or .bot or .bottom or .s or .south or bottom");
+	break;
+
+      case 94:
+	fprintf(errout, ".e or .east or .r or .right");
+	break;
+
+      case 95:
+	fprintf(errout, ".l or .left or .w or .west");
+	break;
+
+      case 96:
+	fprintf(errout, ".start or start");
+	break;
+
+      case 97:
+	fprintf(errout, ".end or end");
+	break;
+
+      case 98:
+	fprintf(errout, ".c or .center or .centre");
+	break;
+
+      case 100:
+	fprintf(errout, "==");
+	break;
+
+      case 101:
+	fprintf(errout, "!=");
+	break;
+
+      case 102:
+	fprintf(errout, ">=");
+	break;
+
+      case 103:
+	fprintf(errout, "<=");
+	break;
+
+      case 104:
+	putc('>', errout);
+	break;
+
+      case 106:
+	fprintf(errout, ".height or .ht");
+	break;
+
+      case 107:
+	fprintf(errout, ".wid or .width");
+	break;
+
+      case 108:
+	fprintf(errout, ".rad or .radius");
+	break;
+
+      case 109:
+	fprintf(errout, ".diam or .diameter");
+	break;
+
+      case 111:
+	fprintf(errout, "abs");
+	break;
+
+      case 112:
+	fprintf(errout, "acos");
+	break;
+
+      case 113:
+	fprintf(errout, "asin");
+	break;
+
+      case 114:
+	fprintf(errout, "cos");
+	break;
+
+      case 115:
+	fprintf(errout, "exp");
+	break;
+
+      case 116:
+	fprintf(errout, "expe");
+	break;
+
+      case 117:
+	fprintf(errout, "int");
+	break;
+
+      case 118:
+	fprintf(errout, "log");
+	break;
+
+      case 119:
+	fprintf(errout, "loge");
+	break;
+
+      case 120:
+	fprintf(errout, "sign");
+	break;
+
+      case 121:
+	fprintf(errout, "sin");
+	break;
+
+      case 122:
+	fprintf(errout, "sqrt");
+	break;
+
+      case 123:
+	fprintf(errout, "tan");
+	break;
+
+      case 124:
+	fprintf(errout, "floor");
+	break;
+
+      case 126:
+	fprintf(errout, "atan2");
+	break;
+
+      case 127:
+	fprintf(errout, "max");
+	break;
+
+      case 128:
+	fprintf(errout, "min");
+	break;
+
+      case 129:
+	fprintf(errout, "pmod");
+	break;
+
+      case 131:
+	fprintf(errout, "solid");
+	break;
+
+      case 132:
+	fprintf(errout, "dotted");
+	break;
+
+      case 133:
+	fprintf(errout, "dashed");
+	break;
+
+      case 134:
+	fprintf(errout, "invis or invisible");
+	break;
+
+      case 135:
+	fprintf(errout, "path");
+	break;
+
+      case 137:
+	fprintf(errout, "color or colored or colour or coloured");
+	break;
+
+      case 138:
+	fprintf(errout, "outline or outlined");
+	break;
+
+      case 139:
+	fprintf(errout, "shade or shaded");
+	break;
+
+      case 141:
+	fprintf(errout, "center or centre");
+	break;
+
+      case 142:
+	fprintf(errout, "ljust");
+	break;
+
+      case 143:
+	fprintf(errout, "rjust");
+	break;
+
+      case 144:
+	fprintf(errout, "above");
+	break;
+
+      case 145:
+	fprintf(errout, "below");
+	break;
+
+      case 147:
+	fprintf(errout, "<-");
+	break;
+
+      case 148:
+	fprintf(errout, "->");
+	break;
+
+      case 149:
+	fprintf(errout, "<->");
+	break;
+
+      case 151:
+	fprintf(errout, "up");
+	break;
+
+      case 152:
+	fprintf(errout, "down");
+	break;
+
+      case 153:
+	fprintf(errout, "right");
+	break;
+
+      case 154:
+	fprintf(errout, "left");
+	break;
+
+      case 156:
+	fprintf(errout, "box");
+	break;
+
+      case 157:
+	fprintf(errout, "circle");
+	break;
+
+      case 158:
+	fprintf(errout, "ellipse");
+	break;
+
+      case 159:
+	fprintf(errout, "arc");
+	break;
+
+      case 160:
+	fprintf(errout, "line");
+	break;
+
+      case 161:
+	fprintf(errout, "arrow");
+	break;
+
+      case 162:
+	fprintf(errout, "move");
+	break;
+
+      case 163:
+	fprintf(errout, "spline");
+	break;
+
+      case 165:
+	fprintf(errout, "arcrad");
+	break;
+
+      case 166:
+	fprintf(errout, "arrowht");
+	break;
+
+      case 167:
+	fprintf(errout, "arrowwid");
+	break;
+
+      case 168:
+	fprintf(errout, "boxht");
+	break;
+
+      case 169:
+	fprintf(errout, "boxrad");
+	break;
+
+      case 170:
+	fprintf(errout, "boxwid");
+	break;
+
+      case 171:
+	fprintf(errout, "circlerad");
+	break;
+
+      case 172:
+	fprintf(errout, "dashwid");
+	break;
+
+      case 173:
+	fprintf(errout, "ellipseht");
+	break;
+
+      case 174:
+	fprintf(errout, "ellipsewid");
+	break;
+
+      case 175:
+	fprintf(errout, "lineht");
+	break;
+
+      case 176:
+	fprintf(errout, "linewid");
+	break;
+
+      case 177:
+	fprintf(errout, "moveht");
+	break;
+
+      case 178:
+	fprintf(errout, "movewid");
+	break;
+
+      case 179:
+	fprintf(errout, "textht");
+	break;
+
+      case 180:
+	fprintf(errout, "textoffset");
+	break;
+
+      case 181:
+	fprintf(errout, "textwid");
+	break;
+
+      case 182:
+	fprintf(errout, "arrowhead");
+	break;
+
+      case 183:
+	fprintf(errout, "fillval");
+	break;
+
+      case 184:
+	fprintf(errout, "linethick");
+	break;
+
+      case 185:
+	fprintf(errout, "maxpsht");
+	break;
+
+      case 186:
+	fprintf(errout, "maxpswid");
+	break;
+
+      case 187:
+	fprintf(errout, "scale");
+	break;
+	/*B%include controlerrB*/
+
+      default:
+	fprintf(errout, "Punctuation characters");
+	break;
       }
-      fprintf(stderr_, " found.\n");
-      fprintf(stderr_, " The following were expected:\n");
+      fprintf(errout, " found.\n");
+      fprintf(errout, " The following were expected:\n");
     }
-
     switch (emi) {
 
-    /* Expected lexical symbols        */
+    /* Expected lexical symbols */
     /* include parserr.i */
     case 1:
-      fprintf(stderr_, " <EOF> .PS\n");
+      fprintf(errout, " EOF .PS\n");
       break;
 
     case 2:
-      fprintf(stderr_,
-	" + - ! <envvar> <name> <float> ( rand <func1> <func2> <Label> <corner> Here last ` {\n");
+      fprintf(errout, " + - ! constant variable ( function location\n");
       break;
 
     case 3:
-      fprintf(stderr_, " th\n");
+      fprintf(errout, " th\n");
       break;
 
     case 4:
-      fprintf(stderr_, " of <Label> last <float> ` {\n");
+      fprintf(errout, " of Label enumerated obj\n");
       break;
 
     case 5:
-      fprintf(stderr_, " <primitiv> [] <string> [\n");
+      fprintf(errout, " primitiv [] string [\n");
       break;
 
     case 6:
-      fprintf(stderr_, " ]\n");
+      fprintf(errout, " ]\n");
       break;
 
     case 7:
-      fprintf(stderr_, " (\n");
+      fprintf(errout, " (\n");
       break;
 
     case 8:
-      fprintf(stderr_,
-	" ) + - ! <envvar> <name> <float> ( rand <func1> <func2> <Label> <corner> Here last ` {\n");
+      fprintf(errout, " ) + - ! constant variable ( function location\n");
       break;
 
     case 9:
-      fprintf(stderr_, " <Label> last <float> ` {\n");
+      fprintf(errout, " Label enumerated obj\n");
       break;
 
     case 10:
-      fprintf(stderr_, " .x .y * /\n");
+      fprintf(errout, " .x .y * /\n");
       break;
 
     case 11:
-      fprintf(stderr_,
-	" ! <envvar> <name> <float> ( rand <func1> <func2> <Label> <corner> Here last ` {\n");
+      fprintf(errout, " ! constant variable ( function location\n");
       break;
 
     case 12:
-      fprintf(stderr_,
-	" <name> <envvar> + - ( <corner> Here ! <string> <Label> <float> rand <func1> <func2> sprintf last ` {\n");
+      fprintf(errout,
+	" variable + - ( corner Here ! string Label float function sprintf enumerated obj\n");
       break;
 
     case 13:
-      fprintf(stderr_, " <string> sprintf\n");
+      fprintf(errout, " string sprintf\n");
       break;
 
     case 14:
-      fprintf(stderr_, " )\n");
+      fprintf(errout, " )\n");
       break;
 
     case 15:
-      fprintf(stderr_,
-	" <envvar> <name> <float> ( rand <func1> <func2> <Label> <corner> Here last ` {\n");
+      fprintf(errout, " constant variable ( function location\n");
       break;
 
     case 16:
-      fprintf(stderr_, " ( <corner> Here <Label> last <float> ` {\n");
+      fprintf(errout, " ( corner Here Label enumerated obj\n");
       break;
 
     case 17:
-      fprintf(stderr_, " between of < , + -\n");
+      fprintf(errout, " between of < , + -\n");
       break;
 
     case 18:
-      fprintf(stderr_, " ,\n");
+      fprintf(errout, " ,\n");
       break;
 
     case 19:
-      fprintf(stderr_, " <compare>\n");
+      fprintf(errout, " logic opr\n");
       break;
 
     case 20:
-      fprintf(stderr_, " the\n");
+      fprintf(errout, " the\n");
       break;
 
     case 21:
-      fprintf(stderr_, " way\n");
+      fprintf(errout, " way\n");
       break;
 
     case 22:
-      fprintf(stderr_, " between\n");
+      fprintf(errout, " between\n");
       break;
 
     case 23:
-      fprintf(stderr_, " and\n");
+      fprintf(errout, " and\n");
       break;
 
     case 24:
-      fprintf(stderr_, " ) ,\n");
+      fprintf(errout, " ) ,\n");
       break;
 
     case 25:
-      fprintf(stderr_, " <name> <envvar>\n");
+      fprintf(errout, " variable\n");
       break;
 
     case 26:
-      fprintf(stderr_, " =\n");
+      fprintf(errout, " =\n");
       break;
 
     case 27:
-      fprintf(stderr_, " ) ||\n");
+      fprintf(errout, " ) ||\n");
       break;
 
     case 28:
-      fprintf(stderr_, " ) + -\n");
+      fprintf(errout, " ) + -\n");
       break;
 
     case 29:
-      fprintf(stderr_, " , + -\n");
+      fprintf(errout, " , + -\n");
       break;
 
     case 30:
-      fprintf(stderr_, " ] + -\n");
+      fprintf(errout, " ] + -\n");
       break;
 
     case 31:
-      fprintf(stderr_, " ' + -\n");
+      fprintf(errout, " ' + -\n");
       break;
 
     case 32:
-      fprintf(stderr_, " } + -\n");
+      fprintf(errout, " } + -\n");
       break;
 
     case 33:
-      fprintf(stderr_, " <NL> <ERROR>\n");
+      fprintf(errout, " ;\n");
       break;
 
     case 34:
-      fprintf(stderr_, " [ []\n");
+      fprintf(errout, " [ []\n");
       break;
 
     case 35:
-      fprintf(stderr_, " to ,\n");
+      fprintf(errout, " to ,\n");
       break;
 
     case 36:
-      fprintf(stderr_, " + - do by\n");
+      fprintf(errout, " + - do by\n");
       break;
 
     case 37:
-      fprintf(stderr_, " do + -\n");
+      fprintf(errout, " do + -\n");
       break;
 
     case 38:
-      fprintf(stderr_, " if\n");
+      fprintf(errout, " if\n");
       break;
 
     case 39:
-      fprintf(stderr_, " then ||\n");
+      fprintf(errout, " then ||\n");
       break;
 
     case 40:
-      fprintf(stderr_, " <name> <Label>\n");
+      fprintf(errout, " name Label\n");
       break;
 
     case 41:
-      fprintf(stderr_,
-	" <corner> at . + - ( Here ! <Label> <envvar> <name> <float> rand <func1> <func2> last ` {\n");
+      fprintf(errout,
+	" at corner . + - ( Here ! Label constant variable function enumerated obj\n");
       break;
 
     case 42:
-      fprintf(stderr_, " at\n");
+      fprintf(errout, " at\n");
       break;
 
     case 43:
-      fprintf(stderr_, " at of <Label> last <float> ` {\n");
+      fprintf(errout, " at of Label enumerated obj\n");
       break;
 
     case 44:
-      fprintf(stderr_, " {\n");
+      fprintf(errout, " {\n");
       break;
 
     case 45:
-      fprintf(stderr_, " }\n");
+      fprintf(errout, " }\n");
       break;
 
     case 46:
-      fprintf(stderr_, " <envvar>\n");
+      fprintf(errout, " envvar\n");
       break;
 
     case 47:
-      fprintf(stderr_, " <compare> <string> sprintf\n");
+      fprintf(errout, " logic opr string sprintf\n");
       break;
 
     case 48:
-      fprintf(stderr_, " } <NL>\n");
+      fprintf(errout, " }\n");
       break;
 
     case 49:
-      fprintf(stderr_, " :\n");
+      fprintf(errout, " :\n");
       break;
 
     case 50:
-      fprintf(stderr_, " .PE <NL> <ERROR>\n");
+      fprintf(errout, " .PE ;\n");
       break;
-      /*B%include parserrB*/
 
+    /*B%include parserrB*/
     /* lexical error messages */
     case 800:
-      fprintf(stderr_, "Character not recognized: ignored\n");
+      fprintf(errout, "Character not recognized: ignored\n");
       break;
 
     case 801:
-      fprintf(stderr_, "Null string not allowed\n");
+      fprintf(errout, "Null string not allowed\n");
       break;
 
     case 802:
-      fprintf(stderr_, "Invalid exponent character after e in a number\n");
+      fprintf(errout, "Invalid exponent character after e in a number\n");
       break;
 
     case 803:
-      fprintf(stderr_,
+      fprintf(errout,
 	      "Fill value must be non-negative and not greater than 1\n");
       break;
 
     case 804:
-      fprintf(stderr_, "End of file while reading {...} contents\n");
+      fprintf(errout, "End of file while reading {...} contents\n");
       break;
 
     case 805:
-      fprintf(stderr_, "Bad macro argument number\n");
+      fprintf(errout, "Bad macro argument number\n");
       break;
 
     case 806:
-      fprintf(stderr_, "End of file while evaluating macro argument\n");
+      fprintf(errout, "End of file while evaluating macro argument\n");
       break;
 
     /* context error messages */
     case 851:
-      fprintf(stderr_, "Variable not found\n");
+      fprintf(errout, "Variable not found\n");
       break;
 
     case 852:
-      fprintf(stderr_, "Zero divisor not allowed\n");
+      fprintf(errout, "Zero divisor not allowed\n");
       break;
 
     case 853:
-      fprintf(stderr_, "Only one copy file may be open at any time\n");
+      fprintf(errout, "Only one copy file may be open at any time\n");
       break;
 
     case 854:
-      fprintf(stderr_, "Place name not found\n");
+      fprintf(errout, "Place name not found\n");
       break;
 
     case 855:
-      fprintf(stderr_, "Internal name not found\n");
+      fprintf(errout, "Internal name not found\n");
       break;
 
     case 856:
-      fprintf(stderr_, "Invalid non-positive value for object count\n");
+      fprintf(errout, "Invalid non-positive value for object count\n");
       break;
 
     case 857:
-      fprintf(stderr_, "Enumerated or previous object not found\n");
+      fprintf(errout, "Enumerated or previous object not found\n");
       break;
 
     case 858:
-      fprintf(stderr_, "This usage is inapplicable in this context\n");
+      fprintf(errout, "This usage is inapplicable in this context\n");
       break;
 
     case 859:
-      fprintf(stderr_, "File not readable\n");
+      fprintf(errout, "File not readable\n");
       break;
 
     case 860:
-      fprintf(stderr_, "Infinite looping not allowed\n");
+      fprintf(errout, "Infinite looping not allowed\n");
       break;
 
     case 861:
-      fprintf(stderr_, "Missing or blank string\n");
+      fprintf(errout, "Missing or blank string\n");
       break;
 
     case 862:
-      fprintf(stderr_,
-	      "For variables must have the same sign and positive ratio\n");
+      fprintf(errout, "For limits must have the same sign for by *()\n");
       break;
 
     case 863:
-      fprintf(stderr_, "Non-integer power of negative value\n");
+      fprintf(errout, "Non-integer power of negative value\n");
       break;
 
     case 864:
-      fprintf(stderr_, "Incorrect number of sprintf arguments\n");
+      fprintf(errout, "Incorrect number of sprintf arguments\n");
       break;
 
     case 865:
-      fprintf(stderr_, "Bad sprintf format\n");
+      fprintf(errout, "Bad sprintf format\n");
       break;
 
     case 866:
-      fprintf(stderr_, "String exceeds max length of 4095 characters\n");
+      fprintf(errout, "String exceeds max length of 4095 characters\n");
       break;
 
     case 867:
-      fprintf(stderr_, "Invalid log or sqrt argument\n");
+      fprintf(errout, "Invalid log or sqrt argument\n");
       break;
 
     case 868:
-      fprintf(stderr_, "Function argument out of bounds\n");
+      fprintf(errout, "Function argument out of bounds\n");
       break;
 
     case 869:
-      fprintf(stderr_, "Improper use of logical operator\n");
+      fprintf(errout, "Improper use of logical operator\n");
       break;
 
     case 870:
-      fprintf(stderr_, "Zero value of scale not allowed\n");
+      fprintf(errout, "Zero value of scale not allowed\n");
+      break;
+
+    case 871:
+      fprintf(errout, "Zero second argument of pmod not allowed\n");
+      break;
+
+    case 872:
+      fprintf(errout, "Buffer overflow while defining macro argument\n");
       break;
 
     /* lexical warning messages */
     case 901:
-      fprintf(stderr_, "String character generated at end of line\n");
+      fprintf(errout, "String character generated at end of line\n");
       break;
 
     case 902:
-      fprintf(stderr_, "Input line exceeds buffer size of 4096 characters\n");
+      fprintf(errout, "Input line exceeds buffer size of 4096 characters\n");
       break;
 
     case 903:
-      fprintf(stderr_, "Picture size adjusted to maxpswid value\n");
+      fprintf(errout, "Picture size adjusted to maxpswid value\n");
       break;
 
     case 904:
-      fprintf(stderr_, "Picture size adjusted to maxpsht value\n");
-      break;
-
-    case 905:
-      fprintf(stderr_, "Illegal negative dimension, abs value used\n");
+      fprintf(errout, "Picture size adjusted to maxpsht value\n");
       break;
 
     case 906:
-      fprintf(stderr_, "Safe mode: sh, copy, and print to file disallowed\n");
-      break;
-
-    case 907:
-      fprintf(stderr_, "Value of atan2(0,0) undefined, 0.0 used\n");
+      fprintf(errout, "Safe mode: sh, copy, and print to file disallowed\n");
       break;
     }/* case */
-
-    putc('\n', stderr_);
+    putc('\n', errout);
     consoleflush();
   }  /* for */
   if (errcount > MAXERRCOUNT)
@@ -14637,10 +14821,9 @@ void writeerror(void)
 
 
 /*--------------------------------------------------------------------*/
-
 void stackattribute(stackinx stackp)
 {
-  /* This is the interface routine to store terminal attributes in the
+  /* This is the interface routine to push terminal attributes onto the
      attribute stack */
   attribute *WITH;
 
@@ -14655,13 +14838,13 @@ void stackattribute(stackinx stackp)
   WITH->xval = floatvalue;
   WITH->yval = 0.0;
   WITH->startchop = 0.0;
-  WITH->endchop = WITH->startchop;
+  WITH->endchop = 0.0;
   WITH->state = 0;
   WITH->lexval = lexsymb;
 }  /* stackattribute */
 
 
-void markerror(long n)
+void markerror(int n)
 {
   /* n: integer */
   _REC_errmsg *WITH;
@@ -14698,14 +14881,12 @@ time_t seed;
 
 
 /*--------------------------------------------------------------------*/
-
 /* procedures for input/output of characters */
-
 void exitmacro(void)
 {
   arg *ar, *lastarg;
 
-  /*D if debuglevel > 0 then writeln(log,'exitmacro'); D*/
+  /*D if debuglevel > 0 then writeln(log,' exitmacro'); D*/
   ar = args;
   if (args != NULL)   /* first get rid of args */
     args = args->higherb;
@@ -14724,12 +14905,12 @@ void newbuf(fbuffer **buf)
   fbuffer *WITH;
 
   /*D if debuglevel > 0 then write(log,'newbuf'); D*/
-  if (freebuf == NULL) {
+  if (freeinbuf == NULL) {
     *buf = Malloc(sizeof(fbuffer));
     (*buf)->carray = Malloc(sizeof(chbufarray));
   } else {
-    *buf = freebuf;
-    freebuf = freebuf->nextb;
+    *buf = freeinbuf;
+    freeinbuf = freeinbuf->nextb;
   }
   WITH = *buf;
   WITH->savedlen = 0;
@@ -14738,7 +14919,7 @@ void newbuf(fbuffer **buf)
   WITH->higherb = NULL;
   WITH->prevb = NULL;
   WITH->nextb = NULL;
-  /*D;if debuglevel > 0 then writeln(log,'[',ordp(buf):1,']'); D*/
+  /*D;if debuglevel > 0 then writeln(log,'[',ordp(buf):1,']') D*/
 }
 
 
@@ -14759,9 +14940,11 @@ void newarg(arg **arg_)
 
 fbuffer *newinbuf(fbuffer *p)
 {
+  /* (p: fbufferp): fbufferp */
   if (errmp > 0)
     writeerror();
   return p;
+  /*D; if debuglevel = 2 then writeln(log,'new(next)inbuf[',ordp(p):1,']') D*/
 }
 
 
@@ -14770,17 +14953,19 @@ void disposebufs(fbuffer **buf)
   /* var buf: fbufferp; loc: integer */
   fbuffer *bu;
 
+  /*D if debuglevel > 0 then begin
+      write(log,'disposebufs(',loc:1,')[');
+      if buf <> nil then write(log,ordp(buf):1) else write(log,'nil');
+      writeln(log,']') end; D*/
   if (*buf == NULL)
     return;
-  /*D if debuglevel > 0 then
-      writeln(log,'disposebufs(',loc:1,')[',ordp(buf):1,']'); D*/
-  if (freebuf != NULL) {
+  if (freeinbuf != NULL) {
     bu = *buf;
     while (bu->nextb != NULL)
       bu = bu->nextb;
-    bu->nextb = freebuf;
+    bu->nextb = freeinbuf;
   }
-  freebuf = *buf;
+  freeinbuf = *buf;
   *buf = NULL;
 }
 
@@ -14789,7 +14974,7 @@ void readline(FILE **infname)
 {
   int ll,c;
   if (feof( *infname )) { inputeof = true; return; }
-  for (ll = CHBUFSIZ-2; inbuf->savedlen < ll; ) {
+  for (ll = CHBUFSIZ-1; inbuf->savedlen < ll; ) {
      c = getc( *infname );
      if ((char)c == '\n') ll = inbuf->savedlen;
      else if ((char)c == '\r') {
@@ -14803,36 +14988,16 @@ void readline(FILE **infname)
      else if (inbuf->savedlen == 0) { inputeof = true; return; }
      else ll = inbuf->savedlen;
   }
-  if (ll != CHBUFSIZ-2) { }
+  if (ll != CHBUFSIZ-1) { }
   else if ((char)c == '\n' || c == EOF) { }
   else {
      markerror(902);
      fscanf( *infname, "%*[^\n\r]"); getc( *infname );
   }
-  inbuf->savedlen++; inbuf->carray[inbuf->savedlen] = '\n';
-  inbuf->savedlen++; inbuf->carray[inbuf->savedlen] = ' ';
-  /* [previous] P2CC
-     int ll,c;
-     if (feof( *infname )) { inputeof = true; return; }
-     for (ll = CHBUFSIZ-2; inbuf->savedlen < ll; ) {
-        c = getc( *infname );
-        if ((char)c == '\n') ll = inbuf->savedlen;
-        else if ((char)c == '\r') { ll = inbuf->savedlen;
-           if ((char)(c=getc( *infname )) != '\n') ungetc(c, *infname ); }
-        else if (c != EOF) {
-           inbuf->savedlen++; inbuf->carray[inbuf->savedlen] = (char)c; }
-        else if (inbuf->savedlen == 0) { inputeof = true; return; }
-        else ll = inbuf->savedlen;
-     }
-     if ((ll == CHBUFSIZ-2) && ((char)(c=getc( *infname )) != '\n')
-        && ((char)c != '\r') && (c != EOF)){
-        markerror(902);
-        fscanf( *infname, "%*[^\n\r]"); getc( *infname );
-     }
-     inbuf->savedlen++; inbuf->carray[inbuf->savedlen] = '\n';
-     inbuf->savedlen++; inbuf->carray[inbuf->savedlen] = ' ';
-     */
-
+  while (inbuf->carray[inbuf->savedlen] == '\r' && inbuf->savedlen > 0)
+     inbuf->savedlen--;
+  inbuf->savedlen++;
+  inbuf->carray[inbuf->savedlen] = nlch;
   /*D; if debuglevel = 2 then begin write(log,'readline');
      if inputeof then writeln(log,' inputeof') else wrbuf(inbuf,3,0) end D*/
 }
@@ -14840,10 +15005,10 @@ void readline(FILE **infname)
 
 void nextline(void)
 {
-  /* Write out error messages, and read in a line.  */
-  long i;
+  /* Write out error messages, and read in a line. */
+  int i;
   fbuffer *WITH;
-  long FORLIM;
+  int FORLIM;
 
   writeerror();
   WITH = inbuf;
@@ -14863,9 +15028,7 @@ void nextline(void)
       }
     } else
       readline(&input);
-
     WITH = inbuf;
-
     if (WITH->carray[1] == '.') {
       if (lexstate != 2) {
 	if (WITH->savedlen >= 4 && WITH->carray[2] == 'P') {
@@ -14893,15 +15056,14 @@ void nextline(void)
     }
     /*D if linesignal > 0 then begin
           i := lineno div (10*linesignal);
-          if lineno = i*10*linesignal then writeln(stderr,'lineno ',lineno:1)
+          if lineno = i*10*linesignal then writeln(errout,'lineno ',lineno:1)
           end;
        if debuglevel > 1 then begin
           writeln(log); write(log,'lineno ',lineno:1,':') end; D*/
-
     if (lexstate == 0 && !inputeof) {
       WITH = inbuf;
-      FORLIM = WITH->savedlen - 2;
-      for (i = 1; i <= FORLIM; i++)
+      FORLIM = WITH->savedlen;
+      for (i = 1; i < FORLIM; i++)
 	putchar(WITH->carray[i]);
       putchar('\n');
       WITH->savedlen = 0;
@@ -14924,40 +15086,31 @@ void inchar(void)
 {
   fbuffer *tp;
   boolean bufend;
-  attribute *WITH;
-  fbuffer *WITH1;
+  fbuffer *WITH;
 
   if (inbuf == NULL) {
     newbuf(&inbuf);
     inbuf->attrib = -1;
   }
-
   bufend = (inbuf->readx > inbuf->savedlen);
   while (bufend) {
+    /*D if debuglevel = 2 then begin
+        write(log,'Bufend, '); wrchar(ch); writeln(log) end; D*/
     if (inbuf->nextb != NULL)
       inbuf = newinbuf(inbuf->nextb);
     else if (inbuf->attrib > 0) {
+      /*D if debuglevel = 2 then begin
+        write(log,'For or repeat detected, '); wrchar(ch); write(log,' ')
+        end; D*/
+      writeerror();
+      inbuf->readx = 1;
       while (inbuf->prevb != NULL) {
-	inbuf->readx = 1;
 	inbuf = newinbuf(inbuf->prevb);
+	inbuf->readx = 1;
       }
-      WITH = &attstack[inbuf->attrib];
-      /*repeat if lexval = Xrepeat then
-         inbuf^.readx := 0
-      else */
-      if (WITH->length > 0)
-	WITH->length--;
-      else
-	WITH->length++;
-      /*D if debuglevel > 0 then
-         writeln(log,'For index (length)=', length:1); D*/
-      if (WITH->length == 0) {
-	tp = inbuf;
-	inbuf = newinbuf(inbuf->higherb);   /*D,4D*/
-	disposebufs(&tp);
-      } else
-	inbuf->readx = 0;
+      forbufend = true;
     } else {
+      writeerror();
       while (inbuf->prevb != NULL)
 	inbuf = newinbuf(inbuf->prevb);
       if (inbuf->nextb != NULL)   /*D,10D*/
@@ -14974,31 +15127,23 @@ void inchar(void)
     else
       bufend = (inbuf->readx > inbuf->savedlen);
   }
-
-  WITH1 = inbuf;
-
-  /*D if debuglevel = 2 then with inbuf^ do begin
+  if (forbufend || inputeof) {
+    ch = nlch;
+    return;
+  }
+  WITH = inbuf;
+  ch = WITH->carray[WITH->readx];
+  WITH->readx++;
+  /*D; if debuglevel = 2 then with inbuf^ do begin
      write(log,'inchar[');
      if prevb<>nil then write(log,ordp(prevb):1);
-     write(log,',',ordp(inbuf):1,',');
+     write(log,'<',ordp(inbuf):1,'>');
      if nextb<>nil then write(log,ordp(nextb):1);
      write(log,']: savedlen=',savedlen:1,' readx=',readx:1);
      if inputeof then writeln(log,' inputeof, ch=nlch')
-     else writeln(log,' ch(',readx-1:1,')=',ord(ch):4,' "',ch,'"') end; D*/
-  if (WITH1->readx <= 0) {
-    ch = '~';
-    writeerror();
-    WITH1->readx = 1;
-    return;
-  }
-  if (inputeof)
-    ch = nlch;
-  else {
-    ch = WITH1->carray[WITH1->readx];
-    WITH1->readx++;
-  }
+     else begin write(log,' '); wrchar(ch); writeln(log) end
+     end D*/
 
-  /* This is a for or repeat loop */
   /* This is not a loop */
 }  /* inchar */
 
@@ -15046,11 +15191,7 @@ void backup(void)
 
 
 /*--------------------------------------------------------------------*/
-
-
-
 /*--------------------------------------------------------------------*/
-
 void pushch(void)
 {
   /* copy ch character into chbuf and get new ch */
@@ -15079,11 +15220,10 @@ boolean isprint_(Char ch)
 
 
 #ifndef SAFE_MODE
-
 void pointinput(nametype *txt)
 {
   /* txt: strptr */
-  long i, FORLIM;
+  int i, FORLIM;
 
   if (txt == NULL)
     return;
@@ -15099,7 +15239,6 @@ void pointinput(nametype *txt)
   /*DUGHM if debuglevel > 0 then begin
      write(log,'Pointinput(segmnt ',seginx:1,', len ',len:1,') ');
      for i := 1 to len do write(log,infname[i]); writeln(log) end; MHGUD*/
-
   if (savebuf != NULL) {
     markerror(853);
     return;
@@ -15121,10 +15260,10 @@ void pointinput(nametype *txt)
 }
 
 
-void pointoutput(boolean nw, nametype *txt, long *ier)
+void pointoutput(boolean nw, nametype *txt, int *ier)
 {
   /* nw: boolean; txt: strptr; var ier: integer */
-  long i, FORLIM;
+  int i, FORLIM;
 
   *ier = 1;
   if (txt->segmnt == NULL)
@@ -15167,10 +15306,9 @@ void pointoutput(boolean nw, nametype *txt, long *ier)
 
 
 #endif
-
-long argcount(arg *ar)
+int argcount(arg *ar)
 {
-  long i;
+  int i;
 
   if (ar == NULL)
     markerror(805);
@@ -15184,15 +15322,15 @@ long argcount(arg *ar)
 }
 
 
-arg *findarg(arg *arlst, long k)
+arg *findarg(arg *arlst, int k)
 {
   arg *ar;
-  long i, j;
+  int i, j;
 
   /*D if debuglevel > 0 then begin
       write(log, 'findarg(');
       if arlst = nil then write(log,'nil') else write(log,ordp(arlst):1);
-      write(log,',',k:1,')=') end; D*/
+      write(log,',',k:1,'):') end; D*/
   if (k > 0)
     ar = arlst;
   else
@@ -15216,26 +15354,26 @@ arg *findarg(arg *arlst, long k)
 void readstring(Char stringch)
 {
   /* puts string terminal into chbuf */
-  long j, n;
-  boolean instr, pu;
+  int j, n;
+  boolean instr, pushfl;
   arg *ar;
   fbuffer *abuf, *WITH;
-  long FORLIM;
+  int FORLIM;
 
   /*D if debuglevel > 0 then write(log,'readstring(',stringch,') '); D*/
   j = -1;
   n = 0;
   instr = true;
-  pu = true;
+  pushfl = true;
   while (instr) {
     if (inputeof)
       instr = false;
-    else if (ch == '\\') {
+    else if (ch == bslch) {
       pushch();
       if (ch == stringch)
 	chbufi--;
       else
-	pu = false;
+	pushfl = false;
     } else if (ch == '$' && j < 0)
       j = chbufi;
     else if (j >= 0 && isdigit(ch) != 0)
@@ -15264,25 +15402,30 @@ void readstring(Char stringch)
          write(log,'| ') end; D*/
       j = -1;
       n = 0;
-      pu = false;
+      pushfl = false;
     } else if (ch == stringch)
       instr = false;
-    if (instr && pu)
+    /*D if debuglevel > 0 then begin
+        write(log,' readstring2, instr=',instr,' ');
+        wrchar(ch); writeln(log) end;D*/
+    if (instr && pushfl)
       pushch();
     else
-      pu = true;
+      pushfl = true;
   }
   if (ch != nlch)
     inchar();
-  else
+  else {
+    /*D; if debuglevel > 0 then writeln(log,' readstring done') D*/
     markerror(901);
+  }
 }
 
 
 void readexponent(void)
 {
   boolean neg;
-  long k;
+  int k;
 
   pushch();
   if (ch == '-') {
@@ -15358,124 +15501,141 @@ begin
       if newsymb = XLfloat then begin
          write( log,' value='); wfloat(log,floatvalue)
          end;
-      write(log,' nextch(', ord(ch):1,')"',ch,'" ');
-      if not acc then write( log,'not accepted');
+      write(log,' '); wrchar(ch);
+      if not acc then write( log,' not accepted');
       writeln( log );
       consoleflush
       end
    end; D*/
-
 fbuffer *nbuf(fbuffer *buf)
 {
-  fbuffer *ml;
+  fbuffer *WITH;
 
-  newbuf(&ml);
-  ml->attrib = buf->attrib;
-  ml->savedlen = CHBUFSIZ;
-  ml->readx = CHBUFSIZ + 1;
-  ml->nextb = buf;
-  buf->prevb = ml;
-  return ml;
+  if (buf->prevb == NULL)
+    newbuf(&buf->prevb);
+  WITH = buf->prevb;
+  WITH->attrib = buf->attrib;
+  WITH->savedlen = CHBUFSIZ;
+  WITH->readx = CHBUFSIZ + 1;
+  WITH->nextb = buf;
+  return (buf->prevb);
 }
 
 
 void copyleft(fbuffer *mac, fbuffer **buf)
 {
   /* mac: fbufferp; var buf: fbufferp */
-  /* Push macro from mac into the head of the input stream */
+  /* Push macro or arg or string from mac into the head of the input stream */
   fbuffer *ml;
-  long i;
-  boolean nflag;
-  long FORLIM;
+  int i, k;
+  boolean newflag, copied;
   fbuffer *WITH;
+  int FORLIM;
 
-  /*D if debuglevel > 0 then begin
-     writeln(log, 'copyleft:'); write(log,' input string'); wrbuf(mac,3,1);
-     write(log,' output '); wrbuf(buf,3,1) end; D*/
+  /*D if debuglevel > 0 then writeln(log, 'copyleft:'); D*/
+  /*D if debuglevel > 1 then begin
+     write(log,' input string'); wrbuf(mac,3,1);
+     write(log,' output'); wrbuf(buf,3,1) end; D*/
   writeerror();
   ml = mac;
   while (ml != NULL) {
     mac = ml;
     ml = ml->nextb;
   }
+  copied = false;
   while (mac != NULL) {
     if (mac->carray != NULL) {
-      FORLIM = mac->readx;
-      for (i = mac->savedlen; i >= FORLIM; i--) {
+      if (mac->savedlen >= mac->readx) {
+	copied = true;
 	if (*buf == NULL)
-	  nflag = true;
+	  newflag = true;
 	else if ((*buf)->attrib >= 0)
-	  nflag = true;
+	  newflag = true;   /* for body */
 	else
-	  nflag = false;
-	if (nflag) {
-	  /*D if debuglevel > 0 then
-	     writeln(log,'nflag=',nflag:1,' attrib=',buf^.attrib:1); D*/
+	  newflag = false;
+	/*D if debuglevel > 0 then
+	   writeln(log,'newflag=',newflag:1,' attrib=',buf^.attrib:1); D*/
+	if (newflag) {
 	  newbuf(&ml);
 	  ml->attrib = -1;
 	  ml->savedlen = CHBUFSIZ;
 	  ml->readx = CHBUFSIZ + 1;
 	  ml->higherb = *buf;
 	  *buf = ml;
-	} else if ((*buf)->readx <= 1 && (*buf)->prevb != NULL) {
-	  WITH = (*buf)->prevb;
-	  WITH->attrib = (*buf)->attrib;
-	  WITH->savedlen = CHBUFSIZ;
-	  WITH->readx = CHBUFSIZ + 1;
-	  WITH->nextb = *buf;
-	  *buf = (*buf)->prevb;
-	} else if ((*buf)->readx <= 1)
-	  *buf = nbuf(*buf);
+	}
+      }
+      k = mac->savedlen;
+      if ((*buf)->readx < k - mac->readx + 2) {  /*not enough space*/
 	WITH = *buf;
+	while (WITH->readx > 1) {
+	  WITH->readx--;
+	  WITH->carray[WITH->readx] = mac->carray[k];
+	  k--;
+	}
+	*buf = nbuf(*buf);
+      }
+      WITH = *buf;
+      FORLIM = mac->readx;
+      for (i = k; i >= FORLIM; i--) {
 	WITH->readx--;
 	WITH->carray[WITH->readx] = mac->carray[i];
       }
     }
     mac = mac->prevb;
   }
+  if (!copied)
+    return;
+  /*D; if debuglevel > 0 then begin
+     ml := buf; writeln(log,' copyleft result'); while ml <> nil do begin
+        wrbuf(ml,3,1); ml := ml^.nextb end end D*/
   if ((*buf)->readx <= 1)
     *buf = nbuf(*buf);
   WITH = *buf;
-  /*D; if debuglevel > 0 then begin
-     ml := buf; write(log,' copyleft result'); while ml <> nil do begin
-        wrbuf(ml,3,1); ml := ml^.nextb end end D*/
   WITH->carray[WITH->readx - 1] = nlch;
 }
 
 
 void copyright(fbuffer *mac, fbuffer **buf)
 {
-  /* Push macro into the tail of the input buffer */
+  /* $n has been seen: Push the argument into the tail of the input buffer */
   fbuffer *ml;
-  long i;
+  int i, k;
   fbuffer *WITH;
+  int FORLIM;
 
   /*D if debuglevel > 0 then begin
      writeln(log, 'copyright:');
      write(log,' input'); wrbuf(mac,3,1);
      write(log,' output'); wrbuf(buf,3,0) end; D*/
   while (mac != NULL) {
-    i = mac->readx;
-    while (i <= mac->savedlen) {
-      if (*buf == NULL) {
-	newbuf(buf);
-	WITH = *buf;
-	WITH->attrib = -1;
-	WITH->savedlen = 0;
-	WITH->readx = 1;
-      } else if ((*buf)->savedlen >= CHBUFSIZ) {
-	newbuf(&ml);
-	ml->attrib = (*buf)->attrib;
-	ml->savedlen = 0;
-	ml->readx = 1;
-	ml->prevb = *buf;
-	(*buf)->nextb = ml;
-	*buf = ml;
-      }
+    if (*buf == NULL) {
+      newbuf(buf);
       WITH = *buf;
+      WITH->attrib = -1;
+      WITH->savedlen = 0;
+      WITH->readx = 1;
+    }
+    k = mac->readx;
+    if (CHBUFSIZ - (*buf)->savedlen <= mac->savedlen - k) {
+      WITH = *buf;
+      while (WITH->savedlen < CHBUFSIZ) {
+	WITH->savedlen++;
+	WITH->carray[WITH->savedlen] = mac->carray[k];
+	k++;
+      }
+      newbuf(&ml);
+      ml->attrib = (*buf)->attrib;
+      ml->savedlen = 0;
+      ml->readx = 1;
+      ml->prevb = *buf;
+      (*buf)->nextb = ml;
+      *buf = ml;
+    }
+    WITH = *buf;
+    FORLIM = mac->savedlen;
+    for (i = k; i <= FORLIM; i++) {
       WITH->savedlen++;
       WITH->carray[WITH->savedlen] = mac->carray[i];
-      i++;
     }
     mac = mac->nextb;
   }
@@ -15486,45 +15646,55 @@ void copyright(fbuffer *mac, fbuffer **buf)
 
 void skipcontinue(void)
 {
-  boolean continuation;
+  /* Check the current char for line continuation */
+  Char c;
   fbuffer *WITH;
 
-  if (inbuf == NULL)
-    return;
-  WITH = inbuf;
-  do {
-    if (ch != '\\')
-      continuation = false;
-    else if (WITH->readx == WITH->savedlen - 1)
-      continuation = true;
-    else if (WITH->carray[WITH->readx + 1] == '#')
-      continuation = true;
-    else
-      continuation = false;
-    if (continuation) {
-      WITH->readx = WITH->savedlen + 2;
+  /*D if debuglevel=2 then
+     write(log,' skipcontinue readx=',inbuf^.readx:1,' '); D*/
+  c = ch;
+  while (c == bslch) {
+    WITH = inbuf;
+    if (WITH->readx <= WITH->savedlen)
+      c = WITH->carray[WITH->readx];
+    else if (WITH->nextb == NULL) {
       inchar();
+      c = ch;
+    } else
+      c = WITH->nextb->carray[WITH->nextb->readx];
+    if (c == nlch) {
+      inchar();
+      inchar();
+      c = ch;
+      continue;
     }
-  } while (continuation);
+    if (c == '#') {
+      skiptoend();
+      inchar();
+      c = ch;
+    } else
+      c = ' ';
+  }
 }
 
 
 void skipwhite(void)
 {
-  /*D if debuglevel = 2 then writeln(log, 'skipwhite: ' ); D*/
+  /* D if debuglevel = 2 then writeln(log, 'skipwhite: ' ); D */
   while (ch == etxch || ch == nlch || ch == tabch || ch == ' ') {
     if (ch == etxch)
       exitmacro();
     inchar();
-    skipcontinue();
+    if (ch == bslch)
+      skipcontinue();
   }
 }
 
 
-void definearg(long *parenlevel, fbuffer **p2)
+void definearg(int *parenlevel, fbuffer **p2)
 {
   /* Stash the current argument into the arg struct*/
-  long j, n;
+  int j, n;
   arg *ar;
   fbuffer *p, *p1;
   boolean inarg, instring;
@@ -15552,50 +15722,56 @@ void definearg(long *parenlevel, fbuffer **p2)
     prevch = ' ';
     do {
       WITH = p1;
-      if (prevch != '\\') {
+      if (prevch != bslch) {
 	if (instring && ch == '"')
 	  instring = false;
 	else if (ch == '"')
 	  instring = true;
       }
-      if (ch == '(')
-	(*parenlevel)++;
-      else if (ch == ')')
-	(*parenlevel)--;
+      if (!instring) {
+	if (ch == '(')
+	  (*parenlevel)++;
+	else if (ch == ')')
+	  (*parenlevel)--;
+      }
       /*D if debuglevel=2 then write(log,' instring=',instring,' '); D*/
       if (!instring && (*parenlevel < 0 || *parenlevel == 0 && ch == ',')) {
 	j = WITH->savedlen;
 	inarg = false;
       } else if (ch != '$') {
-	/* if prevch = '\' then prevch := ' '
-	else begin savedlen := savedlen + 1; prevch :=ch end; */
 	prevch = ch;
-	WITH->savedlen++;
+	if (WITH->savedlen < CHBUFSIZ)
+	  WITH->savedlen++;
+	else
+	  markerror(872);
 	WITH->carray[WITH->savedlen] = ch;
-	/*D if debuglevel = 2 then writeln(log,
-	 'definearg2: savedlen=',savedlen:1,' ch=',ord(ch):1,'"',ch,'",',
-	 ' parenlevel=',parenlevel:1);
-	  D*/
+	/*D if debuglevel = 2 then begin
+	   write(log,'definearg2: savedlen=',savedlen:1,' ');
+	   wrchar(ch); writeln(log,' parenlevel=',parenlevel:1)
+	   end; D*/
 	inchar();
       } else {
-	n = 0;
+	/*D if debuglevel=2 then write(log,' definearg3'); D*/
 	prevch = ch;
 	inchar();
 	if (isdigit(ch) != 0) {
-	  while (isdigit(ch) != 0) {
+	  n = 0;
+	  do {
 	    n = n * 10 + ch - '0';
 	    inchar();
-	  }
+	  } while (isdigit(ch) != 0);
 	  ar = findarg(args, n);
-	  if (ar != NULL) {
-	    /* else markerror(805) */
+	  if (ar != NULL)
 	    copyright(ar->argbody, &p1);
-	  }
 	} else {
-	  WITH->savedlen++;
+	  if (WITH->savedlen < CHBUFSIZ)
+	    WITH->savedlen++;
+	  else
+	    markerror(872);
 	  WITH->carray[WITH->savedlen] = prevch;
-	  /*D if debuglevel = 2 then writeln(log,'definearg2: savedlen=',
-	      savedlen:1,' ch=',ord(ch):1,'"',ch,'"');D*/
+	  /*D if debuglevel = 2 then begin
+	      write(log,'definearg2: savedlen=',savedlen:1,' ');
+	      wrchar(ch); writeln(log) end; D*/
 	}
       }
       if (inputeof) {
@@ -15620,7 +15796,7 @@ void definearg(long *parenlevel, fbuffer **p2)
 boolean ismacro(Char *chb, chbufinx obi, chbufinx chbi)
 {
   arg *mac, *lastp, *ar, *lastarg, *firstarg;
-  long level;
+  int level;
   boolean ism;
 
   /*D if debuglevel > 0 then begin
@@ -15669,7 +15845,7 @@ boolean ismacro(Char *chb, chbufinx obi, chbufinx chbi)
 
 void copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
 {
-  long n, i;
+  int n, i;
   arg *ar;
 
   /*D if debuglevel > 0 then begin write(log,'copyarg(');
@@ -15680,45 +15856,66 @@ void copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
   ar = findarg(args, n);
   backup();
   if (ar != NULL) {
-    if (ar->argbody != NULL) {
-      /* else markerror(805) */
+    if (ar->argbody != NULL)
       copyleft(ar->argbody, &inbuf);
-    }
   }
 }
 
 
 boolean insertarg(void)
 {
-  long icx;
+  int icx;
+  boolean ins;
 
+  /* j,k: integer;
+  argstruct: argp;
+  varptr,lastp: strptr; */
   pushch();
-  /* D if debuglevel > 0 then write(log,'insertarg ch=',ch,' '); D */
+  ins = false;
   if (ch == '+') {
     backup();
     ch = '$';
     chbufi--;
-    return false;
-  } else {
-    icx = chbufi - 1;
-    while (isdigit(ch) != 0)
-      pushch();
-    copyarg(chbuf, icx, chbufi);
-    chbufi = icx;
-    inchar();
-    return true;
+    return ins;
   }
+  icx = chbufi - 1;
+  while (isdigit(ch) != 0)
+    pushch();
+  copyarg(chbuf, icx, chbufi);
+  chbufi = icx;
+  inchar();
+  ins = true;
+  /*
+     else if isalnum(ch) then begin
+        icx := chbufi-1;
+        repeat pushch until not isalnum(ch);
+        backup;
+        varptr := glfindname(envblock,chbuf,oldbufi+1,chbufi-oldbufi-1,lastp,k);
+        if varptr=nil then markerror(805) else begin
+           j := round(varptr^.val); argstruct := findarg( args,j );
+           if argstruct=nil then markerror(805)
+           else if argstruct^.argbody<>nil then begin
+              copyleft(argstruct^.argbody,inbuf);
+              ins := true
+              end
+           end
+        end
+  */
+  return ins;
 }
 
 
 void lexical(void)
 {
-  /* sets newsymb to value of next acceptable terminal */
-  long lxix;
+  /* find the next terminal */
+  int lxix;
   Char firstch;
   boolean terminalaccepted, looping;
   fbuffer *WITH;
 
+  /* argstruct: argp;
+  j,k: integer;
+  varptr,lastp: strptr; */
   floatvalue = 0.0;
   lexsymb = -1;
   do {
@@ -15726,13 +15923,12 @@ void lexical(void)
     oldbufi = chbufi;   /* first char of current terminal in chbuf */
     while (ch == ' ' || ch == tabch)
       inchar();
-
     if (lexstate == 1) {
       newsymb = XSTART;
       lexstate = 2;
     } else if (lexstate == 3) {
       /*D if linesignal > 0 then begin
-         writeln(stderr,'.PE'); consoleflush end; D*/
+         writeln(errout,'.PE'); consoleflush end; D*/
       newsymb = XEND;
       /* ch := '.'; */
       lexstate = 4;
@@ -15750,6 +15946,16 @@ void lexical(void)
 	newsymb = 0;
       else
 	newsymb = 1;
+    } else if (forbufend) {
+      newsymb = XLendfor;
+      forbufend = false;
+      ch = ' ';
+    } else if (ch == nlch) {
+      newsymb = XNL;
+      ch = ' ';
+      if (oldsymb == XLelse || oldsymb == XLBRACE || oldsymb == XLthen ||
+	  oldsymb == XCOLON || oldsymb == XNL)
+	terminalaccepted = false;
     } else if (isdigit(ch) != 0)
       readconst(ch);
     else if (ch == etxch) {
@@ -15759,23 +15965,22 @@ void lexical(void)
     } else {
       firstch = ch;
       pushch();
-
       WITH = inbuf;
-      if (firstch == '\\' && (WITH->readx == WITH->savedlen || ch == '#'))
-      {  /* continuation line */
-	ch = ' ';
-	newsymb = -2;   /* flag for LaTeX test */
-	WITH->readx = WITH->savedlen + 2;
-	terminalaccepted = false;
-      } else if (firstch == '\\')
-	readlatex();
-      else if (firstch == '.' && isdigit(ch) != 0)
+      if (firstch == bslch) {
+	if (ch == nlch || ch == '#') {
+	  if (ch == '#')
+	    skiptoend();
+	  ch = ' ';
+	  newsymb = -2;   /* flag for test below */
+	  terminalaccepted = false;
+	} else
+	  readlatex();
+      } else if (firstch == '.' && isdigit(ch) != 0)
 	readconst(firstch);
       else if (firstch == '.' && WITH->readx == 3 && inbuf->prevb == NULL &&
 	       newsymb != -2)
 	readlatex();
       else {
-	/* search in lex tree */
 	newsymb = entrytv[firstch];
 	lxix = entryhp[firstch];
 	while (lxix != 0) {
@@ -15791,7 +15996,6 @@ void lexical(void)
 	  } else
 	    lxix = lxnp[lxix];
 	}
-
 	if (isupper(firstch) != 0 &&
 	    (isalnum(ch) != 0 || ch == '_' || ch == '$')) {
 	  looping = true;
@@ -15834,7 +16038,7 @@ void lexical(void)
 		    oldsymb == XLthen || oldsymb == XCOLON || oldsymb == XNL))
 	  terminalaccepted = false;
 	else if (newsymb == XLT && inlogic) {
-	  lexsymb = XLL;
+	  lexsymb = XLcompare;
 	  newsymb = XLcompare;
 	} else if (newsymb > XEQ && newsymb <= XLremeq) {
 	  lexsymb = newsymb;
@@ -15866,17 +16070,31 @@ void lexical(void)
 	  else
 	    newsymb = XLcorner;
 	} else if (newsymb == XLarg) {
-	  if (ch == '+') {
+	  if (ch == '+') {  /* $+ */
 	    floatvalue = argcount(args);
 	    newsymb = XLfloat;
 	    inchar();
-	  } else {
-	    if (isdigit(ch) == 0)
-	      markerror(805);
-	    while (isdigit(ch) != 0)
+	  } else if (isdigit(ch) != 0) {
+	    do {
 	      pushch();
+	    } while (isdigit(ch) != 0);
 	    copyarg(chbuf, oldbufi, chbufi);
 	    terminalaccepted = false;
+	  } else {
+	    /* else begin
+	       repeat pushch until not isalnum(ch);
+	       backup;
+	       varptr := glfindname(envblock,chbuf,oldbufi+1,
+	          chbufi-oldbufi-1,lastp,k);
+	       if varptr=nil then markerror(805) else begin
+	          j := round(varptr^.val); argstruct := findarg( args,j );
+	          if argstruct=nil then markerror(805)
+	          else if argstruct^.argbody<>nil then
+	             copyleft(argstruct^.argbody,inbuf)
+	          end;
+	       terminalaccepted := false
+	       end */
+	    markerror(805);
 	  }
 	} else if (newsymb == XLdo) {
 	  /*D else if newsymb = XAND then begin
@@ -15910,17 +16128,16 @@ void lexical(void)
 	       'Marking 800:ord(firstch)=',ord(firstch),
 	       ' ord(ch)=',ord(ch)); D*/
 	  if (errmp == 0) {
-	    fprintf(stderr_, "Char chr(%d)", firstch);
+	    fprintf(errout, "Char chr(%d)", firstch);
 	    if (firstch > 32 && (firstch & 255) < 127)
-	      fprintf(stderr_, "\"%c\"", firstch);
-	    fprintf(stderr_, " unknown\n");
+	      fprintf(errout, "\"%c\"", firstch);
+	    fprintf(errout, " unknown\n");
 	  }
 	  markerror(800);
 	  terminalaccepted = false;
 	}
       }
     }
-
     /*D prlex( terminalaccepted ); D*/
     if (newsymb != XLaTeX && newsymb != XLstring && newsymb != XLabel &&
 	newsymb != XLname)
@@ -15930,18 +16147,19 @@ void lexical(void)
     lexsymb = newsymb;
   oldsymb = newsymb;
 
-
-
+  /* search in lexical tree */
+  /* $<integer> */
+  /* if not isalnum(ch) then */
+  /* $name */
   /* char not recognized */
   /*lookahead terminals*/
 }  /* lexical */
 
 
 /*--------------------------------------------------------------------*/
-
 void skiptobrace(void)
 {
-  long bracelevel;
+  int bracelevel;
   boolean instring;
   Char prevch;
 
@@ -15950,11 +16168,12 @@ void skiptobrace(void)
   prevch = ' ';
   instring = false;
   while (bracelevel > 0) {
-    skipcontinue();
+    if (ch == bslch)
+      skipcontinue();
     if (ch == etxch)
       exitmacro();
     if (instring) {
-      if (ch == '"' && prevch != '\\')
+      if (ch == '"' && prevch != bslch)
 	instring = false;
     } else if (ch == '{')
       bracelevel++;
@@ -15975,20 +16194,23 @@ void skiptobrace(void)
 }
 
 
-/* Stuff the body of a for loop or a macro body into p2
-   attx: attstack index or -(name length)
-   p0 = nil: append the output to this buffer.
-   Should we check for macro arguments? */
-
-void readfor(fbuffer *p0, long attx, fbuffer **p2)
+void readfor(fbuffer *p0, int attx, fbuffer **p2)
 {
   /* p0: fbufferp; attx: integer; var p2: fbufferp */
-  long j, bracelevel;
+  /* Stuff the body of a for loop or a macro body into p2
+     attx: attstack index or -(name length)
+     p0 = nil: append the output to this buffer.
+     Should we check for macro arguments? */
+  int j, bracelevel;
   fbuffer *p, *p1;
   boolean instring;
   Char prevch;
 
-  /*D if debuglevel = 2 then writeln(log,'readfor: attx', attx:5 ); D*/
+  /*D if debuglevel = 2 then begin
+      write(log,'readfor: attx(');
+      if attx<0 then write(log,'-length)=') else write(log,'attstack idx)=');
+      writeln(log,attx:5)
+      end; D*/
   writeerror();
   prevch = ' ';
   instring = false;
@@ -16010,11 +16232,12 @@ void readfor(fbuffer *p0, long attx, fbuffer **p2)
     p1 = p;
     j = CHBUFSIZ;
     do {
-      skipcontinue();
-      /* D if debuglevel = 2 then write(log,
-         'readfor1: ch=',ord(ch):1,'"',ch,'"'); D */
-      if (instring) {  /* don't check braces in strings */
-	if (ch == '"' && prevch != '\\')
+      if (ch == bslch)
+	skipcontinue();
+      /* D if debuglevel = 2 then begin write(log, 'readfor1: ');
+          wrchar(ch); write(log,' ') end; D */
+      if (instring) {  /* do not check braces in strings */
+	if (ch == '"' && prevch != bslch)
 	  instring = false;
       } else if (ch == '{')
 	bracelevel++;
@@ -16029,8 +16252,9 @@ void readfor(fbuffer *p0, long attx, fbuffer **p2)
       p1->savedlen++;
       p1->carray[p1->savedlen] = ch;
       prevch = ch;
-      /*D if debuglevel = 2 then writeln(log,' savedlen=',savedlen:1,
-         ' carray(',savedlen:1,')=',ord(ch):1,'"',ch,'"'); D*/
+      /* D if debuglevel = 2 then begin
+          write(log,' savedlen=',savedlen:1,' carray(',savedlen:1,')=');
+          wrchar(ch); writeln(log) end; D */
       if (bracelevel > 0)
 	inchar();
       if (inputeof) {
@@ -16050,9 +16274,10 @@ void readfor(fbuffer *p0, long attx, fbuffer **p2)
 
 
 /*--------------------------------------------------------------------*/
-
 void bumptop(stackinx chk, stackinx *sttop)
 {
+  /* D if chk<>sttop then
+     writeln(errout,'chk=',chk:4,' sttop=',sttop:4); D */
   if (chk < STACKMAX)
     (*sttop)++;
   else
@@ -16060,11 +16285,46 @@ void bumptop(stackinx chk, stackinx *sttop)
 }
 
 
+/*D
+procedure prattstack(j: integer);
+var i: integer;
+begin
+   write(log,'attstack: ');
+   for i := 1 to j do write(log,i:4); writeln(log);
+   write(log,'lexval  : ');
+   for i := 1 to j do write(log,attstack^[i].lexval:4); writeln(log);
+   write(log,'state   : ');
+   for i := 1 to j do write(log,attstack^[i].state:4) ; writeln(log);
+   write(log,'chbufx  : ');
+   for i := 1 to j do write(log,attstack^[i].chbufx:4); writeln(log);
+   write(log,'length  : ');
+   for i := 1 to j do write(log,attstack^[i].length:4); writeln(log);
+   D*/
+/* D
+   write(log,'xval    : ');
+   for i := 1 to j do write(log,attstack^[i].xval:4:1); writeln(log);
+   write(log,'yval    : ');
+   for i := 1 to j do write(log,attstack^[i].yval:4:1); writeln(log);
+   D */
+/*D
+   write(log,'ptype   : ');
+   for i := 1 to j do if attstack^[i].prim = nil then write(log,'    ')
+      else write(log,attstack^[i].prim^.ptype:4);
+   writeln(log)
+   end; D*/
+void doprod(int prno)
+{
+  /* prno: integer */
+  redubuf[reduinx + REDUMAX].prod_ = prno;
+  reduinx--;
+}
+
+
 void advance(void)
 {  /* perform reductions */
-  long i, j;
+  int i, j;
   reduelem *WITH;
-  long FORLIM;
+  int FORLIM;
 
   /*D if (debuglevel > 1) and (redutop > 0) then begin
      write(log,'advance prod nos:');
@@ -16074,91 +16334,56 @@ void advance(void)
      for i:=1 to redutop do write(log,redubuf[i].newtop:4);
      writeln(log)
      end; D*/
-
   reduinx = 1;
   while (reduinx <= redutop) {
     WITH = &redubuf[reduinx + REDUMAX];
     /*D if debuglevel > 1 then begin
        j := newtop; if oldtop > newtop then j := oldtop;
        writeln(log,'Attstack for next production:');
-       write(log,'attstack: ');
-       for i := 1 to j do write(log,i:4);                   writeln(log);
-       write(log,'lexval  : ');
-       for i := 1 to j do write(log,attstack^[i].lexval:4); writeln(log);
-       write(log,'state   : ');
-       for i := 1 to j do write(log,attstack^[i].state:4) ; writeln(log);
-       write(log,'chbufx  : ');
-       for i := 1 to j do write(log,attstack^[i].chbufx:4); writeln(log);
-       write(log,'length  : ');
-       for i := 1 to j do write(log,attstack^[i].length:4); writeln(log);
-       D*/
-    /* D
-              write(log,'xval    : ');
-              for i := 1 to j do write(log,attstack^[i].xval:4:1); writeln(log);
-              write(log,'yval    : ');
-              for i := 1 to j do write(log,attstack^[i].yval:4:1); writeln(log);
-              D */
-    /*D
-              write(log,'ptype   : ');
-              for i := 1 to j do if attstack^[i].prim = nil then write(log,'    ')
-                 else write(log,attstack^[i].prim^.ptype:4);
-              writeln(log)
-              end; D*/
-
+       prattstack(j)
+       end; D*/
     produce(WITH->newtop, WITH->prod_);   /* may change reduinx */
-
-    if (WITH->prod_ == forhead1 && attstack[WITH->newtop].length != 0) {
-      /*repeat else if (prod = loophead1) then readfor(nil,newtop,inbuf) */
-      readfor(NULL, WITH->newtop, &inbuf);
-    }
-
     /* D if debuglevel > 1 then writeln(log,
        'attstack^[', newtop:1, '].chbufx<-', attstack^[newtop-1].chbufx:1);
         D */
     /* attstack^[newtop].chbufx := attstack^[newtop-1].chbufx; */
     reduinx++;
   }
-
-
-  /*update stack*/
+  /* update stack */
   if (validtop != top) {
     FORLIM = stacktop - validtop;
     for (i = 1; i <= FORLIM; i++)
       parsestack[validtop + i] = parsestack[top + i];
   }
-
   /* This maintains the input string buffer and could be removed
                                          if the buffer is not required */
   j = attstack[stacktop - 1].chbufx;
-  /*D if (debuglevel > 1) and (redutop > 0) and (j < oldbufi) then begin
-     write(log,' stacktop=',stacktop:1);
-     write(log,' attstack^[stacktop-1](chbufx,length) = (',
-     attstack^[stacktop-1].chbufx:1,',',attstack^[stacktop-1].length:1,')')
+  /*D if (debuglevel > 0) and (redutop > 0) and (j < oldbufi) then begin
+     write(log,' advance: stacktop=',stacktop:1);
+     write(log,' attstack^[stacktop-1](chbufx,length) = ');
+     with attstack^[stacktop-1] do wpair(log,chbufx,length);
+     writeln(log); write(log,' oldbufi=',oldbufi:1,' ');
+     snapname(chbuf,0,chbufi); writeln(log)
      end;D*/
-
   if (redutop > 0 && j < oldbufi &&
       redubuf[redutop + REDUMAX].prod_ != closeblock1 &&
       redubuf[redutop + REDUMAX].prod_ != suffix2 &&
       redubuf[redutop + REDUMAX].prod_ != suffix1) {
     FORLIM = chbufi - oldbufi;
-    /*D if debuglevel > 0 then writeln(log,
-       'chbuf(', oldbufi:1, ':', chbufi-1:1, ')->(',
-       j:1, ':', j+chbufi-oldbufi-1:1, ')'); D*/
-
+    /*D if debuglevel > 0 then begin write(log,
+      'chbuf(', oldbufi:1, ':', chbufi-1:1, ') =');
+      snapname(chbuf,oldbufi,chbufi-oldbufi);
+      writeln(log,'->(',j:1, ':', j+chbufi-oldbufi-1:1, ')') end; D*/
     for (i = 0; i < FORLIM; i++)
       chbuf[j + i] = chbuf[oldbufi + i];
     chbufi += j - oldbufi;
     oldbufi = j;
   }
-
-
-  /*Dif debuglevel > 1 then writeln(log);D*/
   /* shift */
   bumptop(stacktop, &stacktop);
   parsestack[stacktop].table = startinx;
   stackattribute(stacktop);
-
-  /* freeze new stack situation, ready for new lookahead */
+  /* freeze stack, ready for new lookahead */
   top = stacktop;
   pseudotop = stacktop;
   validtop = stacktop;
@@ -16167,7 +16392,7 @@ void advance(void)
 }  /*advance*/
 
 
-void backtrack(stackinx btop, long bstart)
+void backtrack(stackinx btop, int bstart)
 {
   stacktop = btop;
   validtop = btop;
@@ -16187,7 +16412,7 @@ void pseudoshift(void)
 }  /* pseudoshift */
 
 
-Local void queue(long rs_, long p)
+Local void queue(int rs_, int p)
 {
   reduelem *WITH;
 
@@ -16212,16 +16437,15 @@ Local void queue(long rs_, long p)
 
 
 /*--------------------------------------------------------------------*/
-
 boolean lookahead(symbol lsymbol)
 {
   boolean Result, decided;
-  long si;
+  int si;
 
   decided = false;
-  /*Dif trace then write(log,' lri:');D*/
+  /*D if trace then write(log,' lri:');D*/
   do {
-    /*Dif trace then write(log, lri: 4);D*/
+    /*D if trace then write(log, lri: 4);D*/
     startinx = lri;
     switch (lr[lri + kind]) {
 
@@ -16260,7 +16484,7 @@ boolean lookahead(symbol lsymbol)
 
     case 5:
       si = parsestack[pseudotop].table;
-      /*Dif trace then
+      /*D if trace then
           writeln(log, ' SI(', si: 1, ')');D*/
       while (lr[lri + lb] != si && lr[lri] != 0)
 	lri = lr[lri];
@@ -16269,20 +16493,18 @@ boolean lookahead(symbol lsymbol)
     lri = lr[lri + next];
     /*D;if trace then write(log,'|')D*/
   } while (!decided);
-  /*Dif trace then writeln(log,' lookahead done')D*/
+  /*D if trace then writeln(log,' lookahead done')D*/
   return Result;
 }  /* lookahead */
 
 
 /*--------------------------------------------------------------------*/
-
 void syntaxerror(void)
 {
   boolean success;
   stackinx s, s1, FORLIM;
 
-  /*Dif debuglevel > 0 then write(log, ' <---SYNTAXERROR');D*/
-
+  /*D if debuglevel > 0 then write(log, ' <---SYNTAXERROR');D*/
   markerror(lr[startinx + err]);
   backtrack(top, start);
   pseudoshift();
@@ -16318,21 +16540,18 @@ void syntaxerror(void)
 void parse(void)
 {
   initrandom();
-
   chbuf = Malloc(sizeof(chbufarray));
   entrytv[ordNL] = XNL;
   entrytv[ordCR] = XNL;   /* treat ^M as line end */
-
   errmp = 0;
   errcount = 0;
   /* change for debugging */
   /* linesignal := 0; */
   /*D trace := false;
   if trace then debuglevel := 1 else debuglevel := 0; D*/
-  /*DUGHM if oflag > 0 then  debuglevel := oflag; MHGUD*/
+  /*DUGHM if oflag > 0 then debuglevel := oflag; MHGUD*/
   /*DUGHM if trace and (oflag <= 0) then openlogfile; MHGUD*/
   /* Dwriteln('debuglevel=',debuglevel); D */
-
   parsestack = Malloc(sizeof(tparsestack));
   produce(1, -2);
   printstate = 0;
@@ -16347,7 +16566,7 @@ void parse(void)
   lexstate = 0;
   macros = NULL;
   args = NULL;
-
+  forbufend = false;
   stackattribute(0);
   /* parser initializations */
   parsestop = false;
@@ -16373,7 +16592,7 @@ void parse(void)
 
 Char optionchar(Char *fn)
 {
-  long j, k;
+  int j, k;
 
   j = 1;
   k = FILENAMELEN + 1;
@@ -16398,7 +16617,7 @@ Char optionchar(Char *fn)
 void getoptions(void)
 {
   Char cht;
-  long istop;
+  int istop;
 
   drawmode = TeX;
   /*DUGHM oflag := 0; linesignal := 0; MHGUD*/
@@ -16412,7 +16631,7 @@ void getoptions(void)
       istop = argct;
       continue;
     }
-    /* if      cht = 'd' then drawmode := PSmps */
+    /* if cht = 'd' then drawmode := PSmps */
     /* Metapost-readable PS*/
     /*
     else */
@@ -16443,31 +16662,31 @@ void getoptions(void)
          else if (cht >= '0') and (cht <= '9') then oflag := ord(cht)-ord('0')
          MHGUD*/
     } else if (cht == 'h' || cht == '-') {
-      fprintf(stderr_, " *** ");
-      fprintf(stderr_, "%s\n", Version);
-      fprintf(stderr_, " options:\n");
-      fprintf(stderr_, "     (none) output latex drawing commands\n");
-      /* writeln(stderr,'     -d pdftex graphicx output'); */
-      fprintf(stderr_, "     -e pict2e output\n");
-      fprintf(stderr_, "     -f Postscript output, psfrag strings\n");
-      fprintf(stderr_, "     -g PGF output\n");
-      fprintf(stderr_, "     -h write this message and quit\n");
-      fprintf(stderr_, "     -m mfpic output\n");
-      fprintf(stderr_, "     -p PSTricks output\n");
-      fprintf(stderr_, "     -r Postscript output\n");
-      fprintf(stderr_, "     -s MetaPost output\n");
-      fprintf(stderr_, "     -t eepicemu output\n");
-      fprintf(stderr_, "     -v SVG output\n");
-      fprintf(stderr_, "     -x xfig output\n");
-      fprintf(stderr_,
+      fprintf(errout, " *** ");
+      fprintf(errout, "%s\n", Version);
+      fprintf(errout, " options:\n");
+      fprintf(errout, "     (none) output latex drawing commands\n");
+      /* writeln(errout,'     -d pdftex graphicx output'); */
+      fprintf(errout, "     -e pict2e output\n");
+      fprintf(errout, "     -f Postscript output, psfrag strings\n");
+      fprintf(errout, "     -g PGF-TikZ output\n");
+      fprintf(errout, "     -h write this message and quit\n");
+      fprintf(errout, "     -m mfpic output\n");
+      fprintf(errout, "     -p PSTricks output\n");
+      fprintf(errout, "     -r Postscript output\n");
+      fprintf(errout, "     -s MetaPost output\n");
+      fprintf(errout, "     -t eepicemu output\n");
+      fprintf(errout, "     -v SVG output\n");
+      fprintf(errout, "     -x xfig output\n");
+      fprintf(errout,
 	      "     -z safe mode (sh, copy, and print to file disabled)\n");
       fatal(0);
     } else {
-      fprintf(stderr_, " *** dpic terminating: Unknown option \"");
+      fprintf(errout, " *** dpic terminating: Unknown option \"");
       if (isprint_(cht))
-	fprintf(stderr_, "%c\"\n", cht);
+	fprintf(errout, "%c\"\n", cht);
       else
-	fprintf(stderr_, "char(%d)\"\n", cht);
+	fprintf(errout, "char(%d)\"\n", cht);
       fatal(0);
     }
     argct++;
@@ -16481,6 +16700,7 @@ void initmachine(void)
   nlch = (Char)ordNL;
   crch = (Char)ordCR;
   tabch = (Char)ordTAB;
+  bslch = (Char)ordBSL;
   safemode = false;
 }  /* initmachine */
 
@@ -16491,7 +16711,7 @@ main(int argc, Char *argv[])
   /* dpic */
   redirect = NULL;
   copyin = NULL;
-  stderr_ = NULL;
+  errout = NULL;
   output = NULL;
   input = NULL;
   initmachine();
@@ -16504,13 +16724,12 @@ main(int argc, Char *argv[])
   parse();
   epilog();
   /*X retcode(errcount); X*/
-
   if (input != NULL)
     fclose(input);
   if (output != NULL)
     fclose(output);
-  if (stderr_ != NULL)
-    fclose(stderr_);
+  if (errout != NULL)
+    fclose(errout);
   if (copyin != NULL)
     fclose(copyin);
   if (redirect != NULL)

@@ -812,7 +812,7 @@ int *Day, *Month, *Year, *Hour, *Min, *Sec;
 {
 #ifndef NO_TIME
     struct tm *tm;
-    long clock;
+    time_t clock;
 
     time(&clock);
     tm = localtime(&clock);
@@ -830,7 +830,7 @@ int *Day, *Month, *Year, *Hour, *Min, *Sec;
 Void VAXdate(s)
 char *s;
 {
-    long clock;
+    time_t clock;
     char *c;
     int i;
     static int where[] = {8, 9, 0, 4, 5, 6, 0, 20, 21, 22, 23};
@@ -846,7 +846,7 @@ char *s;
 Void VAXtime(s)
 char *s;
 {
-    long clock;
+    time_t clock;
     char *c;
     int i;
 
@@ -919,7 +919,7 @@ int code, ior;
         bufp = buf;
     }
     if (code == -10) {
-        sprintf(bufp, "Pascal system I/O error %d", ior);
+        sprintf(bufp, "System I/O error %d", ior);
         switch (ior) {
             case 3:
                 strcat(buf, " (illegal I/O request)");
@@ -956,7 +956,7 @@ int code, ior;
 		break;
         }
     } else {
-        sprintf(bufp, "Pascal system error %d", code);
+        sprintf(bufp, "System error %d", code);
         switch (code) {
             case -2:
                 strcat(buf, " (out of memory)");

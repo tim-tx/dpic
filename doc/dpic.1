@@ -1,0 +1,1283 @@
+.\" This is the man-page source for dpic on Unix or Linux systems.
+.\"
+.\" BSD Licence:
+.\" 
+.\" Copyright (c) 2011, J. D. Aplevich
+.\" All rights reserved.
+.\" 
+.\" Redistribution and use in source and binary forms, with or without
+.\" modification, are permitted provided that the following conditions
+.\" are met:
+.\" 
+.\" * Redistributions of source code must retain the above copyright
+.\" notice, this list of conditions and the following disclaimer.
+.\" 
+.\" * Redistributions in binary form must reproduce the above copyright
+.\" notice, this list of conditions and the following disclaimer in the
+.\" documentation and/or other materials provided with the distribution.
+.\" 
+.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER "AS IS" AND ANY
+.\" EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\" IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+.\" PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+.\" LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+.\" CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+.\" SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+.\" BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+.\" WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+.\" OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+.\" ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.\"
+.\" Use \(ts instead of ".
+.tr \(ts"
+.\"
+.TH DPIC 1 "2011 Mar 17"
+.SH NAME
+dpic \(hy convert pic\(hylanguage input to LaTeX\(hycompatible and other formats
+.SH SYNOPSIS
+.B "dpic [ \-efghmprstvxz ] ["
+.I infile
+.B "] [>"
+.I outfile
+.B "]"
+.P
+Typically
+.I infile
+is of the form
+.I name\
+[.\fRpic\fP]
+and
+.I outfile
+is of
+.\" .br
+the form
+.I name\
+[\fR.tex|.eps|.fig|.mp|.svg\fP]
+.SH "OPTIONS"
+.B (none)
+LaTeX drawing output (very limited font\(hybased drawing capability)
+.br
+.B \-e
+pict2e output
+.br
+.B \-f
+Postscript output, strings in psfrag format
+.br
+.B \-g
+TikZ\(hypgf output
+.br
+.B \-h
+write help message and quit
+.br
+.B \-m
+mfpic output (see mfpic documentation)
+.br
+.B \-p
+PSTricks output
+.br
+.B \-r
+raw Postscript output, no automatic string formatting
+.br
+.B \-s
+MetaPost output
+.br
+.B \-t
+eepicemu output (slightly less limited than LaTeX drawing output)
+.br
+.B \-v
+svg output
+.br
+.B \-x
+xfig 3.2 output
+.br
+.B \-z
+safe mode (access to external files disabled)
+.\"
+.SH DESCRIPTION
+Dpic accepts a tight subset of the pic drawing language accepted by GNU pic
+(sometimes named gpic)
+or AT&T pic,
+and emits lower\(hylevel drawing commands for insertion into LaTeX documents,
+for processing by the xfig or Inkscape
+drawing tools, or for direct display as encapsulated Postscript or SVG.
+Arbitrary text can be inserted into the output for later formatting,
+and arbitrary commands for the postprocessor (PSTricks, Tikz\(hypgf, etc.)
+can be included.
+
+Language extensions unique to dpic
+are also implemented for specific purposes.
+
+.SH "LANGUAGE SUMMARY"
+Input consists of a sequence of lines.
+The first line of a picture is
+.B ".PS"
+and the last is
+.B ".PE,"
+with lines between
+these two converted into low\(hylevel drawing commands for the postprocessor
+chosen by the option.
+Lines outside of
+.B ".PS ... .PE"
+pass through dpic unchanged.
+.SS Coordinates
+Coordinate axes in the pic
+language point to the right and up.
+The drawing units are inches by default but the statement
+.P
+.B "  scale = 25.4"
+.P
+at the beginning of the diagram has the effect of changing
+the units to millimetres.
+.\"
+.SS Drawn objects
+The primitive drawn objects consist of the planar objects
+.B "box, circle, ellipse;"
+the linear objects
+.B "line, arrow, move, spline;"
+and
+.B "arc,"
+which has characteristics of both planar and linear objects.
+A
+.I block
+is a pair of square brackets enclosing other objects:
+.B [
+.I anything
+.B ]
+and is a planar object.
+The complete diagram is contained implicitly in a block.
+.P
+A
+.I string
+is a planar object similar to a box,
+but the
+pic
+language also allows strings to be attached to other objects as overlays,
+in which case they are part of the object.
+.P
+The current drawing position
+.B Here
+is always defined. 
+Initially and at the beginning of a block,
+.B Here
+is 0,0.
+Similarly, the current direction, which can be any of
+.B "up, down, left, right,"
+is set as
+.B right
+initially.
+.P
+Each drawn object has an entry point and exit point, which depend
+on the current direction.
+The entry point is placed by default at the current position. 
+Objects can also be placed explicitly with respect to absolute
+coordinates or relative to other objects.
+The exit point becomes the new current position.
+.SS Labels
+A
+.I label
+in
+pic
+is an alphameric sequence that starts with an uppercase letter.
+Dpic allows variables and labels to be subscripted; thus
+.B T
+and
+.B T[5]
+are distinct labels.
+The value in brackets can be any expression
+but it is rounded to the nearest integer value.
+A label gives a symbolic name to a position or drawn object;
+for example,
+.P
+.B "   Post: Here + (1,2)"
+.br
+.B "   Bus[23]: line right 4"
+.SS Defined points
+Once drawn, a linear object has defined points
+.B ".start, .center,"
+and
+.B ".end,"
+which can be referenced as known positions, for example,
+.P
+.B "   L: line; line up 0.5 from L.c"
+.P
+where
+.B .center
+has been abbreviated as
+.B .c
+.P
+The defined points for a planar object are the compass points
+on its periphery given by
+.B ".n, .s, .e, .w, .nw, .ne, .se, .sw,"
+together with
+.B ".center, .top, .bottom, .right, .left." 
+For an arc, these points correspond to the circle of which the arc is a
+part, with the addition of
+.B .start
+and
+.B .end.
+.P
+A
+.I block
+has defined points similar to a box, but can also have others in its
+interior.
+Using the example
+.P
+.B "   A: [ circle; Q: [ line; circle ]; T: Q.n ]"
+.P
+the defined points are as follows:
+.P
+   The points of the outer block as if it were a box, for
+.\" .br
+   example,
+.B A.ne
+.P
+   A position defined in the block, for example,
+.B A.T
+.P
+   The defined points of labeled objects inside the block,
+.\" .br
+   preceded by a dot, for example,
+.B A.Q
+(the centre of
+.\" .br
+   block
+.B Q),
+or
+.B A.Q.ne
+(the northeast corner of
+.B Q).
+.P
+   The defined points of enumerated objects inside the
+.\" .br
+   block, preceded by a dot (but make sure there is a space
+.\" .br
+   after the dot if it is followed by a number rather than
+.\" .br
+   an expression in braces), for example,
+.B "A.Q. 1st circle.n"
+.\" .br
+   or (better)
+.B "A.Q.{1}st circle.n"
+.SS Language elements
+The lines defining a picture are separated by newline characters
+or semicolons.
+Newlines are significant except after
+.B "then, ;, :, {, else,"
+or newline.
+.P
+A line is continued to the next if the rightmost character is a backslash.
+.P
+Lines beginning with a period are ignored, except for
+.B .PS
+and
+.B .PE
+lines.
+.P
+The
+pic
+source may be commented by placing each comment to the right of a
+.B #
+character (unless the
+.B #
+is in a string).
+.P
+The language elements include the following:
+.P
+   A drawing command with optional label, for example,
+.\" .br
+.B box
+or
+.B "A: box"
+.P
+   A position\(hylabel definition, for example
+.B A:
+.I position
+.P
+   An assignment to a variable, for example
+.B x = 5
+.P
+   A
+.I direction
+(to change the default), for example,
+.B up
+.P
+Branching is performed by
+.P
+.B "   if"
+.I expr
+.B "then {"
+.I dotrue
+.B "} else {"
+.I dofalse
+.B }.
+.P
+The looping facility is
+.P
+.B "   for"
+.I variable
+.B =
+.I expr
+.B to
+.I expr
+.B "[by [*]"
+.I incr
+.B "] do {"
+.I anything
+.B "}."
+.P
+The loop variable is incremented by 1 by default, otherwise by
+.I incr
+(which may be a negative expression)
+unless it is preceded by the asterisk, in which case the loop variable
+is multiplied by
+.I incr.
+The loop variable may be changed by the statements in the loop, thereby
+controlling the number of loop repetitions.
+.P
+Braces occur in several contexts.
+When used independently of other language elements, as
+.P
+.B "   {"
+.I anything
+.B "}"
+.P
+the left brace
+saves the current position and direction, and the right brace restores
+them to the saved values after the enclosed lines have been processed.
+.P
+Arbitrary postprocessor commands can be generated using
+.P
+.B "   command"
+.I string,
+.P
+which inserts the contents of
+.I string
+into the output.
+The
+.I string
+contents must be compatible with the chosen postprocessor.
+Similarly, any line that begins with a backslash is copied literally
+to the output.
+.P
+The line
+.P
+.B "   exec"
+.I string
+.P
+executes the contents of
+.I string
+as if it were a normal input line.
+.P
+To execute operating-system shell commands, use
+.P
+.B "   sh"
+.I string
+.P
+and to read lines from an external file, use
+.P
+.B "   copy"
+.I string
+.P
+These commands are disabled by the
+dpic
+option
+.B \-z
+or by a compile\(hytime switch.
+.P
+The command
+.P
+.B "   print"
+.I "expr|position|string"
+.B "[ >"
+.I string
+.B "| >>"
+.I string
+.B ]
+.P
+prints or appends its argument to the file named in the string
+on the right, or by default to the standard error.
+Printing to a file is disabled by the \-z option.
+.P
+.SS Macros
+The
+pic
+language includes macro definition and expansion, using
+.P
+.B "   define"
+.I name
+.B "{"
+.I anything
+.B "},"
+.P
+so that, when
+.I name
+appears alone or with arguments as
+.I name
+.B "("
+.I "arg, ..."
+.B ")"
+then it is replaced by the contents between the braces in the definition.
+A comma in an argument list is ignored within a string or parentheses.
+In this substitution, occurrences of
+.B $1
+are replaced by the first argument, and so on for other arguments.
+The value
+.B $+
+in a macro is the number of arguments given to the macro.
+dpic
+ignores white space (spaces, new lines, and tab characters) that directly
+precede an argument in a macro invocation.
+A macro definition can be deleted by
+.P
+.B "   undefine"
+.I name
+.P
+Macro definitions are global, which may require judicious
+undefinition of macros if there is a risk of name clashes.
+.\" .SS Object sizes
+.\" Objects are drawn by specifying their size parameters
+.\" .B "height, width, radius, diameter,"
+.\" or truncated as
+.\" .B "ht, wid, rad, diam,"
+.\" respectively, as needed; for example,
+.\" .P
+.\" .B "   A: box [height"
+.\" .I expr]
+.\" .B [width
+.\" .I expr]
+.\" .P
+.\" but a default value is used if any parameter is omitted.
+.\" Thereafter, the size parameters of the object can be used
+.\" in expressions, for example
+.\" .P
+.\" .B "   circle diam A.ht"
+.SS Drawing commands
+An object is drawn using the following general format:
+.P
+.I "   "
+.B "["
+.I Label
+.B ":]"
+.I object
+.B "["
+.I attributes
+.B "] ["
+.I placement
+.B "] ["
+.I strings
+.B "]"
+.P
+The items following
+.I object
+can occur in any order, but the order can make a difference to the
+drawn result, since lines are read and interpreted from left to right.
+Defaults are assumed for all drawing parameters as necessary.
+For example, the sequence
+.P
+.B "   circle" \(tsChew\(ts; arrow; box \(tsSwallow\(ts
+.br
+.B "   line; arc cw ->; ellipse \(tsDigest\(ts"
+.P
+draws a simple flow diagram using default sizes for all objects,
+with centered words in the circle, box, and ellipse. 
+.\"
+.SS Attributes
+The size and other parameters control the appearance of objects.
+An
+.I attribute
+is a keyword or keywords with expressions as appropriate.
+.P
+The dimension attributes are
+the following, showing valid abbreviations:
+.P
+.B "   height|ht|width|wid|radius|rad|diameter|diam|scaled"
+.I expr
+.P
+When appended to linear objects,
+.B height
+and
+.B width
+apply to arrowhead dimensions.
+The
+.B scaled
+attribute scales the object by
+.I expr.
+.P
+The postprocessed size of a string is unknown in advance to the
+pic
+processor, but once known, the bounding box dimensions can be specified
+explicitly as for other drawn objects, as shown:
+.P
+.I "   string"
+.B wid
+.I expr
+.B ht
+.I expr
+.P
+The thickness of lines defining an object are modified using
+the environmental variable
+.B linethick
+or the attribute
+.P
+.B "   thickness|thick"
+.I expr
+.P
+expressed in points.
+Line thickness is independent of any scaling.
+.P
+Solid lines are drawn by default; this can be modified with
+.P
+.B "   solid|invisible|invis"
+.P
+or with
+.P
+.B "   dotted|dashed ["
+.I expr
+.B "]"
+.P
+the optional expression in the latter setting the length and distance
+between dashes or dots.
+.P
+The following attributes are for putting arrowheads at the start, end,
+or both ends of a linear object:
+.P
+.B "   <\-|\->|<\-> ["
+.I expr
+.B "]"
+.P
+The shape parameter
+.I expr
+may be omitted, in which case the value of the environment variable
+.B arrowhead
+is used.
+The default for
+.B arrow
+is
+.B "\->."
+.P
+The drawing direction of an arc is changed by the attribute
+.P
+.B "   ccw|cw"
+.P
+with
+.B ccw
+the default.
+.P
+To fill an object or path with a shade of gray, use the attribute
+.P
+.B "   fill ["
+.I expr
+.B "]"
+.P
+where a value of 1 means white, and 0 means black.
+Paths can be filled where the postprocessor allows.
+.P
+Line color can be set using
+.P
+.B "   outline|outlined"
+.I string
+.P
+where the contents of the string depend on the postprocessor.
+The predefined colours of LaTeX or Tikz\(hypdf packages can be specified.
+The
+pic
+language knows no details about color; the string contents must be
+compatible with the postprocessor.
+Custom colors have to be defined using the
+.P
+.B "   command"
+.I string
+.P
+facility so that the postprocessor will know about them.
+.P
+Filling by color is similar, using the attribute
+.P
+.B "   shaded"
+.I string
+.P
+and, when both the fill and outline colors are the same, the two
+attributes can be combined as
+.P
+.B "   colour|color|colored|coloured"
+.I string
+.P
+in which all four spellings are equivalent.
+.P
+Finally, the attribute
+.P
+.B "   same"
+.P
+duplicates the properties of the previously drawn object of the same type,
+but with the current default placement.
+.P
+In addition to scale changes effected by the
+.B scale
+variable, the size of the complete picture can be set
+by appending one or two terms to the
+.B .PS
+line as shown:
+.P
+.B "   .PS"
+[x [y]]
+.P
+where x and y evaluate to constant values.
+On encountering the 
+.B ".PE"
+line, the picture width w and height h are calculated.
+If x > 0 then the picture is scaled so that w = x.
+If h > y > 0 or if x = 0 and y > 0 then the picture is scaled
+so that h = y.
+Horizontal and vertical scaling are not independent.
+Text size, line thickness, and arrowheads are not scaled.
+The units are inches, so for example,
+.P
+.B "   .PS 100/25.4"
+.P
+sets the final picture width to 100 mm.
+Printed string text may extend beyond the rectangular boundaries
+defined by w and h unless the text dimensions have been explicitly set.
+.P
+If the final diagram width exceeds
+.B maxpswid
+or the height exceeds
+.B maxpsht
+then the diagram is scaled as for x and y above.
+.\" 
+.SS Placement of drawn objects
+An object is placed by default so that its entry is at
+the current point.
+.P
+Explicit placement is obtained with
+.P
+.I "   object"
+.B at
+.I position
+.P
+which centers the object at
+.I position,
+or
+.P
+.I "   object"
+.B with
+.I defined point
+.B at
+.I position
+.P
+for example,
+.P
+.B "   arc cw from"
+.I position
+.B to
+.I position
+.B "with .c at"
+.I position
+.P
+A block can also be positioned by reference to a displacement from its
+lower left corner, for example,
+.P
+.B "   A: [" 
+.I contents
+.B "] with (0.5,0.2) at"
+.I position.
+.P
+Linear objects are placed by default with the
+.B .start
+point placed at the current drawing
+postion; otherwise linear objects are defined using a
+.I linespec,
+which is of the form
+.P
+.I "linespec"
+.B "= from"
+.I position
+.B "| to"
+.I position
+.B "|"
+.I direction
+.B "["
+.I expr
+.B "]"
+.br
+.B "          |"
+.I "linespec linespec"
+.br
+.B "          |"
+.I "linespec"
+.B then
+.I linespec
+.P
+where
+the second line means that
+.I linespecs
+can be concatenated, and the third
+that multisegment linear objects are drawn using multiple
+.I linespecs
+separated by
+.B then.
+.P
+As an example, the following draws a triangle with the leftmost vertex
+at the current point:
+.P
+.B "   line up 2 right 1.5 then down 3 then to Here"
+.P
+Exceptionally, the
+.I linespec
+.P
+.B "   to"
+.I position
+.B to
+.I position
+.B "to ..."
+.P
+is multiple and does not require the
+.B then
+keyword.
+.P
+A single
+.I expr
+is also an acceptable
+.I linespec
+immediately after a linear object and means that the
+.I object
+is drawn to length
+.I expr
+in the current direction.
+The exception to this is
+.P
+.B "   spline"
+.B "["
+.I expr
+.B "]"
+.I linespec
+.P
+for which the
+.I expr
+is a spline tension parameter.
+If
+.I expr
+is omitted, a straight line is drawn to the midpoint of the first two
+spline control points and from the midpoint of the last two to the last
+point; the spline is tangent to all midpoints between control points.
+If
+.I expr
+is present, the spline is tangent at the first and last control points
+and at all other midpoints, and the spline tension can be
+adjusted.
+Tension values between 0 and 1 are typical.
+.P
+In cases where all of the points of a multisegment linear object are
+not known in advance or inconvenient to calculate, the drawing command
+.P
+.B "   continue"
+.I linespec
+.P
+will append a segment to the previously drawn linear object as if
+.B continue
+were
+.B then,
+with two differences.
+Arbitrary calculations may be done between the previous object and the
+.B continue
+statement, and the current point is the exit point of the previous object.
+.P
+The construction
+.P
+.B "   line from"
+.I position
+.B to
+.I position
+.B chop
+.I expr
+.P
+truncates the line at each end by the value of
+.I expr
+or, if
+.I expr
+is omitted, by the current circle radius.
+Otherwise
+.P
+.B "   line from"
+.I position
+.B to
+.I position
+.B chop
+.I expr1
+.B chop
+.I expr2
+.P
+truncates the line by the two specified distances at the ends.
+Truncation values can be negative.
+.P
+The attribute
+.P
+.B "   by"
+.I position
+.P
+is for positioning, for example,
+.P
+.B "   move by (5,6)"
+.SS Variables and expressions
+Variable names are alphameric sequences beginning with a lower\(hycase
+letter, optionally subscripted as for labels, and are defined by
+assignment.
+For example, the following line defines the variable
+.B x
+if it does not already exist in the current scope:
+.P
+.B "   x ="
+.I expr
+.P
+The scope of
+pic
+variables is the current block in which they are defined, including blocks
+defined later within the current block.
+The assignment
+.P
+.B "   x :="
+.I expr
+.P
+requires
+.B x
+to have been defined previously in the current block or an enclosing block.
+.P
+Expressions consist of floating\(hypoint values combined using the unary
+operator "!" for logical negation and the usual parentheses and binary
+operators in decreasing order of precedence:
+.P
+.B "   ^"
+.br
+.B "   * / %"
+.br
+.B "   + \-"
+.br
+.B "   == != >= <= < >"
+.br
+.B "   &&"
+.br
+.B "   ||"
+.P
+In logical tests, the value 0 is equivalent to false and a nonzero value
+to true, with resulting true value of 1.
+.P
+A floating\(hypoint value is obtained as
+an integer, a number with
+.B e
+syntax, a function value, a size value of a drawn object, for example,
+.P
+.B "   last box.ht,"
+.P
+or the horizontal or vertical coordinate of a
+.B position,
+obtained respectively as
+.P
+.I "   position"
+.B .x|.y
+.P
+The one\(hyargument functions are
+.B "abs, acos, asin, cos, exp, expe, int, log, loge,"
+.B "sign, sin, sqrt, tan, floor."
+The functions
+.B exp
+and
+.B log
+are base 10.
+The function
+.B rand()
+delivers a random number between 0 and 1, and
+.B rand
+.I (expr)
+initializes the random number generator.
+.P
+The two\(hyargument functions are
+.B "atan2, max, min, pmod"
+where
+.B pmod
+is the modulo function delivering a positive value.
+.\" .SS Scope of variables
+.SS Predefined environment variables
+A set of predefined variables establishes the default values of drawing
+parameters.
+Their values are inherited from the superior block, but can be changed
+by assignment.
+They can be used in expressions like other variables.
+The variables, their default values, and default uses are given below
+.P
+.B "   arcrad       "
+0.25   arc radius
+.br
+.B "   arrowht      "
+0.1    length of arrowhead
+.br
+.B "   arrowwid     "
+0.05   width of arrowhead
+.br
+.B "   boxht        "
+0.5    box height
+.br
+.B "   boxrad       "
+0      radius of rounded box corners
+.br
+.B "   boxwid       "
+0.75   box width
+.br
+.B "   circlerad    "
+0.25   circle radius
+.br
+.B "   dashwid      "
+0.05   dash length for dashed lines
+.br
+.B "   ellipseht    "
+0.5    ellipse height
+.br
+.B "   ellipsewid   "
+0.75   ellipse width
+.br
+.B "   lineht       "
+0.5    height of vertical lines
+.br
+.B "   linewid      "
+0.5    length of horizontal lines
+.br
+.B "   movewid      "
+0.5    length of horizontal moves
+.br
+.B "   movewid      "
+0.5    length of horizontal moves
+.br
+.B "   textht       "
+0      assumed height of text
+.br
+.B "   textoffset   "
+2.5/72 text justification gap
+.br
+.B "   textwid      "
+0      assumed width of text
+.P
+When a value is assigned to the variable
+.B scale,
+all of the above values are multiplied by the new value of
+.B scale.
+The drawing units are thereby changed but the default physical sizes of
+drawn objects remain unchanged since, on final output, dimensions are
+divided by the
+.B scale
+value.
+In addition, the following are unchanged by
+.B scale:
+.P
+.B "   arrowhead    "
+1      arrowhead shape
+.br
+.B "   fillval      "
+0.5    fill density
+.br
+.B "   linethick    "
+0.8    line thickness in points
+.br
+.B "   maxpsht      "
+11.5   maximum allowed diagram height
+.br
+.B "   maxpswid     "
+8.5    maximum allowed diagram width
+.br
+.B "   scale        "
+1      drawing unit scale factor
+.P
+The variables
+.B maxpswid
+and
+.B maxpsht
+may have to be redefined for large diagrams or
+landscape figures, for example.
+.SS Positions
+A
+.I position
+is equivalent to a coordinate pair defined in current drawing units,
+and can be expressed in the following forms:
+.P
+.B "   Here"
+.\" .br
+   The current drawing position.
+.P
+.I "    expr,expr"
+.\" .br
+   A pair of expressions separated by a comma.
+.P
+.B "   ("
+.I position
+.B ")"
+.\" .br
+   A position in parentheses for grouping.
+.P
+.B "   ("
+.I position
+.B ","
+.I position
+.B ")"
+.\" .br
+   Takes the horizontal value from the first position and
+.\" .br
+   the vertical value from the second.
+.P
+.I "    position"
+.B "+|\-"
+.I position
+.\" .br
+   Vector addition.
+.P
+.I "    position"
+.B "*|/"
+.I expr
+.\" .br
+   Scalar postmultiplication.
+.P
+.I "    Label"
+.\" .br
+   The label of a defined position or object.
+The position
+.\" .br
+   is the center of the object.
+.P
+.I "    expr" 
+.B "[of the way] between"
+.I position
+.B and
+.I position
+.P
+   The example
+.B "x between A and B"
+is equal to
+.B "A*(1\-x) + B*x."
+   Any value of
+.I expr
+is allowed.
+.P
+.I "    expr"
+.B <
+.I position, position
+.B >
+.\" .br
+   An abbreviated equivalent of the previous form.
+.P
+.I "    number"
+.B "st|rd|nd|th [last]"
+.I object
+.\" .br
+   An enumerated object within the current block.
+.P
+   The
+.I object
+is one of
+.P
+.B "   line, move, arrow, arc, box, ellipse, circle, spline, [],\(ts\(ts" .
+.P
+The number can be
+.\" .br
+   replaced by
+.B "{"
+.I expr
+.B "}."
+For example,
+.B last \(ts\(ts
+means the
+.\" .br
+   last string, and
+.B "{2^2}nd []"
+means the fourth block in the
+.\" .br
+   current scope.
+The position is the center of the object.
+.P
+Parentheses may be required when composite positions or expressions
+are used in the above forms.
+.P
+Finally, a position can be expressed as
+.P
+.I "   object"
+.B .
+.I defined point
+.SS Strings
+A
+.I string
+is a sequence of characters enclosed in double quotes.
+To include a double quote in a string, precede it with a backslash. Strings
+can be concatenated using the
+.B "+"
+operator.
+The C\(hylike function
+.P
+.B "   sprintf("
+.I "format string, expr, ..."
+.B ")"
+.P
+is equivalent to a string.
+Expressions are floating\(hypoint values, so the only applicable number
+formats are
+.B "e, f,"
+and
+.B "g." 
+.P
+Multiple strings such as
+.I \(tstext1\(ts \(tstext2\(ts
+are stacked and centered vertically.
+.P
+A string attached to an object overlays the object at the center, and
+any
+.B height
+or
+.B width
+attributes apply to the object, not the string.
+However, the justification attributes
+.B ljust
+and
+.B rjust
+can be applied to the individual strings of a stack overlaying
+an object.
+.P
+An independent string is placed with its center at the current point
+by default, or by specifying the position of one of its defined points
+as for any
+.I object,
+for example,
+.P
+.B "   "
+.B "   \(tsCrunchy crackers\(ts wid 82.3/72 ht 9.7/72 with .sw at Q"
+.P
+The placement qualifiers
+.B "above, below, ljust, rjust"
+place the string above, below, or justified with respect to the
+placement point.
+For example,
+.P
+.B "   \(tsCrunchy crackers\(ts at Q ljust above"
+.P
+places the string above and
+.B textoffset
+units to the right of
+.B Q.
+.SH "EXAMPLES"
+Source file example.pic:
+.P
+.B "  \edocumentclass{article}"
+.br
+.B "  \eusepackage{tikz}"
+.br
+.B "  \ebegin{document}"
+.br
+.B "  .PS"
+.br
+.B "  box dashed \(tsHello\(ts \(tsWorld\(ts"
+.br
+.B "  .PE"
+.br
+.B "  \eend{document}"
+.P
+The command
+.BR
+.P
+.B "   dpic \-g example.pic > example.tex; pdflatex example"
+
+produces example.pdf containing a dashed box with Hello and World
+stacked inside.
+.P
+To produce a .tex file containing PSTricks drawing commands for
+insertion into a LaTeX document using the \einput command,
+delete the first three and last lines in the above source
+and process using the
+.B \-p
+option of
+dpic.
+.P
+Similarly, the picture source
+.P
+.B "  .PS"
+.br
+.B "  \edefinecolor{puce}{rgb}{0.8,0.53,0.6}%"
+.br
+.B "  box shaded \(tspuce\(ts"
+.br
+.B "  .PE"
+.P
+produces a box filled with a flea\(hylike color when processed with
+.B "dpic \-g"
+or
+.B "dpic \-p"
+and the resulting file is inserted into a latex source file invoking,
+respectively, the tikz or pstricks package.
+.SH "SEE ALSO"
+.P
+E. S. Raymond, E. S.,
+.I Making Pictures with GNU PIC,
+1995.
+.\" .br
+In GNU groff source distribution;
+.\" .br
+http://www.kohala.com/start/troff/gpic.raymond.ps
+.\" .br
+(A good introduction to the pic language, with elementary
+illustrations.)
+.P
+J. D. Aplevich,
+.I Drawing with dpic,
+2011,
+.\" .br
+http://ece.uwaterloo.ca/~aplevich/dpic/dpicdoc.pdf
+.\" .br
+(Specific discussion of dpic
+facilities and extensions, with differences between dpic and GNU pic.)
+.P
+B. W. Kernighan, B. W. and D. M. Richie,
+.I PIC \(hy A Graphics Language for Typesetting, User Manual,
+1991.
+.\" .br
+AT&T Bell Laboratories,
+Computing Science Technical Report
+.\" .br
+116.
+(The original Unix
+pic.)
+.P
+J. D. Aplevich,
+.I M4 Macros for Electric Circuit Diagrams in LaTeX Documents,
+2011.
+File CMman.pdf in the graphics/Circuit_macros section
+of CTAN repositories.
+(Extension of the pic
+language using the m4 macro processor for drawing electric circuits
+and other diagrams.)
+.\"
+.SH AUTHOR
+    Dwight Aplevich <aplevich at uwaterloo dot ca>
+.\"   Copyright (c) 2011, J. D. Aplevich
+.\"   .SH BSD licence:
+.\"   .P
+.\"   All rights reserved.
+.\"   .P
+.\"   Redistribution and use in source and binary forms, with or without
+.\"   modification, are permitted provided that the following conditions
+.\"   are met:
+.\"   .P
+.\"   * Redistributions of source code must retain the above copyright
+.\"   notice, this list of conditions and the following disclaimer.
+.\"   .P
+.\"   * Redistributions in binary form must reproduce the above copyright
+.\"   notice, this list of conditions and the following disclaimer in the
+.\"   documentation and/or other materials provided with the distribution.
+.\"   .P
+.\"   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER "AS IS" AND ANY
+.\"   EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+.\"   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+.\"   PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+.\"   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+.\"   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+.\"   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+.\"   BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+.\"   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+.\"   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+.\"   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.\"
+.\" .LP
+.\" LIKE ANYTHING ELSE THAT'S FREE, DPIC AND ITS ASSOCIATED UTILITIES ARE
+.\" PROVIDED AS IS AND COME WITH NO WARRANTY OF ANY KIND, EITHER EXPRESSED OR
+.\" IMPLIED. IN NO EVENT WILL THE COPYRIGHT HOLDER BE LIABLE FOR ANY DAMAGES
+.\" RESULTING FROM THE USE OF THIS SOFTWARE.

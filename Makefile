@@ -1,6 +1,6 @@
 # Installation shortcuts: change the following and type "make install"
 
-# For Fedora Linux (expects "make DESTDIR=xxx PREFIX=yyy install"):
+# For Linux (expects "make DESTDIR=xxx PREFIX=yyy install"):
 DESTDIR = $${HOME}
 PREFIX = .
 DEST = ${DESTDIR}/${PREFIX}/bin
@@ -26,9 +26,8 @@ DEST = ${DESTDIR}/${PREFIX}/bin
 # and try again:
 # DEFINEB=-DNO_SNPRINTF
 
-# Server operation: Use the -z option of dpic or uncomment the following to
-# compile dpic with sh and copy commands disabled to prevent access to system
-# files.
+# Server operation: Use the -z option or uncomment the following to compile
+# with read and write access (sh and copy) to arbitrary files disabled.
 # SAFEMODE= -DSAFE_MODE
 
 # For DJGPP compilation:
@@ -45,8 +44,9 @@ DEST = ${DESTDIR}/${PREFIX}/bin
 # CC=xlc
 
 # other.  cc usually works too.
-CFLAGS = $(DEFINEA) $(DEFINEB) $(SAFEMODE) -O
+CFLAGS += $(DEFINEA) $(DEFINEB) $(SAFEMODE) -O
 CC=gcc
+# CC?=gcc
 CC=gcc -ansi
 
 OBJECTS = dpic.o p2clib.o
