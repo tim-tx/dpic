@@ -2,7 +2,7 @@
 .\"
 .\" BSD Licence:
 .\" 
-.\" Copyright (c) 2011, J. D. Aplevich
+.\" Copyright (c) 2014, J. D. Aplevich
 .\" All rights reserved.
 .\" 
 .\" Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@
 .\" Use \(ts instead of ".
 .tr \(ts"
 .\"
-.TH DPIC 1 "2011 Mar 17"
+.TH DPIC 1 "2014 Jan 1"
 .SH NAME
 dpic \(hy convert pic\(hylanguage input to LaTeX\(hycompatible and other formats
 .SH SYNOPSIS
@@ -102,10 +102,12 @@ for processing by the xfig or Inkscape
 drawing tools, or for direct display as encapsulated Postscript or SVG.
 Arbitrary text can be inserted into the output for later formatting,
 and arbitrary commands for the postprocessor (PSTricks, Tikz\(hypgf, etc.)
-can be included.
+can be included. Dpic returns EXIT_SUCCESS (normally 0)
+if messages no more severe than warnings were generated,
+otherwise EXIT_FAILURE (normally 1).
 
-Language extensions unique to dpic
-are also implemented for specific purposes.
+A few language extensions unique to dpic
+are implemented for specific purposes.
 
 .SH "LANGUAGE SUMMARY"
 Input consists of a sequence of lines.
@@ -166,7 +168,7 @@ is set as
 .B right
 initially.
 .P
-Each drawn object has an entry point and exit point, which depend
+Each drawn object has an entry point and exit point that depend
 on the current direction.
 The entry point is placed by default at the current position. 
 Objects can also be placed explicitly with respect to absolute
@@ -267,7 +269,7 @@ or newline.
 .P
 A line is continued to the next if the rightmost character is a backslash.
 .P
-Lines beginning with a period are ignored, except for
+Non-continuation lines beginning with a period are ignored, except for
 .B .PS
 and
 .B .PE
@@ -1219,7 +1221,7 @@ illustrations.)
 .P
 J. D. Aplevich,
 .I Drawing with dpic,
-2011,
+2014,
 .\" .br
 http://ece.uwaterloo.ca/~aplevich/dpic/dpicdoc.pdf
 .\" .br
@@ -1239,7 +1241,7 @@ pic.)
 .P
 J. D. Aplevich,
 .I M4 Macros for Electric Circuit Diagrams in LaTeX Documents,
-2011.
+2014.
 File CMman.pdf in the graphics/Circuit_macros section
 of CTAN repositories.
 (Extension of the pic

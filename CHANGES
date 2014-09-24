@@ -2,6 +2,14 @@ Recent changes have been as follows. Distribution dates other than
 those shown correspond to changes (usually of documentation) not involving
 functionality.
 
+2014 01 26 Tweak svg string output.
+2014 01 01 Input lines of arbitrary length and line continuation (except in
+  strings).  Object parameters .thick = .thickness and .len = .length,
+  eg t=last box.thick; q = last line.len
+2013 09 30 Better portability of the random() function
+2013 03 09 Minor tweak to svg output
+2013 02 27 dpic returns EXIT_FAILURE on fatal errors or (errcount > 0);
+   warnings are not counted.
 2012 11 04 Change to always send errors to /dev/stderr
 2012 07 07 Fixed the previous fix to handle planar objects correctly
 2012 06 20 Give line attributes the effect behaviour for pgf and pstricks ouput
