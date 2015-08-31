@@ -2,6 +2,15 @@ Recent changes have been as follows. Distribution dates other than
 those shown correspond to changes (usually of documentation) not involving
 functionality.
 
+2015 08 31 Ljust and rjust text offset equal for single and multiple strings.
+2015 08 13 Catch return value of the sh command.
+2015 06 29 Fixed a bug in svg output.
+2015 06 15 Undeferred error messaging. Improved readability of C code.
+2015 04 01 Fix comment lines containing braces in macro and for bodies. Revised
+  messages for some errors.
+2015 02 13 Reworked the handling of backslashes in strings in macro arguments.
+2015 02 04 PDF output. Built-in variable dpicopt and variables added for
+  detecting command options.  Linear objects reworked for consistent fill.
 2014 01 26 Tweak svg string output.
 2014 01 01 Input lines of arbitrary length and line continuation (except in
   strings).  Object parameters .thick = .thickness and .len = .length,
@@ -59,4 +68,5 @@ functionality.
 2008 10 29 More detailed syntax error messages.
 
 For several years prior to mid-2008, there were few changes to dpic except
-for the occasional bug fix.
+for the occasional bug fix.  Feel free to report any bugs in the latest
+version.

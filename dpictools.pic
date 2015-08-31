@@ -1,0 +1,266 @@
+# dpictools.pic
+# Some pic macros.  Input this file using
+# copy "HOMELIB_/dpictools.pic" when HOMELIB_ is defined or, generically,
+# copy "<path>dpictools.pic"
+
+# Circuit_macros Version 8.2, copyright (c) 2015 J. D. Aplevich under     #
+# the LaTeX Project Public License. The files of this distribution may    #
+# be redistributed or modified provided that this copyright notice is     #
+# included and provided that modifications are clearly marked to          #
+# distinguish them from this distribution.  There is no warranty          #
+# whatsoever for these files.                                             #
+
+#                   findroot(function,left bound,right bound,tolerance,var name)
+#                   Solve function(x)=0 by the method of bisection
+#                   e.g. define parabola { $2 = ($1)^2 - 1 }
+#                   findroot( parabola, 0, 2, 1e-8, x )
+define findroot {$5 = 0; [ x_m = $2; x_M = $3
+  loop( $1(x_m,f_m);, abs(x_M-x_m)>$4,,
+    x_c = (x_m+x_M)/2
+    $1(x_c,f_c)
+    if sign(f_c)==sign(f_m) then {x_m=x_c} else {x_M=x_c};)
+  $5 := (x_m+x_M)/2 ]; }
+
+#                   bisect(function,left bound,right bound, tolerance, var name)
+#                   Like findroot but uses recursion
+define bisect { x_m_$1 = $2; x_M_$1 = $3
+  x_c_$1 = (x_m_$1+x_M_$1)/2
+  if (abs(x_m_$1-x_M_$1) <= $4) then { $5 = x_c_$1 } else {
+     $1(x_m_$1,f_m_$1)
+     $1(x_c_$1,f_c_$1)
+     if (sign(f_c_$1)==sign(f_m_$1)) then { bisect($1,x_c_$1,x_M_$1,$4,$5) } \
+     else { bisect($1,x_m_$1,x_c_$1,$4,$5) } } }
+
+#                               Case statement: execute alternative i
+#                               case(i, alt1, alt2, ... ), e.g.,
+#                               case(2, x = 5, x = 10, x = 15) sets x to 10
+define case { exec sprintf("$%g",floor($1+0.5)+1); }
+
+#                               testexpr(i, expr1, expr2, ... )
+#                               Set i to index of the first true alternative
+#                               in a sequence of logical expressions, e.g.,
+#                               testexpr(i, 1>2, 1<2) returns 2; returns 0
+#                               if no test is true. 
+define testexpr { $1 = 0; [for i=2 to $+ do {
+  exec sprintf("if $%g then {$1 := i-1; i=$+}",i); }]; }
+
+#                               loop(initial,test,loopend,statements)
+#                               C-like loop.  Commas in arg3 and arg4 must
+#                               be in quotes or parentheses, e.g.,
+#                               loop(i=1,i<=3,i+=1,print i) prints 1, 2, 3
+ld__ = 0
+define loop {ld__+=1
+ $1
+ for lx__[ld__]=0 to 1 do {
+    if $2 then { lx__[ld__]=0; $4; $3; } else { lx__[ld__]=1 }}
+ ld__-=1; }
+
+#                               array(var,expr1,expr2,...)
+#                               var[1]=expr1; var[2]=expr2,...
+define array {
+ for i_array=2 to $+ do { exec sprintf("$1[%g] = $%g",i_array-1,i_array); }}
+
+#                               slantbox(wid,ht,xslant,yslant,lineattribs)
+define slantbox { [
+  if "$1"=="" then { w = boxwid } else { w = $1 }
+  if "$2"=="" then { h = boxht } else { h = $2 }
+  if "$3"=="" then { xs = 0 } else { xs = $3 }
+  if "$4"=="" then { ys = 0 } else { ys = $4 }
+  NE: (w+xs,h+ys)/2 ; SE: (w-xs,-h+ys)/2
+  SW: (-w-xs,-h-ys)/2 ; NW: (-w+xs,h-ys)/2
+  N: 0.5 between NW and NE ; E: 0.5 between NE and SE
+  S: 0.5 between SE and SW ; W: 0.5 between SW and NW
+  C: 0.5 between SW and NE
+  line $5 from N to NE then to SE then to SW then to NW then to N
+  ] }
+#                               arraymax( data array, n, index name, value)
+#                               Find the index in array[1:n] of the first
+#                               occurrence of the max value.  The value is
+#                               assigned if arg4 is non-blank.  eg.,
+#                               array(x,4,9,8,6); arraymax( x,4,i )
+#                               assigns 2 to i, and arraymax( x,4,i,m )
+#                               assigns 2 to i and 9 to m
+define arraymax { { $3 = -1; if "$4" != "" then { $4 = 0 }; [ m_arrm = -1e25
+ for i_arrm=1 to $2 do { if $1[i_arrm] > m_arrm then {
+   $3 := i_arrm; m_arrm = $1[i_arrm] }}
+ if "$4" != "" then { $4 := m_arrm } ] } }
+
+#                               arraymin( data array, n, index name, value)
+#                               Like arraymax
+define arraymin { { $3 = -1; if "$4" != "" then { $4 = 0 }; [ m_arrm = 1e25
+ for i_arrm=1 to $2 do { if $1[i_arrm] < m_arrm then {
+   $3 := i_arrm; m_arrm = $1[i_arrm] }}
+ if "$4" != "" then { $4 := m_arrm } ] } }
+
+#                               copythru(macro_name,"datafile")
+#                               See the GNU pic manual
+#                               Implements copy datafile thru macro_name
+#                               for data separated by comma, spaces, or tabs
+define copythru {
+ sh "sed -e 's/^[ 	]*/$1(/' -e 's/[ 	]*$/)/' -e 's/[, 	][ 	]*/,/g' $2 \
+   > copy_tmp__"
+ copy "copy_tmp__"
+ sh "rm -f copy_tmp__";}
+
+#                               randn(array name,n,mean,stddev)
+#                               Assign n Gaussian random numbers
+#                               in array[1] ... array[n]
+define randn {
+  if "$2"=="" then { n_randn = 1 } else { n_randn = $2 }
+  if "$3"=="" then { m_randn = 0 } else { m_randn = $3 }
+  if "$4"=="" then { s_randn = 1 } else { s_randn = $4 }
+  for i_randn=1 to n_randn by 2 do {
+    loop( t_randn=2, t_randn >= 1, u_randn = 2*rand()-1; v_randn = 2*rand()-1
+      t_randn = u_randn^2+v_randn^2 )
+    t_randn = sqrt( -2*loge(t_randn)/t_randn )
+    $1[i_randn] = u_randn*t_randn*s_randn+m_randn
+    if i_randn < n_randn then {
+      $1[i_randn+1] = v_randn*t_randn*s_randn+m_randn }
+    }
+  }
+
+#                               histbins { data array name, n, [min], [max],
+#                                          nbins, bin array name )
+#                               Generate the distribution of n values in
+#                               dataarray. If given, arg2 and arg3 specify
+#                               maximum and minimum data values, otherwise they
+#                               are calculated. Bins have index 0 to arg5-1
+define histbins { # dataarray, n, [min], [max], nbins, binarray
+{ if "$3" == "" then { arraymin($1,$2,mn_histb,n_histb)} else { n_histb = $3 }
+  if "$4" == "" then { arraymax($1,$2,mx_histb,m_histb)} else { m_histb = $4 }
+  f_histb = ($5-0.001)/(m_histb-n_histb)
+  for i_histb=0 to $5-1 do { $6[i_histb] = 0 }
+  for i_histb=1 to $2 do { $6[floor(($1[i_histb]-n_histb)*f_histb)] += 1 }
+} }
+
+#                               dpquicksort(a,lo,hi,ix)     
+#                               Given array a[lo:hi] and index
+#                               array ix[lo:hi] = lo,lo+1,lo+2,...hi,
+#                               sort a[lo:hi] and do identical exchanges on ix 
+define dpquicksort { [ if $3 > $2 then {
+  pivot = $1[($2+($3))/2]
+  loop(lo = $2; hi = $3, lo <= hi,
+    loop(,$1[lo] < pivot, lo = lo + 1)
+    loop(,$1[hi] > pivot, hi = hi - 1)
+    if lo < hi then {
+      tmp = $1[lo]; $1[lo] := $1[hi]; $1[hi] := tmp
+      tmp = $4[lo]; $4[lo] := $4[hi]; $4[hi] := tmp }
+    if lo <= hi then { lo = lo + 1; hi = hi - 1 } )
+  if hi > $2 then { exec sprintf("dpquicksort($1,%g,%g,$4)",$2,hi) }
+  if lo < $3 then { exec sprintf("dpquicksort($1,%g,%g,$4)",lo,$3) }
+  } ] }
+
+#                               rgbtohsv(r,g,b,h,s,v)
+#                               rgb color triple to hsv with h range 0 to 360
+define rgbtohsv { $4 = 0; $5 = 0; $6 = 0
+ [r = $1; g = $2; b = $3
+  maxc = max(max(r,g),b)
+  minc = min(min(r,g),b)
+  if maxc==minc then { $4 := 0 } \
+  else {if maxc == r then {
+    $4 := pmod(60*((g-b)/(maxc-minc)),360) } \
+  else {if maxc == g then {
+    $4 := 60*((b-r)/(maxc-minc)) + 120 } \
+  else { $4 := 60*((r-g)/(maxc-minc)) + 240 }}}
+  if maxc == 0 then { $5 := 0 } else { $5 := 1 - (minc/maxc) }
+  $6 := maxc
+  ] }
+
+#                               hsvtorgb(h,s,v,r,g,b)
+#                               hsv color triple to rgb, h has range 0 to 360
+define hsvtorgb { $4 = 0; $5 = 0; $6 = 0
+ [h = pmod($1,360)/60; s = $2; v = $3
+  i = floor(h)
+  f = h-i
+  m = v*(1-s)
+  n = v*(1-s*f)
+  k = v*(1-s*(1-f))
+  case(i+1,
+    $4 := v; $5 := k; $6 := m,
+    $4 := n; $5 := v; $6 := m,
+    $4 := m; $5 := v; $6 := k,
+    $4 := m; $5 := n; $6 := v,
+    $4 := k; $5 := m; $6 := v,
+    $4 := v; $5 := m; $6 := n)
+  ] }
+
+#                               cmyktorgb(c,m,y,k,r,g,b)
+#                               cmyk colors in percent to rgb
+define cmyktorgb {
+  $5 = 1-min(1,($1+$4)/100)
+  $6 = 1-min(1,($2+$4)/100)
+  $7 = 1-min(1,($3+$4)/100)
+  }
+
+#                               rgbtocmyk(r,g,b,c,m,y,k)
+#                               rgb to cmyk colors out of 100
+define rgbtocmyk {
+  $7 = min(1-$1,min(1-$2,1-$3))*100
+  $4 = (1-$7-$1)/(1-$7)*100
+  $5 = (1-$7-$2)/(1-$7)*100
+  $6 = (1-$7-$3)/(1-$7)*100 }
+
+#                               ShadeObject(DrawRoutineName, n, colorseq)
+#                               colorseq = 0,r0,g0,b0, frac1,r1,g1,b1,
+#                                 frac2,r2,g2,b2, ... 1,rn,gn,bn
+#                                 with 0 < frac1 < frac2 < ... < 1
+#
+#                               calls DrawRoutineName(frac,r,g,b)
+#                                 n times for frac = 1/n, 2/n, ... 1
+#                                 with rgb args interpolated in hsv space 
+#
+# eg B: box; define HorizShade { line right B.wid thick B.ht/100/(1bp__) \
+#         from (0,-($1)*B.ht) outlined rgbstring($2,$3,$4) }
+# ShadeObject(HorizShade, 100, 0,1,0,0, 1,0,0,1) at B
+#
+define ShadeObject { [ nSteps = $2
+  nextP = $3; nextR = $4; nextG = $5; nextB = $6
+  nextarg = 7
+  thisP = nextP
+  rgbtohsv(nextR^2,nextG^2,nextB^2,nextH,nextS,nextV)
+  if nextP*nSteps >= 1 then { nextP = 0 }
+  for stepnum = 1 to nSteps do {
+    if stepnum > nextP*nSteps then {
+      thisP = nextP; thisH = nextH; thisS = nextS; thisV = nextV
+      exec sprintf("nextP = $%g; nextR = $%g; nextG = $%g; nextB = $%g",\
+        nextarg,nextarg+1,nextarg+2,nextarg+3);
+      nextarg +=4 }
+    if nextP != thisP then {
+      rgbtohsv(nextR^2,nextG^2,nextB^2,nextH,nextS,nextV)
+      if thisS == 0 then { thisH = nextH }
+      if nextS == 0 then { nextH = thisH }
+      if thisH-nextH > 180 then { nextH += 360 } \
+      else { if nextH-thisH > 180 then { thisH +=360 } } }
+    if nextP > thisP then {
+      x = (stepnum/nSteps-thisP)/(nextP-thisP)
+      currP = thisP*(1-x) + nextP*x
+      currH = thisH*(1-x) + nextH*x
+      currS = thisS*(1-x) + nextS*x
+      currV = thisV*(1-x) + nextV*x
+      hsvtorgb(currH,currS,currV,cRsq,cGsq,cBsq)
+      $1(currP,sqrt(cRsq),sqrt(cGsq),sqrt(cBsq)) }
+    }
+  ] }
+
+#                               Useful for debugging:
+#                               Print Pos:(Pos.x,Pos.y)
+define prpos { { print sprintf("$1:(%g,%g)",($1).x,($1).y) } }
+
+define prval { print sprintf("$1=%g",$1) }
+define prval2 { print sprintf("$1=%g, $2=%g",$1,$2) }
+define prval3 { print sprintf("$1=%g, $2=%g, $3=%g",$1,$2,$3) }
+
+#                               prow(array name,lo,hi)
+#                               print array[lo:hi] as a row
+#                               eg array(x,6,4,5); prow(x,1,3)
+define prow {
+  sh "echo -n \"print \\"\" > $1_xxx"
+  for i=$2 to $3-1 do { sh sprintf("echo -n \"%g \" >> $1_xxx",$1[i]) }
+  sh sprintf("echo \"%g\\"\" >> $1_xxx",$1[$3])
+  copy "$1_xxx"
+  sh "rm $1_xxx"
+  }
+
+# print " *** dpic: dpictools.pic processed"
+define dpictools {1}
+# dpictools end

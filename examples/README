@@ -12,9 +12,13 @@ make mfpic
 make psfrag
 make postscript
 make overlay
+make rawpdf
+make pdfoverlay
 make metapost
 make xfig
 make svg
+
+... or, you can type 'make all' and stand well back.
 
 Typing
 make clean

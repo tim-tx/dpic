@@ -9,7 +9,7 @@ nooption:
 #	dvips -Ppdf tst.dvi
 
 all: nooption epic pstricks pgf pdf mfpic psfrag postscript overlay metapost \
-  xfig svg
+  rawpdf pdfoverlay xfig svg
 
 epic:
 	cp sources/diag2.pic diag.pic
@@ -61,17 +61,29 @@ postscript:
 	latex tst
 	dvips -Ppdf tst
 
+rawpdf:
+	cp sources/diag9.pic diag.pic
+	cp sources/test6.tex tst.tex
+	$(DPIC) -d diag.pic > diag.pdf
+	pdflatex tst
+
 svg:
 	cp sources/diag6.pic diag.pic
 	cp sources/test6.tex tst.tex
 	$(DPIC) -v diag.pic > tst.svg
 
 overlay:
-	$(DPIC) -r sources/diagA.pic > diag.eps
+	$(DPIC) -r sources/diagA.pic > diagA.eps
 	$(DPIC) -p sources/diagB.pic > diag.tex
 	cp sources/test7.tex tst.tex
 	latex tst
 	dvips -Ppdf tst.dvi
+
+pdfoverlay:
+	$(DPIC) -d sources/diagA.pic > diagA.pdf
+	$(DPIC) -g sources/diagC.pic > diag.tex
+	cp sources/test9.tex tst.tex
+	pdflatex tst
 
 metapost:
 	cp sources/diag8.pic diag.pic

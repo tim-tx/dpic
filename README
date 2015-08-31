@@ -1,5 +1,5 @@
 Copying: 
-The files in this distribution are copyright (c) 2014, J. D. Aplevich,
+The files in this distribution are copyright (c) 2015, J. D. Aplevich,
 and are distributed under the licence at the end of this file, except for
 the file dpicdoc.pdf, which is subject to the Creative Commons attribution
 licence version 3.0 http://creativecommons.org/licenses/by/3.0/,
@@ -32,9 +32,11 @@ Web-server installation:
    option has the same effect (see below).
 
 Installation on a non-unix PC:
-   Compile as above using make and your favourite compiler.  A Cygwin
-   installation should require no changes.  For MinGW, see the switch
-   in the Makefile.
+   If you do not wish to compile the program, copy dpic.exe from the
+   distribution Windows directory into your folder of executable files.
+   You can also compile as above using make and your favourite compiler.
+   A Cygwin installation should require no changes.  For MinGW, see the
+   switch in the Makefile.
 
    Otherwise, commands equivalent to the following should do the trick,
    but see (1) and (2) above:
@@ -42,8 +44,6 @@ Installation on a non-unix PC:
       gcc   -O  -c  p2clib.c
       gcc -o dpic dpic.o dpic2.o p2clib.o -lm
 
-   If you do not wish to compile the program, copy dpic.exe from the
-   distribution Windows directory into your folder of executable files.
 
 Dpic usage:
 
@@ -52,7 +52,8 @@ or
    cat infile | dpic [option] > outfile 
 
 Options:
-   (none)    LaTeX output (limited font-based drawing capability)
+   (none)    LaTeX picture output (limited font-based drawing capability)
+   -d        basic PDF output, no automatic string formatting
    -e        pict2e output
    -f        Postscript output, strings in psfrag format 
    -g        TikZ-pgf output
@@ -89,9 +90,13 @@ Testing:
       \end{figure}
       \end{document}
 
+You can also do the tests in the examples directory.
+
 Bugs:
    If you discover a bug, please check that your version is the
-   latest.  Feel free to send bug reports.
+   latest.  Feel free to send bug reports.  Dpic has been relatively
+   solid but, by definition, it hasn't been tested for all possible
+   illegal input.
 
    When inconsistencies between dpic and gpic are found, I usually check
    to see whether dpic should be changed to conform.  Error and warning
@@ -107,7 +112,7 @@ Version:
 -------------------------------------------------------------------
 BSD Licence:
  
-    Copyright (c) 2014, J. D. Aplevich
+    Copyright (c) 2015, J. D. Aplevich
     All rights reserved.
  
     Redistribution and use in source and binary forms, with or without

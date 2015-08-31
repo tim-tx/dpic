@@ -237,7 +237,7 @@ typedef char *Anyptr;
 #endif
 
 typedef Signed   char schar;
-#if (!defined _POSIX_SOURCE) || defined linux
+#if (!defined(_POSIX_SOURCE)) || defined(linux)
 typedef unsigned char uchar;
 #endif
 typedef unsigned char boolean;

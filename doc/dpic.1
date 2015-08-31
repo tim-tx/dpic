@@ -2,7 +2,7 @@
 .\"
 .\" BSD Licence:
 .\" 
-.\" Copyright (c) 2014, J. D. Aplevich
+.\" Copyright (c) 2015, J. D. Aplevich
 .\" All rights reserved.
 .\" 
 .\" Redistribution and use in source and binary forms, with or without
@@ -31,17 +31,17 @@
 .\" Use \(ts instead of ".
 .tr \(ts"
 .\"
-.TH DPIC 1 "2014 Jan 1"
+.TH DPIC 1 "2015 Jun 1"
 .SH NAME
 dpic \(hy convert pic\(hylanguage input to LaTeX\(hycompatible and other formats
 .SH SYNOPSIS
-.B "dpic [ \-efghmprstvxz ] ["
+.B "dpic [ \-defghmprstvxz ] ["
 .I infile
 .B "] [>"
 .I outfile
 .B "]"
 .P
-Typically
+Typically,
 .I infile
 is of the form
 .I name\
@@ -51,11 +51,14 @@ and
 is of
 .\" .br
 the form
-.I name\
-[\fR.tex|.eps|.fig|.mp|.svg\fP]
+.I name.\
+[\fRtex|eps|pdf|fig|mp|svg\fP]
 .SH "OPTIONS"
 .B (none)
 LaTeX drawing output (very limited font\(hybased drawing capability)
+.br
+.B \-d
+PDF output, basic strings
 .br
 .B \-e
 pict2e output
@@ -99,14 +102,14 @@ Dpic accepts a tight subset of the pic drawing language accepted by GNU pic
 or AT&T pic,
 and emits lower\(hylevel drawing commands for insertion into LaTeX documents,
 for processing by the xfig or Inkscape
-drawing tools, or for direct display as encapsulated Postscript or SVG.
+drawing tools, or for direct display as encapsulated Postscript, PDF, or SVG.
 Arbitrary text can be inserted into the output for later formatting,
 and arbitrary commands for the postprocessor (PSTricks, Tikz\(hypgf, etc.)
 can be included. Dpic returns EXIT_SUCCESS (normally 0)
 if messages no more severe than warnings were generated,
 otherwise EXIT_FAILURE (normally 1).
 
-A few language extensions unique to dpic
+A few pic-language extensions unique to dpic
 are implemented for specific purposes.
 
 .SH "LANGUAGE SUMMARY"
@@ -222,7 +225,7 @@ A
 .I block
 has defined points similar to a box, but can also have others in its
 interior.
-Using the example
+For the example
 .P
 .B "   A: [ circle; Q: [ line; circle ]; T: Q.n ]"
 .P
@@ -333,7 +336,7 @@ The loop variable is incremented by 1 by default, otherwise by
 unless it is preceded by the asterisk, in which case the loop variable
 is multiplied by
 .I incr.
-The loop variable may be changed by the statements in the loop, thereby
+The loop variable may be changed by statements in the loop, thereby
 controlling the number of loop repetitions.
 .P
 Braces occur in several contexts.
@@ -422,7 +425,9 @@ then it is replaced by the contents between the braces in the definition.
 A comma in an argument list is ignored within a string or parentheses.
 In this substitution, occurrences of
 .B $1
-are replaced by the first argument, and so on for other arguments.
+are replaced literally by the first argument (not by its value, if any),
+and so on for other arguments.
+.P
 The value
 .B $+
 in a macro is the number of arguments given to the macro.
@@ -484,10 +489,11 @@ draws a simple flow diagram using default sizes for all objects,
 with centered words in the circle, box, and ellipse. 
 .\"
 .SS Attributes
-The size and other parameters control the appearance of objects.
 An
 .I attribute
-is a keyword or keywords with expressions as appropriate.
+is a keyword or keywords followed by expressions as appropriate.
+Attributes are used to set parameters that control the placement,
+size, and appearance of objects.
 .P
 The dimension attributes are
 the following, showing valid abbreviations:
@@ -547,15 +553,16 @@ or both ends of a linear object:
 .I expr
 .B "]"
 .P
+The default for
+.B arrow
+objects is
+.B "\->."
 The shape parameter
 .I expr
 may be omitted, in which case the value of the environment variable
 .B arrowhead
 is used.
-The default for
-.B arrow
-is
-.B "\->."
+The accepted values of expr are currently 0, 1, and 3, with 1 the default.
 .P
 The drawing direction of an arc is changed by the attribute
 .P
@@ -565,27 +572,26 @@ with
 .B ccw
 the default.
 .P
-To fill an object or path with a shade of gray, use the attribute
+To fill an object with a shade of gray, use the attribute
 .P
 .B "   fill ["
 .I expr
 .B "]"
 .P
 where a value of 1 means white, and 0 means black.
-Paths can be filled where the postprocessor allows.
+A linear object defining a path can be filled where the postprocessor allows,
+currently for MFpic, MPost, PDF, PGF, PS, PSfrag, PSTricks, and SVG output.
 .P
 Line color can be set using
 .P
 .B "   outline|outlined"
 .I string
 .P
-where the contents of the string depend on the postprocessor.
-The predefined colours of LaTeX or Tikz\(hypdf packages can be specified.
-The
-pic
-language knows no details about color; the string contents must be
+The pic language knows no details about color; the string contents must be
 compatible with the postprocessor.
-Custom colors have to be defined using the
+For example,
+the predefined colours of LaTeX or Tikz\(hypdf packages can be specified,
+or custom colors can be defined using the
 .P
 .B "   command"
 .I string
@@ -597,8 +603,8 @@ Filling by color is similar, using the attribute
 .B "   shaded"
 .I string
 .P
-and, when both the fill and outline colors are the same, the two
-attributes can be combined as
+and, when the object is planar and both the fill and outline colors
+are the same, the two attributes can be combined as
 .P
 .B "   colour|color|colored|coloured"
 .I string
@@ -639,10 +645,11 @@ sets the final picture width to 100 mm.
 Printed string text may extend beyond the rectangular boundaries
 defined by w and h unless the text dimensions have been explicitly set.
 .P
-If the final diagram width exceeds
+If the final diagram width exceeds the environment variable
 .B maxpswid
 or the height exceeds
-.B maxpsht
+.B maxpsht,
+both of which can be changed by assignment,
 then the diagram is scaled as for x and y above.
 .\" 
 .SS Placement of drawn objects
@@ -789,13 +796,17 @@ The construction
 .B to
 .I position
 .B chop
+.B "["
 .I expr
+.B "]"
 .P
 truncates the line at each end by the value of
 .I expr
 or, if
 .I expr
-is omitted, by the current circle radius.
+is omitted, by the current value of environment variable
+.B circlerad
+
 Otherwise
 .P
 .B "   line from"
@@ -838,6 +849,10 @@ The assignment
 .B "   x :="
 .I expr
 .P
+or any assignment using an operator in the set
+.P
+.B "   := += -= *= /= %="
+.P
 requires
 .B x
 to have been defined previously in the current block or an enclosing block.
@@ -875,7 +890,7 @@ obtained respectively as
 .I "   position"
 .B .x|.y
 .P
-The one\(hyargument functions are
+The single\(hyargument functions are
 .B "abs, acos, asin, cos, exp, expe, int, log, loge,"
 .B "sign, sin, sqrt, tan, floor."
 The functions
@@ -896,9 +911,35 @@ where
 .B pmod
 is the modulo function delivering a positive value.
 .\" .SS Scope of variables
+.SS Predefined variables
+The following variables are predefined on invocation of dpic:
+.B optTeX, opttTeX, optPict2e, optPSTricks, optPDF, optPGF,
+.B optMFpic, optPS, optPSfrag,
+.br
+.B optMpost,
+and
+.B optSVG.
+Variable
+.B dpicopt
+is set according to the output option chosen, so that if one of options
+.B \-p
+or
+.B \-g
+has been invoked for example, then the test
+.P
+.B "   if dpicopt == optPSTricks || dpicopt == optPGF then { ... }"
+.P
+will selectively execute its body statements.
+In addition, variable
+.B optsafe
+has value
+.B true
+if the
+.B \-z
+option has been selected or dpic has been compiled in safe mode.
 .SS Predefined environment variables
-A set of predefined variables establishes the default values of drawing
-parameters.
+A set of environment variables establishes the default values of drawing
+parameters within the scope of the current block.
 Their values are inherited from the superior block, but can be changed
 by assignment.
 They can be used in expressions like other variables.
@@ -947,7 +988,7 @@ The variables, their default values, and default uses are given below
 0.5    length of horizontal moves
 .br
 .B "   textht       "
-0      assumed height of text
+0      assumed height of text (11pt for postscript or PDF)
 .br
 .B "   textoffset   "
 2.5/72 text justification gap
@@ -1065,35 +1106,29 @@ is allowed.
 .B "st|rd|nd|th [last]"
 .I object
 .\" .br
-   An enumerated object within the current block.
+   An object within the current block, enumerated in order of definition.
 .P
    The
 .I object
 is one of
 .P
-.B "   line, move, arrow, arc, box, ellipse, circle, spline, [],\(ts\(ts" .
+.B "   line, move, arrow, arc, box, ellipse, circle, spline, [], \(ts\(ts" .
 .P
-The number can be
-.\" .br
-   replaced by
+The number can be replaced by
 .B "{"
 .I expr
 .B "}."
 For example,
 .B last \(ts\(ts
-means the
-.\" .br
-   last string, and
+means the last string, and
 .B "{2^2}nd []"
-means the fourth block in the
-.\" .br
-   current scope.
+means the fourth block in the current scope.
 The position is the center of the object.
 .P
 Parentheses may be required when composite positions or expressions
 are used in the above forms.
 .P
-Finally, a position can be expressed as
+Finally, a position can be given as
 .P
 .I "   object"
 .B .
@@ -1143,7 +1178,7 @@ as for any
 for example,
 .P
 .B "   "
-.B "   \(tsCrunchy crackers\(ts wid 82.3/72 ht 9.7/72 with .sw at Q"
+.B "   \(tsAnimal crackers\(ts wid 82.3/72 ht 9.7/72 with .sw at Q"
 .P
 The placement qualifiers
 .B "above, below, ljust, rjust"
@@ -1151,7 +1186,7 @@ place the string above, below, or justified with respect to the
 placement point.
 For example,
 .P
-.B "   \(tsCrunchy crackers\(ts at Q ljust above"
+.B "   \(tsAnimal crackers\(ts at Q ljust above"
 .P
 places the string above and
 .B textoffset
@@ -1221,7 +1256,7 @@ illustrations.)
 .P
 J. D. Aplevich,
 .I Drawing with dpic,
-2014,
+2015,
 .\" .br
 http://ece.uwaterloo.ca/~aplevich/dpic/dpicdoc.pdf
 .\" .br
@@ -1241,7 +1276,7 @@ pic.)
 .P
 J. D. Aplevich,
 .I M4 Macros for Electric Circuit Diagrams in LaTeX Documents,
-2014.
+2015.
 File CMman.pdf in the graphics/Circuit_macros section
 of CTAN repositories.
 (Extension of the pic
