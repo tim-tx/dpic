@@ -47,6 +47,7 @@ DEST = ${DESTDIR}/${PREFIX}/bin
 CFLAGS += $(DEFINEA) $(DEFINEB) $(SAFEMODE) -O
 CC=gcc
 # CC?=gcc
+CC=gcc -ansi
 
 OBJECTS = dpic.o p2clib.o
 

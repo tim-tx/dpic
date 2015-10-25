@@ -30,9 +30,13 @@
     ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Comments within D ... D pairs are (Pascal) debug statements that get
-   converted to C if debug is enabled. Comments within other uppercase
-   pairs are activated for different operating systems or compilers. */
+/* Comments within D ... D pairs are (Pascal) debug statements that are
+   activated by the Makefile if debug is enabled. Comments within other
+   uppercase pairs are activated for specific operating systems or compilers.
+   Pascal in P2CIP ... P2CP pairs is ignored by p2c conversion.
+   P2 IP and P2 P comments are converted to P2CIP ... P2CP for some compilers.
+   C code in P2CC ... comments is included by p2c.
+   */
 
 
 
@@ -56,7 +60,7 @@
 /* Some PC versions of p2c crash on Pascal const declarations at low levels.
    All consts should be in dp0.x */
 
-/* Version= 'dpic version dpic version 2015.08.31'; p2c crashes on this */
+/* Version= 'dpic version dpic version 2018.03.06'; p2c crashes on this */
 /* UMBX distmax = 1E25; XBMU */
 
 #define distmax         3.40282347e+38        /* assumes at least IEEE single */
@@ -478,20 +482,20 @@
 
 #define TEXTRATIO       1.6                  /* baseline to text height ratio */
 
-/* Draw types (these could just be 1, 2, ... ) */
+/* Draw types */
 
 #define MFpic           1
 #define MPost           2
-#define PDF             4
-#define PGF             8
-#define Pict2e          16
-#define PS              32
-#define PSfrag          64
-#define PSTricks        128
-#define SVG             256
-#define TeX             512
-#define tTeX            1024
-#define xfig            2048                                 /* PSmps = 4096; */
+#define PDF             3
+#define PGF             4
+#define Pict2e          5
+#define PS              6
+#define PSfrag          7
+#define PSTricks        8
+#define SVG             9
+#define TeX             10
+#define tTeX            11
+#define xfig            12
 
 
 /* Lexical types */
@@ -1222,6 +1226,10 @@ double Min(double x, double y);
 
 double datan(double y, double x);
 
+boolean isdistmax(double x);
+
+boolean ismdistmax(double x);
+
 primitive *findenv(primitive *p);
 
 arg *findmacro(arg *p, Char *chb, chbufinx inx, chbufinx length,
@@ -1236,6 +1244,7 @@ double linlen(double x, double y);
 int lspec(int n);
 
 /*DGHM function ordp(p:pointer): integer; forward; MHGD*/
+/*F function ordp(p:pointer): PtrUInt; forward; F*/
 double principal(double x, double r);
 
 void checkjust(nametype *tp, boolean *A, boolean *B, boolean *L,
@@ -1311,6 +1320,7 @@ postype arcend(primitive *n);
 /* include sysdep.h */
 /*GH#include 'sysdep.h'HG*/
 
+/* Numerical utilities: */
 double principal(double x, double r)
 { /* x,r: real): real */
   while (x > r) {
@@ -1367,6 +1377,18 @@ int Ceil(double x)
 }
 
 
+boolean isdistmax(double x)
+{ /* x: real): boolean */
+  return (fabs(x / distmax - 1.0) < 1e-6);
+}
+
+
+boolean ismdistmax(double x)
+{ /* x: real): boolean */
+  return (fabs(x / mdistmax - 1.0) < 1e-6);
+}
+
+
 double datan(double y, double x)
 { /* y,x: real ): real */
   double r;
@@ -1378,15 +1400,16 @@ double datan(double y, double x)
 }
 
 
+/* Causes immediate physical write to console,
+   not needed for most systems: */
 void consoleflush(void)
-{ /* causes immediate physical write to console, not
-                               needed for most systems. */
-  /*DUGHM; if debuglevel > 0 then flush(log) MHGUD*/
+{ /*DUGHM; if debuglevel > 0 then flush(log) MHGUD*/
   fflush(errout);
   P_ioresult = 0;
 }
 
 
+/* We are finished */
 void epilog(void)
 { /* produce(0, 0); */
   /*D if debuglevel > 0 then begin
@@ -1399,11 +1422,11 @@ void epilog(void)
 }
 
 
+/* Unrecoverable errors */
 void fatal(int t)
 { /* t: integer */
   if (t != 0) {
       fprintf(errout, " *** dpic: ");
-      /* currentline( i ) */
   }
   switch (t) {
 
@@ -1439,7 +1462,11 @@ void fatal(int t)
 
   case 8:
     fprintf(errout, "Error recovery abandoned\n");
-    /*D; 9: writeln(errout,'Debug special exit') D*/
+    break;
+    /*D 9: writeln(errout,'Debug special exit'); D*/
+
+  default:
+    fprintf(errout, "Unknown fatal error\n");
     break;
   }
 
@@ -1605,12 +1632,6 @@ void deletename(nametype **head)
 }
 
 
-/*
-procedure setvis(var specv: integer; nonz: integer);
-begin
-   specv := (specv div 32)*32 + nonz*16 + (specv mod 16)
-   end; */
-
 void setspec(int *specv, int svalue)
 { *specv = ((*specv) >> 3) * 8 + svalue - XLlinetype;
   /* if svalue = XLsolid then
@@ -1747,7 +1768,9 @@ begin
    else if primp = nil then writeln(log,'Object is nil')
    else while primp <> nil do with primp^ do begin
 write (log,'Object(',ordp(primp):1,
-            ') Parent(',ordp(parent):1);
+            ') type='); snaptype(log,ptype);
+writeln(log,'(',ptype:1,')' );
+write (log,' Parent(',ordp(parent):1);
 if parent<>nil then write(log,
             ') Parent^.son(',ordp(parent^.son):1);
 writeln(log,') Son(', ordp(son):1,
@@ -1768,9 +1791,7 @@ case direction of
    XLright: write(log,' <right>');
    otherwise write(log,' dir =',direction:1)
    end;
-write(log,' spec=',spec:1);
-write(log,' type='); snaptype(log,ptype);
-writeln(log,'(',ptype:1,')' );
+writeln(log,' spec=',spec:1);
 flush(log);
 case ptype of
    XLbox,XLstring: begin
@@ -1785,14 +1806,14 @@ case ptype of
       for i:=0 to HASHLIM do begin
          if vars[i] = nil then write(log,' ',i:1,' nil;') D*/
 /*DBUMX else write(log,' ',i:1,' ',ord(vars[i]):1,';'); XMUBD*/
-/*DGH else write(log,' ',i:1,' ',ordp(vars[i]):1,';'); HGD*/
+/*DGHF else write(log,' ',i:1,' ',ordp(vars[i]):1,';');FHGD*/
 /*D
 end;
             writeln(log);
             write(log,' env=');
 if env = nil then write(log,'nil') D*/
 /*DBUMX else write(log,ord(env):1) XMUBD*/
-/*DGH else write(log,ordp(env):1) HGD*/
+/*DGHF else write(log,ordp(env):1)FHGD*/
 /*D
             end;
          XLcircle: begin
@@ -1803,7 +1824,7 @@ if env = nil then write(log,'nil') D*/
          XLline,XLarrow,XLmove,XLspline: begin
             write(log,' endpos='); wpair(log,endpos.xpos,endpos.ypos);
             wlogfl('height',height,0); wlogfl('width',width,0);
-            wlogfl('lfill',lfill,0); wlogfl('aradius',aradius,0);
+            wlogfl('lfill',lfill,0); wlogfl('aradius',aradius,0); writeln(log);
             write(log,' ahlex(atype)=',ahlex(atype):1);
             write(log,' ahnum(atype)=',ahnum(atype):1)
             end;
@@ -1980,7 +2001,7 @@ void eqop(double *x, int op, double y)
     }
     else {
 	*x = (long)floor(*x + 0.5) % (long)floor(y + 0.5);
-/* p2c: dpic1.p, line 375:
+/* p2c: dpic1.p, line 369:
  * Note: Using % for possibly-negative arguments [317] */
     }
     break;
@@ -2224,7 +2245,7 @@ int varhash(Char *chb, chbufinx chbufx, chbufinx length)
       idx += chb[chbufx + length - 2];
   }
   return (idx % (HASHLIM + 1));
-/* p2c: dpic1.p, line 506:
+/* p2c: dpic1.p, line 500:
  * Note: Using % for possibly-negative arguments [317] */
 }
 
@@ -2369,9 +2390,7 @@ void storestring(Char **outbuf, nametype *outstr, Char *srcbuf,
 
   if (*outbuf == NULL || lsrc > CHBUFSIZ - freex + 1) {
       newseg = true;
-  }
-  else if (bval(*outbuf) >= maxbval) {
-      newseg = true;
+      /* else if bval(outbuf) >= maxbval then newseg := true */
   }
   else {
       newseg = false;
@@ -3377,7 +3396,8 @@ void resetenv(int envval, primitive *envbl)
 	break;
 
       case XLtextht:
-	if (drawmode == PDF || drawmode == SVG) {
+	if (drawmode >= 0 && drawmode < 32 &&
+	    ((1L << drawmode) & ((1L << SVG) | (1L << PDF))) != 0) {
 	    envbl->Upr.Ublock.env[i - XLenvvar] = DFONT / 72.0;
 	}
 	else {
@@ -3463,9 +3483,9 @@ void resetscale(double x, int opr, primitive *envbl)
 }
 
 
+/* performed for each input diagram: */
 void inittwo(void)
-{ /* performed for each input diagram */
-  freeinbuf = NULL;
+{ freeinbuf = NULL;
   freeseg = NULL;
   freex = 0;
   lastfillval = mdistmax;
@@ -3749,7 +3769,7 @@ void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
   }
   do {
       buf[*inx + j] = i % 10 + '0';
-/* p2c: dpic1.p, line 1333:
+/* p2c: dpic1.p, line 1326:
  * Note: Using % for possibly-negative arguments [317] */
       j--;
       i /= 10;
@@ -3831,8 +3851,9 @@ boolean hasshade(int lx, boolean warn)
   if (lx == XLellipse || lx == XLcircle || lx == XLbox) {
       hs = true;
   }
-  else if (drawmode == xfig || drawmode == tTeX || drawmode == TeX ||
-	   drawmode == Pict2e) {
+  else if (drawmode >= 0 && drawmode < 32 &&
+	   ((1L << drawmode) & ((1L << Pict2e) | (1L << TeX) | (1L << tTeX) |
+				(1L << xfig))) != 0) {
       hs = false;
   }
   else {
@@ -4112,7 +4133,8 @@ void produce(stackinx newp, int p)
 	west = 0.0;
 	south = 0.0;
     }
-    else if ((drawmode == PS || drawmode == PDF || drawmode == SVG) &&
+    else if (drawmode >= 0 && drawmode < 32 &&
+	     ((1L << drawmode) & ((1L << SVG) | (1L << PDF) | (1L << PS))) != 0 &&
 	     envblock != NULL) {
 	if (envblock->Upr.Ublock.env != NULL) {
 	    r = envblock->Upr.Ublock.env[XLlinethick - XLenvvar - 1] / 2 / 72 *
@@ -4186,9 +4208,7 @@ void produce(stackinx newp, int p)
 	    if ((attstack[i].lexval == XLendfor ||
 		 attstack[i].lexval == XFOR ||
 		 attstack[i].lexval == XLBRACE ||
-		 attstack[i].lexval == XSEMICOLON ||
-		 attstack[i].lexval == XNL) && attstack[i].prim == NULL)
-	    {                                               /*repeat ,Xrepeat */
+		 attstack[i].lexval == XNL) && attstack[i].prim == NULL) {
 		i--;
 	    }
 	    else {
@@ -4267,7 +4287,7 @@ void produce(stackinx newp, int p)
     else {
 	With->xval = (long)floor(With->xval + 0.5) %
 		     (long)floor(attstack[newp + 2].xval + 0.5);
-/* p2c: dpic1.p, line 1663:
+/* p2c: dpic1.p, line 1655:
  * Note: Using % for possibly-negative arguments [317] */
     }
     break;
@@ -5238,6 +5258,7 @@ void produce(stackinx newp, int p)
 
   /* systemcmd = "sh" stringexpr */
   case systemcmd1:
+    With->xval = -1.0;
     With1 = &attstack[newp + 1];
     if (With1->prim != NULL) {
 	if (With1->prim->textp != NULL) {
@@ -5298,7 +5319,7 @@ void produce(stackinx newp, int p)
     }
     lastm->carray[lastm->savedlen] = etxch;
     /*D; if debuglevel > 1 then begin writeln(log);
-       if prod=defhead1 then write(log,'defhead1') else write(log,'defhead2');
+       if p=defhead1 then write(log,'defhead1') else write(log,'defhead2');
        lastm := macp^.argbody; while lastm<> nil do begin
           wrbuf(lastm,3,0); lastm := lastm^.nextb end
        end D*/
@@ -6152,7 +6173,9 @@ void produce(stackinx newp, int p)
 	      break;
 
 	    default:
-	      if (drawmode == Pict2e || drawmode == tTeX || drawmode == TeX) {
+	      if (drawmode >= 0 && drawmode < 32 &&
+		  ((1L << drawmode) &
+		   ((1L << TeX) | (1L << tTeX) | (1L << Pict2e))) != 0) {
 		  markerror(858);
 	      }
 	      else {
@@ -6489,7 +6512,8 @@ void produce(stackinx newp, int p)
 		    /* boxheight/((i-1)*TEXTRATIO+1)*(i*TEXTRATIO+1) */
 		}
 	    }
-	    if (drawmode == PSfrag || drawmode == PDF || drawmode == PS)
+	    if (drawmode >= 0 && drawmode < 32 &&
+		((1L << drawmode) & ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0)
 	    {                                                         /*,PSmps*/
 		/* output contains text */
 		printstate = (printstate >> 1) * 2 + 1;
@@ -6730,10 +6754,9 @@ void produce(stackinx newp, int p)
 
   /* | object ("colour"|"outline"|"shade") stringexpr */
   case object23:
-    if (drawmode != SVG && drawmode != PSTricks && drawmode != PSfrag &&
-	 drawmode != PS && drawmode != PDF && drawmode != PGF &&
-	 drawmode != MFpic && drawmode != MPost) {
-	/*,PSmps*/
+    if (drawmode >= 0 && drawmode < 32 &&
+	((1L << drawmode) &
+	 ((1L << Pict2e) | (1L << TeX) | (1L << tTeX) | (1L << xfig))) != 0) {
 	markerror(858);
     }
     else if (attstack[newp + 2].prim != NULL && With->prim != NULL) {
@@ -6860,10 +6883,10 @@ void produce(stackinx newp, int p)
     if (With->lexval > XLprimitiv && With->lexval < XLenvvar) {
 	newprim(&With->prim, With->lexval, envblock);
 	eb = findenv(envblock);
-	if (((drawmode == PSfrag || drawmode == SVG || drawmode == PS ||
-	      drawmode == PDF || drawmode == Pict2e ||
-	      drawmode == MPost) && With->lexval != XLmove) ||
-	    With->lexval == XLarc)
+	if ((drawmode >= 0 && drawmode < 32 &&
+	     ((1L << drawmode) & ((1L << MPost) | (1L << Pict2e) | (1L << PDF) |
+		(1L << PS) | (1L << SVG) | (1L << PSfrag))) != 0 &&
+	     With->lexval != XLmove) || With->lexval == XLarc)
 	{                                                             /*,PSmps*/
 	    With->prim->lthick = eb->Upr.Ublock.env[XLlinethick - XLenvvar - 1];
 	    /*D; if debuglevel > 0 then begin write(log,
@@ -7056,7 +7079,9 @@ void produce(stackinx newp, int p)
 
   /* | stringexpr */
   case block2:
-    if (drawmode == PSfrag || drawmode == PDF || drawmode == PS) {    /*,PSmps*/
+    if (drawmode >= 0 && drawmode < 32 &&
+	((1L << drawmode) & ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0)
+    {                                                                 /*,PSmps*/
 	/* flag text in output */
 	printstate = (printstate >> 1) * 2 + 1;
     }
@@ -8141,8 +8166,7 @@ int lspec(int n)
 
 
 void getlinespec(primitive *nd, int *lsp, primitive **lastnd)
-{ /* nd: primitivep;
-     var lsp: integer; var lastnd: primitivep */
+{ /* nd:primitivep; var lsp:integer; var lastnd:primitivep*/
   primitive *tn;
 
   tn = nd;
@@ -8158,7 +8182,7 @@ void getlinespec(primitive *nd, int *lsp, primitive **lastnd)
 
 
 primitive *findenv(primitive *p)
-{ /* p: primitivep ): primitivep; external */
+{ /* p: primitivep ): primitivep */
   primitive *q;
 
   q = NULL;
@@ -8604,7 +8628,7 @@ int hcf(int x, int y)
   while (small > 0) {
       i = small;
       small = large % small;
-/* p2c: dpic2.p, line 494:
+/* p2c: dpic2.p, line 492:
  * Note: Using % for possibly-negative arguments [317] */
       large = i;
   }
@@ -8709,9 +8733,9 @@ boolean drawn(primitive *node, int linesp, double fill)
 }
 
 
+/* distance to P control point */
 double ahoffset(double ht, double wid, double lti)
-{ /* distance to P control point */
-  if (wid == 0.0) {
+{ if (wid == 0.0) {
       return 0.0;
   }
   else {
@@ -8733,7 +8757,7 @@ void dahead(postype point, postype shaft, double ht, double wid,
 		   double *x, double *y)
 { /* arrowhead ht and wid, user units */
   /* line thickness in diagram units */
-  /* adj point, left, right pts, dir cosines */
+  /*adj point, left, right pts, dir cosines */
   double h, v, po, t;
 
   /*D if debuglevel > 0 then begin
@@ -9061,7 +9085,7 @@ void xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2015.08.31 option -x for Fig 3.1')
+     writeln('# dpic version 2018.03.06 option -x for Fig 3.1')
      */
 
   printf("#FIG 3.2\n");
@@ -9072,7 +9096,7 @@ void xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2015.08.31 option -x for Fig 3.2\n");
+  printf("# dpic version 2018.03.06 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 
 }
@@ -9500,7 +9524,7 @@ void svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2015.08.31 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2018.03.06 option -v for SVG 1.1 -->\n");
   hsize = (e - w + 2 * lth) / fsc;
   vsize = (n - s + 2 * lth) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -9839,15 +9863,6 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
 }
 
 
-postype rot(postype V, postype Q)
-{ postype p;
-
-  p.xpos = Q.xpos * V.xpos - Q.ypos * V.ypos;
-  p.ypos = Q.ypos * V.xpos + Q.xpos * V.ypos;
-  return p;
-}
-
-
 void svgwarc(postype E, double r, double angle, double ccw)
 { printf(" A ");
   wfloat(&output, fabs(r) / fsc);
@@ -10109,9 +10124,9 @@ void svgsplinesegment(primitive *tv, int splc, int splt)
 }
 
 
+/* node is always <> nil: */
 void svgdraw(primitive *node)
-{ /* node is always <> nil */
-  int lsp;
+{ int lsp;
   postype X1, X2;
   primitive *tn, *tx;
   double h, w, lth;
@@ -10397,7 +10412,7 @@ void pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2015.08.31 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2018.03.06 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -10878,8 +10893,7 @@ void pstdraw(primitive *node)
   lth = qenv(node, XLlinethick, tn->lthick);
   /*D if debuglevel > 0 then begin
      write(log,'pstdraw[',ordp(node):1,']: ');
-     snaptype(log,ptype); printobject(node);
-     writeln(log) end;
+     printobject(node); writeln(log) end;
   if linesignal > 0 then begin write(errout,'pstdraw: ');
      snaptype(errout,ptype); writeln(errout) end D*/
   switch (node->ptype) {
@@ -11173,7 +11187,7 @@ void mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2015.08.31 option -m for mfpic\n");
+  printf("\n%% dpic version 2018.03.06 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -11614,9 +11628,9 @@ void mfpbox(double x, double y, double n, double s, double e, double w,
 #undef r
 
 
+/* node is always <> nil: */
 void mfpdraw(primitive *node)
-{ /* node is always <> nil */
-  int lsp;
+{ int lsp;
   postype X0, X1;
   primitive *tn, *tx;
   double lth;
@@ -11873,9 +11887,8 @@ void mfpdraw(primitive *node)
 /* mpo.x */
 /* Output routines for MetaPost */
 void mpoprelude(void)
-{ /* n,s,e,w: real */
-  printstate++;
-  printf("%% dpic version 2015.08.31 option -s for MetaPost\n");
+{ printstate++;
+  printf("%% dpic version 2018.03.06 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -12260,9 +12273,9 @@ void splinesegment(primitive *tv, int splc, int splt)
 }
 
 
+/* node is always <> nil: */
 void mpodraw(primitive *node)
-{ /* node is always <> nil */
-  int lsp;
+{ int lsp;
   postype X0, X1;
   primitive *tn, *tx;
   double lth;
@@ -12541,9 +12554,8 @@ void mpodraw(primitive *node)
 /* pgf.x */
 /* pgf output routines */
 void pgfprelude(void)
-{ /* n,s,e,w: real */
-  printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2015.08.31 option -g for TikZ and PGF 1.01\n");
+{ printf("\\begin{tikzpicture}[scale=2.54]\n");
+  printf("%% dpic version 2018.03.06 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -12916,9 +12928,9 @@ void pgfarcahead(postype C, postype point, int atyp, nametype *sou,
 }
 
 
+/* node is always <> nil: */
 void pgfdraw(primitive *node)
-{ /* node is always <> nil */
-  int lsp;
+{ int lsp;
   postype X0, X1;
   primitive *tn, *tx;
   double s, c, lth;
@@ -13256,7 +13268,7 @@ void psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2015.08.31 option ");
+  printf("\n%%%%Creator: dpic version 2018.03.06 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -13800,9 +13812,9 @@ void pssplinesegment(primitive *tv, int splc, int splt)
 }
 
 
+/* node is always <> nil */
 void psdraw(primitive *node)
-{ /* node is always <> nil */
-  int lsp;
+{ int lsp;
   postype X1, X2;
   primitive *tn, *tx;
   double h, w, lth, fill;
@@ -14163,7 +14175,7 @@ void pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2015.08.31 option -d for PDF\n");
+  printf("%% Creator: dpic version 2018.03.06 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
 
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
@@ -14257,7 +14269,7 @@ void pdfwfloat(double y)
   do {
       j++;
       k = ix % 10;
-/* p2c: pdf.h, line 115:
+/* p2c: pdf.h, line 114:
  * Note: Using % for possibly-negative arguments [317] */
       if (j == 7 && nz) {
 	  ln++;
@@ -14327,7 +14339,7 @@ void pdfwlz(int n)
   j = 10;
   while (n > 0) {
       s[j - 1] = n % 10 + '0';
-/* p2c: pdf.h, line 147:
+/* p2c: pdf.h, line 146:
  * Note: Using % for possibly-negative arguments [317] */
       j--;
       n /= 10;
@@ -14859,9 +14871,9 @@ void pdfsplinesegment(primitive *tv, int splc, int splt)
 }
 
 
+/* node is always <> nil: */
 void pdfdraw(primitive *node)
-{ /* node is always <> nil */
-  int lsp;
+{ int lsp;
   postype X1, X2;
   primitive *tn, *tx;
   double h, w, x, y, lth, fill;
@@ -15132,7 +15144,7 @@ void texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2015.08.31 option ");
+  printf("%% dpic version 2018.03.06 option ");
   switch (drawmode) {
 
   case TeX:
@@ -15643,7 +15655,8 @@ void texdraw(primitive *node)
 	}
 	texwrtext(node, node->textp, node->aat.xpos, node->aat.ypos);
     }
-    else if ((drawmode == Pict2e || drawmode == TeX) &&
+    else if (drawmode >= 0 && drawmode < 32 &&
+	     ((1L << drawmode) & ((1L << TeX) | (1L << Pict2e))) != 0 &&
 	     node->Upr.Uline.aradius > 0.0) {
 	if (node->Upr.Uline.aradius >= 0.05 / sin(pi / 18.0)) {
 	    npts = (long)floor(fabs(node->Upr.Uline.endpos.ypos) / (pi / 18.0) + 0.5);
@@ -15771,10 +15784,9 @@ void treedraw(primitive *node)
 }
 
 
+/* without recursion: */
 /*
-procedure treedraw( node: primitivep ); */
-/* without recursion */
-/*
+procedure treedraw( node: primitivep );
 var nd: primitivep;
 begin
    if node <> nil then nd := node^.parent else nd := nil;
@@ -15844,7 +15856,7 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
     fsc = fsctmp;
     break;
 
-  case PGF:                                                        /* n,s,e,w */
+  case PGF:
     pgfprelude();
     treedraw(eb);
     pgfpostlude();
@@ -15891,7 +15903,6 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
   case MPost:
     fsctmp = fsc;
     fsc /= 72;                                               /* output points */
-    /* n,s,e,w */
     mpoprelude();
     treedraw(eb);
     mpopostlude();
@@ -15925,6 +15936,7 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
 
 /*--------------------------------------------------------------------*/
 
+/* The log file is only for debugging */
 /*DUGHM
 procedure openlogfile;
 begin
@@ -15933,6 +15945,7 @@ begin
    writeln(log,'Dpic log file')
    end; MHGUD*/
 
+/* Check if a file is accessible */
 
 int checkfile(Char *ifn, boolean isverbose)
 { int cf, i, j;
@@ -15950,7 +15963,7 @@ int checkfile(Char *ifn, boolean isverbose)
   if (j < FILENAMELEN) {
       j++;
   }
-  else {
+  else {                                                                /*D+8D*/
       fatal(1);
   }
   ifn[j - 1] = '\0';
@@ -15968,10 +15981,14 @@ int checkfile(Char *ifn, boolean isverbose)
 }
 
 
+/* If pascal, open the parse table file */
+/* Open the error stream */
 void openerror(void)
 { errout = stderr;
 }
 
+
+/* Open required input and outputs */
 
 void openfiles(void)
 { /*DUGHM if (oflag>0) then openlogfile; MHGUD*/
@@ -16004,11 +16021,11 @@ void openfiles(void)
 /*B
 procedure openerror;
 begin
- rewrite(errout)
- end;
+   rewrite(errout)
+   end;
 procedure openfiles;
 begin
- B*/
+   B*/
 /*DBrewrite(log);BD*/
 /*B
    reset(dpictabl)
@@ -16028,7 +16045,7 @@ begin
    end;
 X */
 
-/*--------------------------------------------------------------------*/
+/*------------------------------ For debug: -------------------------*/
 /*D procedure wrchar( c: char );
 begin
    write(log,'ch(',ord(c):1,')="');
@@ -16047,8 +16064,8 @@ begin
 /*D;
 begin
    write(log,' ',nm,'=');
-   if v=MaxReal then write(log,'MaxReal')
-   else if v= -MaxReal then write(log,'-MaxReal')
+   if (MaxReal-abs(v)) < (MaxReal*1e-6) then begin
+     if v < 0 then write(log,'-MaxReal') else write(log,'MaxReal') end
    else wfloat(log,v);
    if cr<>0 then writeln(log)
    end; D*/
@@ -16086,6 +16103,8 @@ begin
   end; D*/
 /*--------------------------------------------------------------------*/
 
+/* Write error message with symbol found
+   and symbol expected if possible */
 void markerror(int emi)
 { /* emi: integer */
   int inx, j, k;
@@ -17072,8 +17091,8 @@ void markerror(int emi)
   case 51:
     fprintf(errout, " .PE ;\n");
     break;
-    /*B%include parserrB*/
 
+  /*B%include parserrB*/
   /* lexical error messages */
   case 800:
     fprintf(errout, "Character not recognized: ignored\n");
@@ -17174,7 +17193,7 @@ void markerror(int emi)
     break;
 
   case 862:
-    fprintf(errout, "For limits must have the same sign for by *()\n");
+    fprintf(errout, "For ... by *() limits must have the same sign\n");
     break;
 
   case 863:
@@ -17246,10 +17265,11 @@ void markerror(int emi)
 
 /*--------------------------------------------------------------------*/
 
+/* Interface routine to push terminal
+   attributes onto the attribute stack
+   for use by semantic actions */
 void stackattribute(stackinx stackp)
-{ /* This is the interface routine to push terminal attributes onto the
-     attribute stack */
-  attribute *With;
+{ attribute *With;
 
   With = &attstack[stackp];
   /* D if debuglevel = 2 then writeln(log,
@@ -17268,6 +17288,8 @@ void stackattribute(stackinx stackp)
 }  /* stackattribute */
 
 
+/* Get and initialize a buffer from the
+   old-buffer stack or make a new one */
 void newbuf(fbuffer **buf)
 { /* var buf: fbufferp */
   fbuffer *With;
@@ -17292,8 +17314,9 @@ void newbuf(fbuffer **buf)
 }
 
 
+/* Initialize random number routine */
 void initrandom(void)
-{ /* initialize random number routine */
+{ /* Comment equired by p2c */
 time_t seed;
 
   /*GH var t: TimeStamp; HG*/
@@ -17305,8 +17328,7 @@ time_t seed;
 
 /*--------------------------------------------------------------------*/
 
-/* procedures for input/output of characters */
-
+/* End of macro found */
 void exitmacro(void)
 { arg *ar, *lastarg;
 
@@ -17324,6 +17346,7 @@ void exitmacro(void)
 }
 
 
+/* New arg structure */
 void newarg(arg **arg_)
 { /* var arg: argp */
   arg *With;
@@ -17338,6 +17361,7 @@ void newarg(arg **arg_)
 }
 
 
+/* Put buffer onto old-buffer stack */
 void disposebufs(fbuffer **buf)
 { /* var buf: fbufferp; loc: integer */
   fbuffer *bu;
@@ -17361,6 +17385,7 @@ void disposebufs(fbuffer **buf)
 }
 
 
+/* Read a line from the input */
 void readline(FILE **infname)
 { int ll,c;
   if (feof( *infname )) { inputeof = true; return; }
@@ -17395,9 +17420,9 @@ void readline(FILE **infname)
 }
 
 
+/* Get the next line and set lexstate */
 void nextline(Char lastchar)
-{ /* Write out error messages, and read in a line. */
-  int i;
+{ int i;
   fbuffer *With;
   int FORLIM;
 
@@ -17421,9 +17446,9 @@ void nextline(Char lastchar)
       else {
 	  readline(&input);
       }
-
       With = inbuf;
 
+      /* Check for .PS, .PE, and zero length */
       if (With->carray[1] == '.') {
 	  if (lexstate != 2) {
 	      if (With->savedlen >= 4 && With->carray[2] == 'P') {
@@ -17464,7 +17489,7 @@ void nextline(Char lastchar)
             end;
          if debuglevel > 1 then begin
             writeln(log); writeln(log,'lineno ',lineno:1,':') end; D*/
-
+      /* Dump the line if not between .PS and .PE */
       if (lexstate == 0 && !inputeof) {
 	  With = inbuf;
 	  FORLIM = With->savedlen;
@@ -17491,6 +17516,8 @@ void nextline(Char lastchar)
 }
 
 
+/* Read the next char into ch, accounting for
+   strings and end of buffer */
 void inchar(void)
 { fbuffer *tp;
   boolean bufend;
@@ -17593,9 +17620,9 @@ void inchar(void)
 }  /* inchar */
 
 
+/* skip to end of the current input line */
 void skiptoend(void)
-{ /* skip to end of the current input line */
-  boolean skip;
+{ boolean skip;
   fbuffer *With;
 
   /*D if debuglevel>1 then
@@ -17629,6 +17656,7 @@ void skiptoend(void)
 }
 
 
+/* Move back in chbuf */
 void backup(void)
 { fbuffer *With;
 
@@ -17644,9 +17672,9 @@ void backup(void)
 
 /*--------------------------------------------------------------------*/
 
+/* Copy ch char into chbuf and get new ch */
 void pushch(void)
-{ /* copy ch character into chbuf and get new ch */
-  chbuf[chbufi] = ch;
+{ chbuf[chbufi] = ch;
   if (chbufi < CHBUFSIZ) {      /* Leave 1 location free at the end of chbuf^ */
       chbufi++;
   }
@@ -17657,20 +17685,22 @@ void pushch(void)
 }  /*pushch*/
 
 
+/* Read complete line into chbuf */
 void readlatex(void)
-{ /* read complete line into chbuf */
-  while (ch != nlch) {
+{ while (ch != nlch) {
       pushch();
   }
   newsymb = XLaTeX;
 }
 
 
+/* Pascal C-equivalents */
 boolean isprint_(Char ch)
 { return (ch >= 32 && ch <= 126);
 }
 
 
+/* Redirect output */
 #ifndef SAFE_MODE
 
 void pointinput(nametype *txt)
@@ -17722,7 +17752,7 @@ void pointinput(nametype *txt)
 
 
 void pointoutput(boolean nw, nametype *txt, int *ier)
-{ /* nw: boolean; txt: strptr; var ier: integer */
+{ /* nw:boolean;txt:strptr;var ier:integer */
   int i, FORLIM;
 
   *ier = 1;
@@ -17794,6 +17824,7 @@ int argcount(arg *ar)
 }
 
 
+/* Find the k-th argument */
 arg *findarg(arg *arlst, int k)
 { arg *ar;
   int i, j;
@@ -17826,9 +17857,9 @@ arg *findarg(arg *arlst, int k)
 }
 
 
+/* Put string terminal into chbuf */
 void readstring(Char stringch)
-{ /* puts string terminal into chbuf */
-  int j, n;
+{ int j, n;
   boolean pushfl;
   arg *ar;
   fbuffer *abuf, *With;
@@ -18000,16 +18031,14 @@ begin
          for i := oldbufi to chbufi-1 do write(log, chbuf^[i]);
          write(log,'"') end
       else write(log,'=<LaTeX>');
-      if newsymb = XLfloat then begin
-         write( log,' value='); wfloat(log,floatvalue)
-         end;
+      if newsymb = XLfloat then wlogfl('value',floatvalue,0);
       write(log,' '); wrchar(ch);
       if not acc then write( log,' not accepted');
       writeln( log );
       consoleflush
       end
    end; D*/
-
+/* Go up one buffer level */
 fbuffer *nbuf(fbuffer *buf)
 { fbuffer *With;
 
@@ -18025,9 +18054,10 @@ fbuffer *nbuf(fbuffer *buf)
 }
 
 
+/* Push macro or arg or string from mac into
+   the head of the input stream */
 void copyleft(fbuffer *mac, fbuffer **buf)
 { /* mac: fbufferp; var buf: fbufferp */
-  /* Push macro or arg or string from mac into the head of the input stream */
   fbuffer *ml;
   int i, k;
   boolean newflag, copied;
@@ -18101,9 +18131,10 @@ void copyleft(fbuffer *mac, fbuffer **buf)
 }
 
 
+/* $n has been seen: copy the argument into
+   the tail of the input buffer */
 void copyright(fbuffer *mac, fbuffer **buf)
-{ /* $n has been seen: Push the argument into the tail of the input buffer */
-  fbuffer *ml;
+{ fbuffer *ml;
   int i, k;
   fbuffer *With;
   int FORLIM;
@@ -18149,9 +18180,10 @@ void copyright(fbuffer *mac, fbuffer **buf)
 }
 
 
+/* Check the current char for line
+   continuation */
 void skipcontinue(void)
-{ /* Check the current char for line continuation */
-  Char c;
+{ Char c;
   fbuffer *With;
 
   /*D if debuglevel=2 then
@@ -18186,6 +18218,7 @@ void skipcontinue(void)
 }
 
 
+/* Skip white space characters */
 void skipwhite(void)
 { /* D if debuglevel = 2 then writeln(log, 'skipwhite: ' ); D */
   while (ch == etxch || ch == nlch || ch == tabch || ch == ' ') {
@@ -18200,9 +18233,10 @@ void skipwhite(void)
 }
 
 
+/* Stash the current argument into the arg
+   struct*/
 void definearg(int *parenlevel, fbuffer **p2)
-{ /* Stash the current argument into the arg struct*/
-  int j, n;
+{ int j, n;
   arg *ar;
   fbuffer *p, *p1;
   boolean inarg, instring;
@@ -18316,6 +18350,7 @@ void definearg(int *parenlevel, fbuffer **p2)
 }
 
 
+/* Check for macro name */
 boolean ismacro(Char *chb, chbufinx obi, chbufinx chbi)
 { arg *mac, *lastp, *ar, *lastarg, *firstarg;
   int level;
@@ -18370,6 +18405,8 @@ boolean ismacro(Char *chb, chbufinx obi, chbufinx chbi)
 }
 
 
+/* Push an argument to the left of the
+   input stream */
 void copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
 { int n, i;
   arg *ar;
@@ -18433,9 +18470,13 @@ boolean insertarg(void)
 }
 
 
+/* Find the next terminal.
+   Set lexsymb, lexval, and float value.
+   Identify and handle all terminals
+   of the form <...> in the grammar.
+   Reads one character after the terminal end */
 void lexical(void)
-{ /* find the next terminal */
-  int lxix;
+{ int lxix;
   Char firstch;
   boolean terminalaccepted, looping;
   fbuffer *With;
@@ -18453,6 +18494,11 @@ void lexical(void)
 	  inchar();
       }
 
+      /* lexstate is
+           1 before .PS or after .PE
+           2 when .PS found
+           3 between .PS and .PE
+           4 when .PE found */
       if (lexstate == 1) {
 	  newsymb = XSTART;
 	  lexstate = 2;
@@ -18506,6 +18552,7 @@ void lexical(void)
 	  firstch = ch;
 	  pushch();
 	  With = inbuf;
+	  /* Continuation, comment, constant, latex */
 	  if (firstch == bslch) {
 	      if (ch == nlch || ch == '#') {
 		  if (ch == '#') {
@@ -18524,6 +18571,7 @@ void lexical(void)
 	  }
 	  else if (firstch == '.' && With->readx == 3 &&
 		   inbuf->prevb == NULL && newsymb != -2) {
+	      /* Search in the lexical tree */
 	      readlatex();
 	  }
 	  else {
@@ -18546,8 +18594,10 @@ void lexical(void)
 		  }
 	      }
 
+	      /* Insert argument or macro */
 	      if (isupper(firstch) != 0 &&
 		  (isalnum(ch) != 0 || ch == '_' || ch == '$')) {
+		  /* Label */
 		  looping = true;
 		  while (looping) {
 		      if (ch == '$') {
@@ -18569,6 +18619,7 @@ void lexical(void)
 	      }
 	      else if ((isalnum(firstch) != 0 || firstch == '_') &&
 		       (isalnum(ch) != 0 || ch == '_' || ch == '$')) {
+		  /* variable name */
 		  looping = true;
 		  while (looping) {
 		      if (ch == '$') {
@@ -18599,8 +18650,8 @@ void lexical(void)
 	      }
 	      else if (newsymb == XNL &&
 		       (oldsymb == XLelse || oldsymb == XLBRACE ||
-			oldsymb == XLthen || oldsymb == XCOLON ||
-			oldsymb == XNL)) {
+			oldsymb == XLthen ||
+			oldsymb == XCOLON || oldsymb == XNL)) {
 		  terminalaccepted = false;
 	      }
 	      else if (newsymb == XLT && inlogic) {
@@ -18699,6 +18750,7 @@ void lexical(void)
 		  skipwhite();
 	      }
 	      else if (newsymb == 0 && isupper(firstch) != 0) {
+		  /* Label, second possibility */
 		  if (ismacro(chbuf, oldbufi, chbufi)) {
 		      terminalaccepted = false;
 		  }
@@ -18708,6 +18760,7 @@ void lexical(void)
 	      }
 	      else if (newsymb == 0 &&
 		       (isalnum(firstch) != 0 || firstch == '_')) {
+		  /* name, second possibility */
 		  if (ismacro(chbuf, oldbufi, chbufi)) {
 		      terminalaccepted = false;
 		  }
@@ -18740,7 +18793,10 @@ void lexical(void)
 
 
 
-  /* search in lexical tree */
+  /* Use the lexical tables to identify
+     terminals, checking for macro names */
+  /* Skip after designated terminals */
+  /* Multiple-valued terminals */
   /* $<integer> */
   /* if not isalnum(ch) then */
   /* $name */
@@ -18754,6 +18810,8 @@ void lexical(void)
 
 /*--------------------------------------------------------------------*/
 
+/* Skip white to next left brace, accounting
+   for strings */
 void skiptobrace(void)
 { int bracelevel;
   boolean instring;
@@ -18804,10 +18862,11 @@ void skiptobrace(void)
 }
 
 
+/* Stuff the body of a for loop or a macro
+   body into p2 */
 void readfor(fbuffer *p0, int attx, fbuffer **p2)
 { /* p0: fbufferp; attx: integer; var p2: fbufferp */
-  /* Stuff the body of a for loop or a macro body into p2
-     attx: attstack index or -(name length)
+  /* attx: attstack index or -(name length)
      p0 = nil: append the output to this buffer.
      Should we check for macro arguments? */
   int j, bracelevel;
@@ -18953,6 +19012,8 @@ void doprod(int prno)
 }
 
 
+/* Call the semantic action routine
+   (produce) for the queued productions */
 void advance(void)
 {  /* perform reductions */
   int i, j;
@@ -18993,8 +19054,9 @@ void advance(void)
       }
   }
 
-  /* This maintains the input string buffer and could be removed
-                                         if the buffer is not required */
+  /* This maintains the input string buffer
+     and could be removed if the buffer is
+     not required */
   j = attstack[stacktop - 1].chbufx;
 
   /*D if (debuglevel > 0) and (redutop > 0) and (j < oldbufi) then begin
@@ -19055,6 +19117,9 @@ void pseudoshift(void)
 
 /*--------------------------------------------------------------------*/
 
+/* Add production number to the production
+   buffer if it is positive; negative value
+   is for nul production */
 void queue(int rs_, int p)
 { reduelem *With;
 
@@ -19084,6 +19149,8 @@ void queue(int rs_, int p)
 }  /* queue */
 
 
+/* Check the lexical terminal against the
+   parse table. Queue productions. */
 boolean lookahead(symbol lsymbol)
 { boolean Result, decided;
   int si;
@@ -19150,6 +19217,7 @@ boolean lookahead(symbol lsymbol)
 
 /*--------------------------------------------------------------------*/
 
+/* Look in the grammar for error recovery */
 void syntaxerror(void)
 { boolean success;
   stackinx s, s1, FORLIM;
@@ -19190,6 +19258,10 @@ void syntaxerror(void)
 }  /* syntaxerror */
 
 
+/* Initialize the semantic actions, the
+   parse state, and lexical state; then
+   parse to end of input, managing the
+   parse stack. */
 void parse(void)
 { initrandom();
 
@@ -19235,6 +19307,7 @@ void parse(void)
   backtrack(top, start);
   /*D stackhigh := top; D*/
   produce(1, -1);
+  /* Main parse loop */
   while (!parsestop) {
       lexical();
       /*D if trace then
@@ -19274,6 +19347,10 @@ Char optionchar(Char *fn)
   }
 }
 
+
+/* Set safe mode and one of 12 output formats.
+   The version date is set during
+   preprocessing */
 
 void getoptions(void)
 { Char cht;
@@ -19335,7 +19412,7 @@ void getoptions(void)
          MHGUD*/
       }
       else if (cht == 'h' || cht == '-') {
-	  fprintf(errout, " *** dpic version 2015.08.31\n");
+	  fprintf(errout, " *** dpic version 2018.03.06\n");
 	  fprintf(errout, " options:\n");
 	  fprintf(errout, "     (none) LaTeX picture output\n");
 	  fprintf(errout, "     -d PDF output\n");

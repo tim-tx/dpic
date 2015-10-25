@@ -1,31 +1,28 @@
 .PS                            # Pic input begins with .PS
-# cct_init Version 8.2.4: PSTricks m4 macro settings.
+# cct_init Version 8.7.1: PSTricks m4 macro settings.
   
-  # gen_init Version 8.2.4: PSTricks m4 macro settings.
+  # gen_init Version 8.7.1: PSTricks m4 macro settings.
   
 
   define rpoint__ {
     rp_wid = last line.end.x-last line.start.x
     rp_ht = last line.end.y-last line.start.y
     rp_len = sqrt(abs((rp_wid)^2+(rp_ht)^2)); move to last line.start
-        rp_ang = atan2(rp_ht,rp_wid) }
+    rp_ang = atan2(rp_ht,rp_wid) }
 
+  rtod_ = 57.295779513082323;  dtor_ = 0.017453292519943295
+  twopi_ = 6.2831853071795862;  pi_ = (twopi_/2)
   rp_ang = 0;  right
-  rtod_ = 57.295779513082323
-  dtor_ = 0.017453292519943295
-  twopi_ = 6.2831853071795862
-  pi_ = (twopi_/2)
   
-
   
   linethick = 0.8
   arrowwid = 0.05*scale; arrowht = 0.1*scale
   command "\psset{linewidth=0.8pt}%";
   command "\psset{noCurrentPoint}%"
   
-    # gen_init end
+  # gen_init end
 
-  \psset{arrowsize=1.1pt 4,arrowlength=1.64,arrowinset=0}%
+  command sprintf("\psset{arrowsize=1.1pt 4,arrowlength=1.64,arrowinset=0}%%")
 
 
 # cct_init end
@@ -116,7 +113,7 @@ Origin: Here                   # Position names are capitalized
  line to Here+((rp_len)*(cos(rp_ang)),(rp_len)*(sin(rp_ang))) invis ;   {"$ L$" \
      at last [].l rjust };  ;     
   { move to last line.start+((((rp_len-last [].ht)/2*2/3+arrowht/3))*(cos(rp_ang)),(((rp_len-last [].ht)/2*2/3+arrowht/3))*(sin(rp_ang)))
-    arrow <- to Here+((-arrowht)*(cos(rp_ang)),(-arrowht)*(sin(rp_ang))) "$ i$" \
+    arrow <-  to Here+((-arrowht)*(cos(rp_ang)),(-arrowht)*(sin(rp_ang))) "$ i$" \
      ljust}
    line to Origin
 .PE                            # Pic input ends
