@@ -33,7 +33,7 @@
 /* Comments within D ... D pairs are (Pascal) debug statements that are
    activated by the Makefile if debug is enabled. Comments within other
    uppercase pairs are activated for specific operating systems or compilers.
-   Pascal in P2CIP ... P2CP pairs is ignored by p2c conversion.
+   Pascal between P2CIP ... P2CP comment pairs is ignored during p2c conversion.
    P2 IP and P2 P comments are converted to P2CIP ... P2CP for some compilers.
    C code in P2CC ... comments is included by p2c.
    */
@@ -57,14 +57,15 @@
 /* dp0.x */
 /* Global definitions */
 
-/* Some PC versions of p2c crash on Pascal const declarations at low levels.
+/* Some PC versions of p2c crash on Pascal
+   const declarations at low levels.
    All consts should be in dp0.x */
 
-/* Version= 'dpic version dpic version 2018.03.06'; p2c crashes on this */
-/* UMBX distmax = 1E25; XBMU */
+/* Version= 'dpic version dpic version 2015.10.28'; p2c crashes on this */
+/* UMBXF distmax = 1E25; FXBMU */
 
-#define distmax         3.40282347e+38        /* assumes at least IEEE single */
-/*DM MaxReal = distmax; MD*/
+#define distmax         3.40282347e+38         /*assumes at least IEEE single */
+#define MaxReal         distmax
 /*GH distmax = MaxReal; HG*/
 #define mdistmax        (-distmax)
 #define pi              3.1415926535897931
@@ -72,7 +73,7 @@
 
 #define SVGPX           90                             /* SVG pixels per inch */
 
-/*UGH maxint = 2147483647; HGU*/
+/*UGHF maxint = 2147483647; FHGU*/
 
 #define randmax         (double) LONG_MAX
 #if defined(RAND_MAX)
@@ -471,6 +472,7 @@
 /* Lexical parameters */
 #define CHBUFSIZ        4095            /* size of chbuf arrays, input record */
 #define FILENAMELEN     1024                      /* max length of file names */
+/*F FILENAMELEN = 255; F*/
 
 /* Lalr machine parameters */
 #define STACKMAX        255                /* size of attstack and parsestack */
@@ -562,15 +564,6 @@ typedef struct postype {
 
 typedef double envarray[XLlastenv - XLenvvar];
 
-
-/* maybe textp should be a primitivep to allow text to have the full
-   properties of boxes */
-/* To save some space:
-   shadedp: box, circle, ellipse
-   outlinep: box, circle, ellipse, line, arc, spline
-   textp: not for block
-   */
-
 typedef struct primitive {
   nametype *name, *textp, *outlinep, *shadedp;
   struct primitive *parent, *son, *next_;
@@ -604,7 +597,8 @@ typedef struct primitive {
   } Upr;
 } primitive;
 
-/* To force optimum dynamic storage of primitives: */
+/* To force optimum dynamic storage of
+   primitives: */
 
 typedef struct XLboxprimitive {
   nametype *name, *textp, *outlinep, *shadedp;
@@ -712,6 +706,7 @@ int argct;                             /* argument counter for options */
 int drawmode;                                     /* output conversion */
 boolean safemode;                               /* disable sh and copy */
 /*D oflag: integer; D*/
+/* debug level and open logfile flag */
 
 /* Lexical analyzer character buffer */
 /* chbuf: strptr; */
@@ -1318,7 +1313,7 @@ postype arcend(primitive *n);
 /*--------------------------------------------------------------------*/
 
 /* include sysdep.h */
-/*GH#include 'sysdep.h'HG*/
+/*GHF#include 'sysdep.h'FHG*/
 
 /* Numerical utilities: */
 double principal(double x, double r)
@@ -1403,7 +1398,7 @@ double datan(double y, double x)
 /* Causes immediate physical write to console,
    not needed for most systems: */
 void consoleflush(void)
-{ /*DUGHM; if debuglevel > 0 then flush(log) MHGUD*/
+{ /*DUGHMF; if debuglevel > 0 then flush(log) FMHGUD*/
   fflush(errout);
   P_ioresult = 0;
 }
@@ -1417,7 +1412,7 @@ void epilog(void)
         writeln(log,'Dpic log ends');
         writeln(log) end; D*/
   /* Seems needed for some Cygwin machines: */
-  /* GH flush(errout);
+  /* GH consoleflush;
   flush(stdout) HG */
 }
 
@@ -1484,38 +1479,46 @@ void fatal(int t)
 
 /* include sysdep.h */
 /* sysdep.x Required UNIX functions */
+/*F{$linklib c} F*/
 
-/*H name 'access' H*/
+/*F cdecl; F*/
+/*HF name 'access' FH*/
 /*G; asmname '_p_Access' G*/
 extern int access(Char *f, int n);
 
-/*H name H*/
+/*F cdecl; F*/
+/*HF name FH*/
 /*G; asmname G*/
-/*GH 'isatty' HG*/
+/*GHF 'isatty' FHG*/
 
-/*H name H*/
+/*F cdecl; F*/
+/*HF name FH*/
 /*G; asmname G*/
-/*GH 'time' HG*/
+/*GHF 'time' FHG*/
 
-/*BXUGH real HGUXB*/
-/*H name H*/
+/*BXUGHF real FHGUXB*/
+/*F cdecl; F*/
+/*HF name FH*/
 /*G; asmname G*/
-/*GH 'sprintf' HG*/
+/*GHF 'sprintf' FHG*/
 
-/*BXUGH real HGUXB*/
-/*H name H*/
+/*BXUGHF real FHGUXB*/
+/*F cdecl; F*/
+/*HF name FH*/
 /*G; asmname G*/
-/*GH 'snprintf' HG*/
+/*GHF 'snprintf' FHG*/
 
+/*F cdecl; F*/
 /* procedure system( var s: char ); */
-/*H name H*/
+/*HF name FH*/
 /*G; asmname G*/
-/*GH 'system' HG*/
+/*GHF 'system' FHG*/
 
 /* These need tweaking for different operating systems: */
-/*H name H*/
+/*F cdecl; F*/
+/*HF name FH*/
 /*G; asmname G*/
-/*GH 'random' HG*/
+/*GHF 'random' FHG*/
 #if defined(__MSDOS__) || defined(__CYGMIN) || defined(RAND) 
 #undef random
 #define random() rand()
@@ -1527,9 +1530,9 @@ extern long random(void);
 #endif
 #endif
 
-/*H name H*/
+/*HF name FH*/
 /*G; asmname G*/
-/*GH 'srandom' HG*/
+/*GHF 'srandom' FHG*/
 #if defined(_POSIX_SOURCE) || defined(__sun)
 extern void srandom(unsigned s);
 #elif defined(__MSDOS__) || defined(__CYGMIN) || defined(RAND) 
@@ -1752,7 +1755,7 @@ begin
       write(log,' ');
       D*/
 /*DBUMX wpair(log,ord(namptr),ord(next)); XMUBD*/
-/*DGH wpair(log,ordp(namptr),ordp(next)); HGD*/
+/*DGHF wpair(log,ordp(namptr),ordp(next)); FHGD*/
 /*D
 write(log,' val='); wfloat(log,val); flush(log);
 snapname(segmnt,seginx,len);
@@ -1906,7 +1909,9 @@ void deletetree(primitive **p)
       deletename(&(*p)->outlinep);
       deletename(&(*p)->textp);
       deletename(&(*p)->name);
+
       With = *p;
+
       switch (With->ptype) {
 
       case XLbox:
@@ -1945,6 +1950,10 @@ void deletetree(primitive **p)
 	Free(*p);
 	break;
       }
+      /*F with p^ do if ptype=XBLOCK then begin
+               for i:=HASHLIM downto 0 do deletename(vars[i]);
+               if env<>nil then dispose(env) end;
+            dispose(p); F*/
       *p = r;
   }
 }
@@ -2001,7 +2010,7 @@ void eqop(double *x, int op, double y)
     }
     else {
 	*x = (long)floor(*x + 0.5) % (long)floor(y + 0.5);
-/* p2c: dpic1.p, line 369:
+/* p2c: dpic1.p, line 380:
  * Note: Using % for possibly-negative arguments [317] */
     }
     break;
@@ -2204,9 +2213,9 @@ primitive *findplace(primitive *p, Char *chb, chbufinx inx,
 
 arg *findmacro(arg *p, Char *chb, chbufinx inx, chbufinx length,
 		      arg **last)
-{ /*H( p:argp;
+{ /*HF( p:argp;
                        chb: chbufp; inx,length: chbufinx;
-                       var last:argp )H*/
+                       var last:argp )FH*/
   arg *pj, *With;
 
   *last = NULL;
@@ -2245,7 +2254,7 @@ int varhash(Char *chb, chbufinx chbufx, chbufinx length)
       idx += chb[chbufx + length - 2];
   }
   return (idx % (HASHLIM + 1));
-/* p2c: dpic1.p, line 500:
+/* p2c: dpic1.p, line 511:
  * Note: Using % for possibly-negative arguments [317] */
 }
 
@@ -2390,7 +2399,7 @@ void storestring(Char **outbuf, nametype *outstr, Char *srcbuf,
 
   if (*outbuf == NULL || lsrc > CHBUFSIZ - freex + 1) {
       newseg = true;
-      /* else if bval(outbuf) >= maxbval then newseg := true */
+      /* else if bval(outbuf) >= maxbval then newseg := true; */
   }
   else {
       newseg = false;
@@ -2793,7 +2802,9 @@ void newprim(primitive **pr, int primtype, primitive *envblk)
     *pr = Malloc(sizeof(XLabelprimitive));
     break;
   }
+
   With = *pr;
+  /*F new(pr); F*/
   With->name = NULL;
   With->textp = NULL;
   With->outlinep = NULL;
@@ -3726,7 +3737,7 @@ void deletestringbox(primitive **pr)
 
 /* addsuffix(chbuf,chbufx,length,attstack^[newp+1].xval); */
 void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
-{                                                               /*DGH ordp HGD*/
+{                                                             /*DGHF ordp FHGD*/
   int i, j, FORLIM;
 
   /*D if debuglevel <> 0 then begin writeln(log,
@@ -3769,7 +3780,7 @@ void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
   }
   do {
       buf[*inx + j] = i % 10 + '0';
-/* p2c: dpic1.p, line 1326:
+/* p2c: dpic1.p, line 1341:
  * Note: Using % for possibly-negative arguments [317] */
       j--;
       i /= 10;
@@ -4287,7 +4298,7 @@ void produce(stackinx newp, int p)
     else {
 	With->xval = (long)floor(With->xval + 0.5) %
 		     (long)floor(attstack[newp + 2].xval + 0.5);
-/* p2c: dpic1.p, line 1655:
+/* p2c: dpic1.p, line 1670:
  * Note: Using % for possibly-negative arguments [317] */
     }
     break;
@@ -5318,7 +5329,8 @@ void produce(stackinx newp, int p)
 	lastm = lastm->nextb;
     }
     lastm->carray[lastm->savedlen] = etxch;
-    /*D; if debuglevel > 1 then begin writeln(log);
+    /*D; if debuglevel > 1 then begin
+       writeln(log);
        if p=defhead1 then write(log,'defhead1') else write(log,'defhead2');
        lastm := macp^.argbody; while lastm<> nil do begin
           wrbuf(lastm,3,0); lastm := lastm^.nextb end
@@ -6513,8 +6525,8 @@ void produce(stackinx newp, int p)
 		}
 	    }
 	    if (drawmode >= 0 && drawmode < 32 &&
-		((1L << drawmode) & ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0)
-	    {                                                         /*,PSmps*/
+		((1L << drawmode) &
+		 ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0) {
 		/* output contains text */
 		printstate = (printstate >> 1) * 2 + 1;
 	    }
@@ -6887,13 +6899,12 @@ void produce(stackinx newp, int p)
 	     ((1L << drawmode) & ((1L << MPost) | (1L << Pict2e) | (1L << PDF) |
 		(1L << PS) | (1L << SVG) | (1L << PSfrag))) != 0 &&
 	     With->lexval != XLmove) || With->lexval == XLarc)
-	{                                                             /*,PSmps*/
+	{                                 /* (drawmode in [PGF,PSTricks]) and */
 	    With->prim->lthick = eb->Upr.Ublock.env[XLlinethick - XLenvvar - 1];
 	    /*D; if debuglevel > 0 then begin write(log,
 	        ' envblock[',ordp(eb),'] setting linethick=');
 	        wfloat(log,prim^.lthick); writeln(log) end D*/
 	}
-	/* (drawmode in [PGF,PSTricks]) and */
 	if (attstack[newp + 1].lexval != XEMPTY && With->lexval != XLmove &&
 	     With->lexval != XLspline && With->lexval != XLarrow &&
 	     With->lexval != XLline) {
@@ -7080,8 +7091,7 @@ void produce(stackinx newp, int p)
   /* | stringexpr */
   case block2:
     if (drawmode >= 0 && drawmode < 32 &&
-	((1L << drawmode) & ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0)
-    {                                                                 /*,PSmps*/
+	((1L << drawmode) & ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0) {
 	/* flag text in output */
 	printstate = (printstate >> 1) * 2 + 1;
     }
@@ -7911,7 +7921,7 @@ void produce(stackinx newp, int p)
 /* onefile */
 /* G end.G */
 /* onefile */
-/*GH#include 'dpic1.p'HG*/
+/*GHF#include 'dpic1.p'FHG*/
 
 /* include dpic2.p */
 /*BXsegment dpic2;XB*/
@@ -8057,7 +8067,7 @@ void wcoord(FILE **iou, double x, double y)
   putc(',', *iou);
   wfloat(iou, y / fsc);
   putc(')', *iou);
-  /*DUGHM ;flush(iou) MHGUD*/
+  /*DUGHMF ;flush(iou) FMHGUD*/
 }
 
 
@@ -8757,7 +8767,7 @@ void dahead(postype point, postype shaft, double ht, double wid,
 		   double *x, double *y)
 { /* arrowhead ht and wid, user units */
   /* line thickness in diagram units */
-  /*adj point, left, right pts, dir cosines */
+  /* adj point, left, right pts, dir cosines */
   double h, v, po, t;
 
   /*D if debuglevel > 0 then begin
@@ -9085,7 +9095,7 @@ void xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2018.03.06 option -x for Fig 3.1')
+     writeln('# dpic version 2015.10.28 option -x for Fig 3.1')
      */
 
   printf("#FIG 3.2\n");
@@ -9096,7 +9106,7 @@ void xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2018.03.06 option -x for Fig 3.2\n");
+  printf("# dpic version 2015.10.28 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 
 }
@@ -9524,7 +9534,7 @@ void svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2018.03.06 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2015.10.28 option -v for SVG 1.1 -->\n");
   hsize = (e - w + 2 * lth) / fsc;
   vsize = (n - s + 2 * lth) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -9638,7 +9648,7 @@ void svglineoptions(primitive *node, int lnspec)
     break;
 
   case XLdotted:
-    /* if lparam = mdistmax then param := 5/72*scale
+    /* if ismdistmax(lparam) then param := 5/72*scale
        else param := lparam; */
     if (node->lparam != mdistmax) {
 	param = node->lparam;
@@ -9724,7 +9734,7 @@ void svgparam(Char *p, double x)
 
 void svgcoord(Char *s1, Char *s2, double x, double y)
 { svgparam(s1, x);
-  /*DUGHM ;flush(output) MHGUD*/
+  /*DUGHMF ;flush(output) FMHGUD*/
   svgparam(s2, xfheight - y);
 }
 
@@ -10056,7 +10066,7 @@ void svgsplinesegment(primitive *tv, int splc, int splt)
       svgendpath();
       return;
   }
-  if (tv->Upr.Uline.aradius == mdistmax) {
+  if (ismdistmax(tv->Upr.Uline.aradius)) {
       if (splc == splt) {  /* 1st seg */
 	  printf(" d=\"M ");
 	  svgwpos(tv->aat);
@@ -10124,7 +10134,7 @@ void svgsplinesegment(primitive *tv, int splc, int splt)
 }
 
 
-/* node is always <> nil: */
+/* node is always <> nil */
 void svgdraw(primitive *node)
 { int lsp;
   postype X1, X2;
@@ -10399,7 +10409,7 @@ void svgdraw(primitive *node)
     }
     break;
   }
-  /*DUGHM ;flush(output) MHGUD*/
+  /*DUGHMF ;flush(output) FMHGUD*/
 }  /* svgdraw */
 
 
@@ -10412,7 +10422,7 @@ void pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2018.03.06 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2015.10.28 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -10814,7 +10824,7 @@ void pstarcahead(postype C, postype point, int atyp, nametype *sou,
 
 void pstsplinesegment(primitive *tv, int splc, int splt)
 { if (tv != NULL) {
-      if (tv->Upr.Uline.aradius == mdistmax) {
+      if (ismdistmax(tv->Upr.Uline.aradius)) {
 	  if (splc == splt && splc > 1) {  /* 1st seg */
 	      wpos(tv->aat);
 	      wprop(tv->aat, tv->Upr.Uline.endpos, 5.0, 1.0, 6.0);
@@ -11174,7 +11184,7 @@ void pstdraw(primitive *node)
     }
     break;
   }
-  /*DUGHM ;flush(output) MHGUD*/
+  /*DUGHMF ;flush(output) FMHGUD*/
 }  /* pstdraw */
 
 
@@ -11187,7 +11197,7 @@ void mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2018.03.06 option -m for mfpic\n");
+  printf("\n%% dpic version 2015.10.28 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -11489,7 +11499,7 @@ void mfpsplinesegment(primitive *tv, int splc, int splt)
       printf("}\n");
       return;
   }
-  if (tv->Upr.Uline.aradius == mdistmax) {
+  if (ismdistmax(tv->Upr.Uline.aradius)) {
       if (splc == splt) {  /* 1st seg */
 	  printf("\\cbeziers{");
 	  wpos(tv->aat);
@@ -11888,7 +11898,7 @@ void mfpdraw(primitive *node)
 /* Output routines for MetaPost */
 void mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2018.03.06 option -s for MetaPost\n");
+  printf("%% dpic version 2015.10.28 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -12219,7 +12229,7 @@ void splinesegment(primitive *tv, int splc, int splt)
       wpos(tv->Upr.Uline.endpos);
       return;
   }
-  if (tv->Upr.Uline.aradius == mdistmax) {
+  if (ismdistmax(tv->Upr.Uline.aradius)) {
       if (splc == splt) {  /* 1st seg */
 	  wpos(tv->aat);
 	  ddash();
@@ -12555,7 +12565,7 @@ void mpodraw(primitive *node)
 /* pgf output routines */
 void pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2018.03.06 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2015.10.28 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -13239,7 +13249,7 @@ void pgfdraw(primitive *node)
 void pswfloat(FILE **iou, double x)
 { putc(' ', *iou);
   wfloat(iou, x);
-  /*DUGHM ;flush(iou) MHGUD*/
+  /*DUGHMF ;flush(iou) FMHGUD*/
 }
 
 
@@ -13268,7 +13278,7 @@ void psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2018.03.06 option ");
+  printf("\n%%%%Creator: dpic version 2015.10.28 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -13340,7 +13350,7 @@ void psnewpath(void)
 
 void pswcoord(FILE **iou, double x, double y)
 { pswfloat(iou, x / fsc);
-  /*DUGHM ;flush(iou) MHGUD*/
+  /*DUGHMF ;flush(iou) FMHGUD*/
   pswfloat(iou, y / fsc);
 }
 
@@ -13558,7 +13568,7 @@ void pssetcolor(nametype *op)
 
 void psdashdot(int lspec, double param)
 { if (lspec == XLdashed) {
-      if (param == mdistmax) {
+      if (ismdistmax(param)) {
 	  param = 3 * fsc;
       }
       printf(" [");
@@ -13570,7 +13580,7 @@ void psdashdot(int lspec, double param)
   if (lspec != XLdotted) {
       return;
   }
-  if (param == mdistmax) {
+  if (ismdistmax(param)) {
       param = 5 * fsc;
   }
   printf(" [ 0");
@@ -13764,7 +13774,7 @@ void pssplinesegment(primitive *tv, int splc, int splt)
       printf(" lineto\n");
       return;
   }
-  if (tv->Upr.Uline.aradius == mdistmax) {
+  if (ismdistmax(tv->Upr.Uline.aradius)) {
       if (splc == splt && splc > 1) {  /* 1st seg */
 	  pswpos(tv->aat);
 	  printf(" moveto\n");
@@ -14112,7 +14122,7 @@ void psdraw(primitive *node)
     }
     break;
   }
-  /*DUGHM ;flush(output) MHGUD*/
+  /*DUGHMF ;flush(output) FMHGUD*/
 }  /* psdraw */
 
 
@@ -14175,7 +14185,7 @@ void pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2018.03.06 option -d for PDF\n");
+  printf("%% Creator: dpic version 2015.10.28 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
 
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
@@ -14592,7 +14602,7 @@ void pdfsetcolor(nametype *op, boolean f)
 void pdflineopts(int lspec, double param, double thck, nametype *op)
 { pdfsetthick(thck);
   if (lspec == XLdashed) {
-      if (param == mdistmax) {
+      if (ismdistmax(param)) {
 	  param = 6 * fsc;
       }
       pdfstream(" [", 2, &cx);
@@ -14603,7 +14613,7 @@ void pdflineopts(int lspec, double param, double thck, nametype *op)
       gsdashs = param;
   }
   else if (lspec == XLdotted) {
-      if (param == mdistmax) {
+      if (ismdistmax(param)) {
 	  param = 4 * fsc;
       }
       pdfstream(" [", 2, &cx);
@@ -14823,7 +14833,7 @@ void pdfsplinesegment(primitive *tv, int splc, int splt)
       pdfstream(" l", 2, &cx);
       return;
   }
-  if (tv->Upr.Uline.aradius == mdistmax) {
+  if (ismdistmax(tv->Upr.Uline.aradius)) {
       if (splc == splt) {  /* 1st seg */
 	  pdfwpos(tv->aat);
 	  pdfwln(" m", 2, &cx);
@@ -14871,7 +14881,7 @@ void pdfsplinesegment(primitive *tv, int splc, int splt)
 }
 
 
-/* node is always <> nil: */
+/* node is always <> nil */
 void pdfdraw(primitive *node)
 { int lsp;
   postype X1, X2;
@@ -15126,7 +15136,7 @@ void pdfdraw(primitive *node)
     }
     break;
   }
-  /*DUGHM ;flush(output) MHGUD*/
+  /*DUGHMF ;flush(output) FMHGUD*/
 }  /* pdfdraw */
 
 
@@ -15144,7 +15154,7 @@ void texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2018.03.06 option ");
+  printf("%% dpic version 2015.10.28 option ");
   switch (drawmode) {
 
   case TeX:
@@ -15392,7 +15402,7 @@ void texdraw(primitive *node)
 			qenv(node, XLarrowht, tn->Upr.Uline.height));
 	    }
 	    /* p2lineopts(lsp,lparam,outlinep); */
-	    if (spltot > 1 && node->Upr.Uline.aradius == mdistmax) {
+	    if ((spltot > 1) & ismdistmax(node->Upr.Uline.aradius)) {
 		printf("\\put");
 		wcoord(&output, node->aat.xpos, node->aat.ypos);
 		printf("{\\line");
@@ -15412,7 +15422,7 @@ void texdraw(primitive *node)
 		      1 - node->Upr.Uline.aradius, node->Upr.Uline.aradius, 1.0);
 	    }
 	}
-	else if (splcount > 1 && node->Upr.Uline.aradius == mdistmax) {
+	else if ((splcount > 1) & ismdistmax(node->Upr.Uline.aradius)) {
 	    wprop(node->aat, node->Upr.Uline.endpos, 5.0, 1.0, 6.0);
 	    wprop(node->aat, node->Upr.Uline.endpos, 1.0, 1.0, 2.0);
 	    printf("%%\n");
@@ -15441,7 +15451,7 @@ void texdraw(primitive *node)
 		y = qenv(node, XLarrowht, tn->Upr.Uline.height);
 		pprop(node->aat, &node->Upr.Uline.endpos, y, x - y, x);
 	    }
-	    if (spltot > 1 && node->Upr.Uline.aradius == mdistmax) {
+	    if ((spltot > 1) & ismdistmax(node->Upr.Uline.aradius)) {
 		wprop(node->aat, node->Upr.Uline.endpos, 5.0, 1.0, 6.0);
 		wprop(node->aat, node->Upr.Uline.endpos, 1.0, 1.0, 2.0);
 		printf("%%\n");
@@ -15717,7 +15727,7 @@ void texdraw(primitive *node)
     }
     break;
   }
-  /*DUGHM ; flush(output) MHGUD*/
+  /*DUGHMF ; flush(output) FMHGUD*/
 }  /* texdraw */
 
 
@@ -15752,7 +15762,6 @@ void treedraw(primitive *node)
 	psdraw(node);
 	break;
 
-      /* PSmps: mpsdraw(node); */
       case MPost:
 	mpodraw(node);
 	break;
@@ -15798,9 +15807,6 @@ begin
          PSTricks: pstdraw(node);
          MFpic: mfpdraw(node);
          PS,PSfrag: psdraw(node);
-         */
-/* PSmps: mpsdraw(node); */
-/*
          MPost: begin mpodraw(node); if bfill then mpodraw(node) end;
          SVG: svgdraw(node);
          xfig: xfigdraw(node)
@@ -15893,13 +15899,6 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
     fsc = fsctmp;
     break;
 
-  /* PSmps: begin
-     fsctmp := fsc; fsc := fsc/72;
-     mpsprelude(n,s,e,w);
-     treedraw( eb );
-     mpspostlude;
-     fsc := fsctmp
-     end; */
   case MPost:
     fsctmp = fsc;
     fsc /= 72;                                               /* output points */
@@ -15932,18 +15931,20 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
 /* onefile */
 /* G end. G */
 /* onefile */
-/*GH#include 'dpic2.p'HG*/
+/*GHF#include 'dpic2.p'FHG*/
 
 /*--------------------------------------------------------------------*/
 
 /* The log file is only for debugging */
-/*DUGHM
+/*DUGHMF
 procedure openlogfile;
-begin
-   rewrite(log,'log');
-   writeln(log);
-   writeln(log,'Dpic log file')
-   end; MHGUD*/
+begin FMHGUD*/
+/*DUGHM rewrite(log,'log'); MHGUD*/
+/*DF assign(log,'./log'); rewrite(log); FD*/
+/*DUGHMF
+writeln(log,'Dpic log file'); flush(log);
+if oflag <= 0 then oflag := 1
+end; FMHGUD*/
 
 /* Check if a file is accessible */
 
@@ -15963,7 +15964,7 @@ int checkfile(Char *ifn, boolean isverbose)
   if (j < FILENAMELEN) {
       j++;
   }
-  else {                                                                /*D+8D*/
+  else {
       fatal(1);
   }
   ifn[j - 1] = '\0';
@@ -15991,18 +15992,18 @@ void openerror(void)
 /* Open required input and outputs */
 
 void openfiles(void)
-{ /*DUGHM if (oflag>0) then openlogfile; MHGUD*/
+{ /*DUGHM
+var i,j: integer; MHGUD*/
+  /*DUGHMF
+     if oflag > 0 then begin openlogfile; debuglevel := oflag end; FMHGUD*/
   savebuf = NULL;
   output = stdout; input = stdin;
-
   if (argct >= P_argc) {
       return;
   }
-
   P_sun_argv(infname, sizeof(mstring), argct);
-  /*GH if argct <= ParamCount then begin
-     infname := ParamStr(argct); HG*/
-
+  /*GHF if argct <= ParamCount then begin
+     infname := ParamStr(argct); FHG*/
   if (checkfile(infname, true) != 0) {
       fatal(1);
   }
@@ -16015,6 +16016,18 @@ void openfiles(void)
   if (input == NULL) {
       _EscIO(FileNotFound);
   }
+
+  /*F assign(input,ParamStr(argct)); F*/
+  /*F reset(input); F*/
+  /*F if IOResult<>0 then fatal(1); F*/
+  /*DUGHM if oflag>0 then begin
+     write(log,'Input file: ');
+     i := 1; j := FILENAMELEN;
+     while j >= i do if (infname[j]=' ') or (infname[j]=chr(0))
+        then j := j-1 else i := j+1;
+     for i := 1 to j do write(log,infname[i]); writeln(log)
+     end; MHGUD*/
+  /*DF if oflag>0 then writeln(log,'Input file: ',ParamStr(argct)) FD*/
 }
 
 
@@ -16057,9 +16070,9 @@ begin
       otherwise write(log,c)
       end;
    write(log,'"')
-   end; D*/
+   end;
 
-/*D procedure wlogfl D*/
+procedure wlogfl D*/
 /* nm: string; v: real; cr: integer */
 /*D;
 begin
@@ -16068,9 +16081,9 @@ begin
      if v < 0 then write(log,'-MaxReal') else write(log,'MaxReal') end
    else wfloat(log,v);
    if cr<>0 then writeln(log)
-   end; D*/
+   end;
 
-/*D procedure wrbuf D*/
+procedure wrbuf D*/
 /* p: fbufferp; job,r: integer */
 /*D;
 var i,j: integer;
@@ -16165,7 +16178,7 @@ void markerror(int emi)
 	  k = lastbuf->savedlen;
       }
       for (j = inx; j <= k; j++) {
-	  putc(lastbuf->carray[j], errout);
+	  _SETIO(putc(lastbuf->carray[j], errout) >= 0, FileWriteError);
       }
       if (lastbuf != inbuf) {
 	  lastbuf = lastbuf->nextb;
@@ -16177,708 +16190,723 @@ void markerror(int emi)
 	  inx = lastbuf->readx;
       }
   }
-  fprintf(errout, "\n*** dpic: line %d ", lineno);
+  _SETIO(putc('\n', errout) >= 0, FileWriteError);
+  _SETIO(fprintf(errout, "*** dpic: line %d ", lineno) >= 0, FileWriteError);
   if (emi < 900) {
-      fprintf(errout, "ERROR: ");
+      _SETIO(fprintf(errout, "ERROR: ") >= 0, FileWriteError);
   }
   else {
-      fprintf(errout, "WARNING: ");
+      _SETIO(fprintf(errout, "WARNING: ") >= 0, FileWriteError);
   }
   if (emi < 800) {
       switch (lexsymb) {
 
       case XLname:
-	fprintf(errout, "Name");
+	_SETIO(fprintf(errout, "Name") >= 0, FileWriteError);
 	break;
 
       case XLabel:
-	fprintf(errout, "Label");
+	_SETIO(fprintf(errout, "Label") >= 0, FileWriteError);
 	break;
 
       case XLaTeX:
-	fprintf(errout, "Backslash not followed by line end (LaTeX macro?)");
+	_SETIO(fprintf(errout,
+		       "Backslash not followed by line end (LaTeX macro?)") >=
+	       0, FileWriteError);
 	break;
 
       case XLfloat:
-	fprintf(errout, "Float");
+	_SETIO(fprintf(errout, "Float") >= 0, FileWriteError);
 	break;
 
       case XERROR:
-	fprintf(errout, "Error");
+	_SETIO(fprintf(errout, "Error") >= 0, FileWriteError);
 	break;
 	/* include controlerr.i */
 
       case 4:
-	putc('<', errout);
+	_SETIO(putc('<', errout) >= 0, FileWriteError);
 	break;
 
       case 5:
-	fprintf(errout, "cw");
+	_SETIO(fprintf(errout, "cw") >= 0, FileWriteError);
 	break;
 
       case 6:
-	fprintf(errout, "ccw");
+	_SETIO(fprintf(errout, "ccw") >= 0, FileWriteError);
 	break;
 
       case 7:
-	putc('(', errout);
+	_SETIO(putc('(', errout) >= 0, FileWriteError);
 	break;
 
       case 8:
-	fprintf(errout, "Possibly unbalanced parentheses: )");
+	_SETIO(fprintf(errout, "Possibly unbalanced parentheses: )") >= 0,
+	       FileWriteError);
 	break;
 
       case 9:
-	putc('*', errout);
+	_SETIO(putc('*', errout) >= 0, FileWriteError);
 	break;
 
       case 10:
-	putc('+', errout);
+	_SETIO(putc('+', errout) >= 0, FileWriteError);
 	break;
 
       case 11:
-	putc('-', errout);
+	_SETIO(putc('-', errout) >= 0, FileWriteError);
 	break;
 
       case 12:
-	putc('/', errout);
+	_SETIO(putc('/', errout) >= 0, FileWriteError);
 	break;
 
       case 13:
-	putc('%', errout);
+	_SETIO(putc('%', errout) >= 0, FileWriteError);
 	break;
 
       case 14:
-	fprintf(errout, "; or end of line");
+	_SETIO(fprintf(errout, "; or end of line") >= 0, FileWriteError);
 	break;
 
       case 15:
-	putc('^', errout);
+	_SETIO(putc('^', errout) >= 0, FileWriteError);
 	break;
 
       case 16:
-	putc('!', errout);
+	_SETIO(putc('!', errout) >= 0, FileWriteError);
 	break;
 
       case 17:
-	fprintf(errout, "&&");
+	_SETIO(fprintf(errout, "&&") >= 0, FileWriteError);
 	break;
 
       case 18:
-	fprintf(errout, "||");
+	_SETIO(fprintf(errout, "||") >= 0, FileWriteError);
 	break;
 
       case 19:
-	putc(',', errout);
+	_SETIO(putc(',', errout) >= 0, FileWriteError);
 	break;
 
       case 20:
-	putc(':', errout);
+	_SETIO(putc(':', errout) >= 0, FileWriteError);
 	break;
 
       case 21:
-	putc('[', errout);
+	_SETIO(putc('[', errout) >= 0, FileWriteError);
 	break;
 
       case 22:
-	fprintf(errout, "Possibly unbalanced brackets: ]");
+	_SETIO(fprintf(errout, "Possibly unbalanced brackets: ]") >= 0,
+	       FileWriteError);
 	break;
 
       case 23:
-	putc('{', errout);
+	_SETIO(putc('{', errout) >= 0, FileWriteError);
 	break;
 
       case 24:
-	fprintf(errout, "Possibly unbalanced braces: }");
+	_SETIO(fprintf(errout, "Possibly unbalanced braces: }") >= 0,
+	       FileWriteError);
 	break;
 
       case 25:
-	putc('.', errout);
+	_SETIO(putc('.', errout) >= 0, FileWriteError);
 	break;
 
       case 26:
-	fprintf(errout, "[]");
+	_SETIO(fprintf(errout, "[]") >= 0, FileWriteError);
 	break;
 
       case 27:
-	putc('`', errout);
+	_SETIO(putc('`', errout) >= 0, FileWriteError);
 	break;
 
       case 28:
-	putc('\'', errout);
+	_SETIO(putc('\'', errout) >= 0, FileWriteError);
 	break;
 
       case 29:
-	putc('=', errout);
+	_SETIO(putc('=', errout) >= 0, FileWriteError);
 	break;
 
       case 30:
-	fprintf(errout, ":=");
+	_SETIO(fprintf(errout, ":=") >= 0, FileWriteError);
 	break;
 
       case 31:
-	fprintf(errout, "+=");
+	_SETIO(fprintf(errout, "+=") >= 0, FileWriteError);
 	break;
 
       case 32:
-	fprintf(errout, "-=");
+	_SETIO(fprintf(errout, "-=") >= 0, FileWriteError);
 	break;
 
       case 33:
-	fprintf(errout, "*=");
+	_SETIO(fprintf(errout, "*=") >= 0, FileWriteError);
 	break;
 
       case 34:
-	fprintf(errout, "/=");
+	_SETIO(fprintf(errout, "/=") >= 0, FileWriteError);
 	break;
 
       case 35:
-	fprintf(errout, "%%=");
+	_SETIO(fprintf(errout, "%%=") >= 0, FileWriteError);
 	break;
 
       case 36:
-	putc('&', errout);
+	_SETIO(putc('&', errout) >= 0, FileWriteError);
 	break;
 
       case 41:
-	fprintf(errout, "\" or string");
+	_SETIO(fprintf(errout, "\" or string") >= 0, FileWriteError);
 	break;
 
       case 42:
-	putc('#', errout);
+	_SETIO(putc('#', errout) >= 0, FileWriteError);
 	break;
 
       case 43:
-	fprintf(errout, "$ or argument reference");
+	_SETIO(fprintf(errout, "$ or argument reference") >= 0,
+	       FileWriteError);
 	break;
 
       case 46:
-	fprintf(errout, "height or ht");
+	_SETIO(fprintf(errout, "height or ht") >= 0, FileWriteError);
 	break;
 
       case 47:
-	fprintf(errout, "wid or width");
+	_SETIO(fprintf(errout, "wid or width") >= 0, FileWriteError);
 	break;
 
       case 48:
-	fprintf(errout, "rad or radius");
+	_SETIO(fprintf(errout, "rad or radius") >= 0, FileWriteError);
 	break;
 
       case 49:
-	fprintf(errout, "diam or diameter");
+	_SETIO(fprintf(errout, "diam or diameter") >= 0, FileWriteError);
 	break;
 
       case 50:
-	fprintf(errout, "thick or thickness");
+	_SETIO(fprintf(errout, "thick or thickness") >= 0, FileWriteError);
 	break;
 
       case 51:
-	fprintf(errout, "scaled");
+	_SETIO(fprintf(errout, "scaled") >= 0, FileWriteError);
 	break;
 
       case 52:
-	fprintf(errout, "from");
+	_SETIO(fprintf(errout, "from") >= 0, FileWriteError);
 	break;
 
       case 53:
-	fprintf(errout, "to");
+	_SETIO(fprintf(errout, "to") >= 0, FileWriteError);
 	break;
 
       case 54:
-	fprintf(errout, "at");
+	_SETIO(fprintf(errout, "at") >= 0, FileWriteError);
 	break;
 
       case 55:
-	fprintf(errout, "with");
+	_SETIO(fprintf(errout, "with") >= 0, FileWriteError);
 	break;
 
       case 56:
-	fprintf(errout, "by");
+	_SETIO(fprintf(errout, "by") >= 0, FileWriteError);
 	break;
 
       case 57:
-	fprintf(errout, "then");
+	_SETIO(fprintf(errout, "then") >= 0, FileWriteError);
 	break;
 
       case 58:
-	fprintf(errout, "continue");
+	_SETIO(fprintf(errout, "continue") >= 0, FileWriteError);
 	break;
 
       case 59:
-	fprintf(errout, "chop");
+	_SETIO(fprintf(errout, "chop") >= 0, FileWriteError);
 	break;
 
       case 60:
-	fprintf(errout, "same");
+	_SETIO(fprintf(errout, "same") >= 0, FileWriteError);
 	break;
 
       case 61:
-	fprintf(errout, "of");
+	_SETIO(fprintf(errout, "of") >= 0, FileWriteError);
 	break;
 
       case 62:
-	fprintf(errout, "the");
+	_SETIO(fprintf(errout, "the") >= 0, FileWriteError);
 	break;
 
       case 63:
-	fprintf(errout, "way");
+	_SETIO(fprintf(errout, "way") >= 0, FileWriteError);
 	break;
 
       case 64:
-	fprintf(errout, "between");
+	_SETIO(fprintf(errout, "between") >= 0, FileWriteError);
 	break;
 
       case 65:
-	fprintf(errout, "and");
+	_SETIO(fprintf(errout, "and") >= 0, FileWriteError);
 	break;
 
       case 66:
-	fprintf(errout, "Here");
+	_SETIO(fprintf(errout, "Here") >= 0, FileWriteError);
 	break;
 
       case 67:
-	fprintf(errout, "nd or rd or st or th");
+	_SETIO(fprintf(errout, "nd or rd or st or th") >= 0, FileWriteError);
 	break;
 
       case 68:
-	fprintf(errout, "last");
+	_SETIO(fprintf(errout, "last") >= 0, FileWriteError);
 	break;
 
       case 69:
-	fprintf(errout, "fill or filled");
+	_SETIO(fprintf(errout, "fill or filled") >= 0, FileWriteError);
 	break;
 
       case 70:
-	fprintf(errout, ".x");
+	_SETIO(fprintf(errout, ".x") >= 0, FileWriteError);
 	break;
 
       case 71:
-	fprintf(errout, ".y");
+	_SETIO(fprintf(errout, ".y") >= 0, FileWriteError);
 	break;
 
       case 72:
-	fprintf(errout, "print");
+	_SETIO(fprintf(errout, "print") >= 0, FileWriteError);
 	break;
 
       case 73:
-	fprintf(errout, "copy");
+	_SETIO(fprintf(errout, "copy") >= 0, FileWriteError);
 	break;
 
       case 74:
-	fprintf(errout, "reset");
+	_SETIO(fprintf(errout, "reset") >= 0, FileWriteError);
 	break;
 
       case 75:
-	fprintf(errout, "exec");
+	_SETIO(fprintf(errout, "exec") >= 0, FileWriteError);
 	break;
 
       case 76:
-	fprintf(errout, "sh");
+	_SETIO(fprintf(errout, "sh") >= 0, FileWriteError);
 	break;
 
       case 77:
-	fprintf(errout, "command");
+	_SETIO(fprintf(errout, "command") >= 0, FileWriteError);
 	break;
 
       case 78:
-	fprintf(errout, "define");
+	_SETIO(fprintf(errout, "define") >= 0, FileWriteError);
 	break;
 
       case 79:
-	fprintf(errout, "undef or undefine");
+	_SETIO(fprintf(errout, "undef or undefine") >= 0, FileWriteError);
 	break;
 
       case 80:
-	fprintf(errout, "rand");
+	_SETIO(fprintf(errout, "rand") >= 0, FileWriteError);
 	break;
 
       case 81:
-	fprintf(errout, "if");
+	_SETIO(fprintf(errout, "if") >= 0, FileWriteError);
 	break;
 
       case 82:
-	fprintf(errout, "else");
+	_SETIO(fprintf(errout, "else") >= 0, FileWriteError);
 	break;
 
       case 83:
-	fprintf(errout, "for");
+	_SETIO(fprintf(errout, "for") >= 0, FileWriteError);
 	break;
 
       case 84:
-	fprintf(errout, "do");
+	_SETIO(fprintf(errout, "do") >= 0, FileWriteError);
 	break;
 
       case 86:
-	fprintf(errout, "sprintf");
+	_SETIO(fprintf(errout, "sprintf") >= 0, FileWriteError);
 	break;
 
       case 88:
-	fprintf(errout, ".ne");
+	_SETIO(fprintf(errout, ".ne") >= 0, FileWriteError);
 	break;
 
       case 89:
-	fprintf(errout, ".se");
+	_SETIO(fprintf(errout, ".se") >= 0, FileWriteError);
 	break;
 
       case 90:
-	fprintf(errout, ".nw");
+	_SETIO(fprintf(errout, ".nw") >= 0, FileWriteError);
 	break;
 
       case 91:
-	fprintf(errout, ".sw");
+	_SETIO(fprintf(errout, ".sw") >= 0, FileWriteError);
 	break;
 
       case 92:
-	fprintf(errout, ".n or .north or .t or .top or top");
+	_SETIO(fprintf(errout, ".n or .north or .t or .top or top") >= 0,
+	       FileWriteError);
 	break;
 
       case 93:
-	fprintf(errout, ".b or .bot or .bottom or .s or .south or bottom");
+	_SETIO(fprintf(errout,
+		       ".b or .bot or .bottom or .s or .south or bottom") >= 0,
+	       FileWriteError);
 	break;
 
       case 94:
-	fprintf(errout, ".e or .east or .r or .right");
+	_SETIO(fprintf(errout, ".e or .east or .r or .right") >= 0,
+	       FileWriteError);
 	break;
 
       case 95:
-	fprintf(errout, ".l or .left or .w or .west");
+	_SETIO(fprintf(errout, ".l or .left or .w or .west") >= 0,
+	       FileWriteError);
 	break;
 
       case 96:
-	fprintf(errout, ".start or start");
+	_SETIO(fprintf(errout, ".start or start") >= 0, FileWriteError);
 	break;
 
       case 97:
-	fprintf(errout, ".end or end");
+	_SETIO(fprintf(errout, ".end or end") >= 0, FileWriteError);
 	break;
 
       case 98:
-	fprintf(errout, ".c or .center or .centre");
+	_SETIO(fprintf(errout, ".c or .center or .centre") >= 0,
+	       FileWriteError);
 	break;
 
       case 100:
-	fprintf(errout, "==");
+	_SETIO(fprintf(errout, "==") >= 0, FileWriteError);
 	break;
 
       case 101:
-	fprintf(errout, "!=");
+	_SETIO(fprintf(errout, "!=") >= 0, FileWriteError);
 	break;
 
       case 102:
-	fprintf(errout, ">=");
+	_SETIO(fprintf(errout, ">=") >= 0, FileWriteError);
 	break;
 
       case 103:
-	fprintf(errout, "<=");
+	_SETIO(fprintf(errout, "<=") >= 0, FileWriteError);
 	break;
 
       case 104:
-	putc('>', errout);
+	_SETIO(putc('>', errout) >= 0, FileWriteError);
 	break;
 
       case 106:
-	fprintf(errout, ".height or .ht");
+	_SETIO(fprintf(errout, ".height or .ht") >= 0, FileWriteError);
 	break;
 
       case 107:
-	fprintf(errout, ".wid or .width");
+	_SETIO(fprintf(errout, ".wid or .width") >= 0, FileWriteError);
 	break;
 
       case 108:
-	fprintf(errout, ".rad or .radius");
+	_SETIO(fprintf(errout, ".rad or .radius") >= 0, FileWriteError);
 	break;
 
       case 109:
-	fprintf(errout, ".diam or .diameter");
+	_SETIO(fprintf(errout, ".diam or .diameter") >= 0, FileWriteError);
 	break;
 
       case 110:
-	fprintf(errout, ".thick or .thickness");
+	_SETIO(fprintf(errout, ".thick or .thickness") >= 0, FileWriteError);
 	break;
 
       case 111:
-	fprintf(errout, ".len or .length");
+	_SETIO(fprintf(errout, ".len or .length") >= 0, FileWriteError);
 	break;
 
       case 113:
-	fprintf(errout, "abs");
+	_SETIO(fprintf(errout, "abs") >= 0, FileWriteError);
 	break;
 
       case 114:
-	fprintf(errout, "acos");
+	_SETIO(fprintf(errout, "acos") >= 0, FileWriteError);
 	break;
 
       case 115:
-	fprintf(errout, "asin");
+	_SETIO(fprintf(errout, "asin") >= 0, FileWriteError);
 	break;
 
       case 116:
-	fprintf(errout, "cos");
+	_SETIO(fprintf(errout, "cos") >= 0, FileWriteError);
 	break;
 
       case 117:
-	fprintf(errout, "exp");
+	_SETIO(fprintf(errout, "exp") >= 0, FileWriteError);
 	break;
 
       case 118:
-	fprintf(errout, "expe");
+	_SETIO(fprintf(errout, "expe") >= 0, FileWriteError);
 	break;
 
       case 119:
-	fprintf(errout, "int");
+	_SETIO(fprintf(errout, "int") >= 0, FileWriteError);
 	break;
 
       case 120:
-	fprintf(errout, "log");
+	_SETIO(fprintf(errout, "log") >= 0, FileWriteError);
 	break;
 
       case 121:
-	fprintf(errout, "loge");
+	_SETIO(fprintf(errout, "loge") >= 0, FileWriteError);
 	break;
 
       case 122:
-	fprintf(errout, "sign");
+	_SETIO(fprintf(errout, "sign") >= 0, FileWriteError);
 	break;
 
       case 123:
-	fprintf(errout, "sin");
+	_SETIO(fprintf(errout, "sin") >= 0, FileWriteError);
 	break;
 
       case 124:
-	fprintf(errout, "sqrt");
+	_SETIO(fprintf(errout, "sqrt") >= 0, FileWriteError);
 	break;
 
       case 125:
-	fprintf(errout, "tan");
+	_SETIO(fprintf(errout, "tan") >= 0, FileWriteError);
 	break;
 
       case 126:
-	fprintf(errout, "floor");
+	_SETIO(fprintf(errout, "floor") >= 0, FileWriteError);
 	break;
 
       case 128:
-	fprintf(errout, "atan2");
+	_SETIO(fprintf(errout, "atan2") >= 0, FileWriteError);
 	break;
 
       case 129:
-	fprintf(errout, "max");
+	_SETIO(fprintf(errout, "max") >= 0, FileWriteError);
 	break;
 
       case 130:
-	fprintf(errout, "min");
+	_SETIO(fprintf(errout, "min") >= 0, FileWriteError);
 	break;
 
       case 131:
-	fprintf(errout, "pmod");
+	_SETIO(fprintf(errout, "pmod") >= 0, FileWriteError);
 	break;
 
       case 133:
-	fprintf(errout, "solid");
+	_SETIO(fprintf(errout, "solid") >= 0, FileWriteError);
 	break;
 
       case 134:
-	fprintf(errout, "dotted");
+	_SETIO(fprintf(errout, "dotted") >= 0, FileWriteError);
 	break;
 
       case 135:
-	fprintf(errout, "dashed");
+	_SETIO(fprintf(errout, "dashed") >= 0, FileWriteError);
 	break;
 
       case 136:
-	fprintf(errout, "invis or invisible");
+	_SETIO(fprintf(errout, "invis or invisible") >= 0, FileWriteError);
 	break;
 
       case 138:
-	fprintf(errout, "color or colored or colour or coloured");
+	_SETIO(fprintf(errout, "color or colored or colour or coloured") >= 0,
+	       FileWriteError);
 	break;
 
       case 139:
-	fprintf(errout, "outline or outlined");
+	_SETIO(fprintf(errout, "outline or outlined") >= 0, FileWriteError);
 	break;
 
       case 140:
-	fprintf(errout, "shade or shaded");
+	_SETIO(fprintf(errout, "shade or shaded") >= 0, FileWriteError);
 	break;
 
       case 142:
-	fprintf(errout, "center or centre");
+	_SETIO(fprintf(errout, "center or centre") >= 0, FileWriteError);
 	break;
 
       case 143:
-	fprintf(errout, "ljust");
+	_SETIO(fprintf(errout, "ljust") >= 0, FileWriteError);
 	break;
 
       case 144:
-	fprintf(errout, "rjust");
+	_SETIO(fprintf(errout, "rjust") >= 0, FileWriteError);
 	break;
 
       case 145:
-	fprintf(errout, "above");
+	_SETIO(fprintf(errout, "above") >= 0, FileWriteError);
 	break;
 
       case 146:
-	fprintf(errout, "below");
+	_SETIO(fprintf(errout, "below") >= 0, FileWriteError);
 	break;
 
       case 148:
-	fprintf(errout, "<-");
+	_SETIO(fprintf(errout, "<-") >= 0, FileWriteError);
 	break;
 
       case 149:
-	fprintf(errout, "->");
+	_SETIO(fprintf(errout, "->") >= 0, FileWriteError);
 	break;
 
       case 150:
-	fprintf(errout, "<->");
+	_SETIO(fprintf(errout, "<->") >= 0, FileWriteError);
 	break;
 
       case 152:
-	fprintf(errout, "up");
+	_SETIO(fprintf(errout, "up") >= 0, FileWriteError);
 	break;
 
       case 153:
-	fprintf(errout, "down");
+	_SETIO(fprintf(errout, "down") >= 0, FileWriteError);
 	break;
 
       case 154:
-	fprintf(errout, "right");
+	_SETIO(fprintf(errout, "right") >= 0, FileWriteError);
 	break;
 
       case 155:
-	fprintf(errout, "left");
+	_SETIO(fprintf(errout, "left") >= 0, FileWriteError);
 	break;
 
       case 157:
-	fprintf(errout, "box");
+	_SETIO(fprintf(errout, "box") >= 0, FileWriteError);
 	break;
 
       case 158:
-	fprintf(errout, "circle");
+	_SETIO(fprintf(errout, "circle") >= 0, FileWriteError);
 	break;
 
       case 159:
-	fprintf(errout, "ellipse");
+	_SETIO(fprintf(errout, "ellipse") >= 0, FileWriteError);
 	break;
 
       case 160:
-	fprintf(errout, "arc");
+	_SETIO(fprintf(errout, "arc") >= 0, FileWriteError);
 	break;
 
       case 161:
-	fprintf(errout, "line");
+	_SETIO(fprintf(errout, "line") >= 0, FileWriteError);
 	break;
 
       case 162:
-	fprintf(errout, "arrow");
+	_SETIO(fprintf(errout, "arrow") >= 0, FileWriteError);
 	break;
 
       case 163:
-	fprintf(errout, "move");
+	_SETIO(fprintf(errout, "move") >= 0, FileWriteError);
 	break;
 
       case 164:
-	fprintf(errout, "spline");
+	_SETIO(fprintf(errout, "spline") >= 0, FileWriteError);
 	break;
 
       case 166:
-	fprintf(errout, "arcrad");
+	_SETIO(fprintf(errout, "arcrad") >= 0, FileWriteError);
 	break;
 
       case 167:
-	fprintf(errout, "arrowht");
+	_SETIO(fprintf(errout, "arrowht") >= 0, FileWriteError);
 	break;
 
       case 168:
-	fprintf(errout, "arrowwid");
+	_SETIO(fprintf(errout, "arrowwid") >= 0, FileWriteError);
 	break;
 
       case 169:
-	fprintf(errout, "boxht");
+	_SETIO(fprintf(errout, "boxht") >= 0, FileWriteError);
 	break;
 
       case 170:
-	fprintf(errout, "boxrad");
+	_SETIO(fprintf(errout, "boxrad") >= 0, FileWriteError);
 	break;
 
       case 171:
-	fprintf(errout, "boxwid");
+	_SETIO(fprintf(errout, "boxwid") >= 0, FileWriteError);
 	break;
 
       case 172:
-	fprintf(errout, "circlerad");
+	_SETIO(fprintf(errout, "circlerad") >= 0, FileWriteError);
 	break;
 
       case 173:
-	fprintf(errout, "dashwid");
+	_SETIO(fprintf(errout, "dashwid") >= 0, FileWriteError);
 	break;
 
       case 174:
-	fprintf(errout, "ellipseht");
+	_SETIO(fprintf(errout, "ellipseht") >= 0, FileWriteError);
 	break;
 
       case 175:
-	fprintf(errout, "ellipsewid");
+	_SETIO(fprintf(errout, "ellipsewid") >= 0, FileWriteError);
 	break;
 
       case 176:
-	fprintf(errout, "lineht");
+	_SETIO(fprintf(errout, "lineht") >= 0, FileWriteError);
 	break;
 
       case 177:
-	fprintf(errout, "linewid");
+	_SETIO(fprintf(errout, "linewid") >= 0, FileWriteError);
 	break;
 
       case 178:
-	fprintf(errout, "moveht");
+	_SETIO(fprintf(errout, "moveht") >= 0, FileWriteError);
 	break;
 
       case 179:
-	fprintf(errout, "movewid");
+	_SETIO(fprintf(errout, "movewid") >= 0, FileWriteError);
 	break;
 
       case 180:
-	fprintf(errout, "textht");
+	_SETIO(fprintf(errout, "textht") >= 0, FileWriteError);
 	break;
 
       case 181:
-	fprintf(errout, "textoffset");
+	_SETIO(fprintf(errout, "textoffset") >= 0, FileWriteError);
 	break;
 
       case 182:
-	fprintf(errout, "textwid");
+	_SETIO(fprintf(errout, "textwid") >= 0, FileWriteError);
 	break;
 
       case 183:
-	fprintf(errout, "arrowhead");
+	_SETIO(fprintf(errout, "arrowhead") >= 0, FileWriteError);
 	break;
 
       case 184:
-	fprintf(errout, "fillval");
+	_SETIO(fprintf(errout, "fillval") >= 0, FileWriteError);
 	break;
 
       case 185:
-	fprintf(errout, "linethick");
+	_SETIO(fprintf(errout, "linethick") >= 0, FileWriteError);
 	break;
 
       case 186:
-	fprintf(errout, "maxpsht");
+	_SETIO(fprintf(errout, "maxpsht") >= 0, FileWriteError);
 	break;
 
       case 187:
-	fprintf(errout, "maxpswid");
+	_SETIO(fprintf(errout, "maxpswid") >= 0, FileWriteError);
 	break;
 
       case 188:
-	fprintf(errout, "scale");
+	_SETIO(fprintf(errout, "scale") >= 0, FileWriteError);
 	break;
 	/*B%include controlerrB*/
 
       default:
-	fprintf(errout, "Punctuation characters");
+	_SETIO(fprintf(errout, "Punctuation characters") >= 0, FileWriteError);
 	break;
       }
-      fprintf(errout, " found.\n");
-      fprintf(errout, " The following were expected:\n");
+      _SETIO(fprintf(errout, " found.\n") >= 0, FileWriteError);
+      _SETIO(fprintf(errout, " The following were expected:\n") >= 0,
+	     FileWriteError);
   }
 
   switch (emi) {
@@ -16886,372 +16914,409 @@ void markerror(int emi)
   /* Expected lexical symbols */
   /* include parserr.i */
   case 1:
-    fprintf(errout, " EOF .PS\n");
+    _SETIO(fprintf(errout, " EOF .PS\n") >= 0, FileWriteError);
     break;
 
   case 2:
-    fprintf(errout, " + - ! constant variable ( function location\n");
+    _SETIO(fprintf(errout, " + - ! constant variable ( function location\n") >= 0,
+	   FileWriteError);
     break;
 
   case 3:
-    fprintf(errout, " th\n");
+    _SETIO(fprintf(errout, " th\n") >= 0, FileWriteError);
     break;
 
   case 4:
-    fprintf(errout, " of Label enumerated obj\n");
+    _SETIO(fprintf(errout, " of Label enumerated obj\n") >= 0, FileWriteError);
     break;
 
   case 5:
-    fprintf(errout, " primitiv [] string [\n");
+    _SETIO(fprintf(errout, " primitiv [] string [\n") >= 0, FileWriteError);
     break;
 
   case 6:
-    fprintf(errout, " ]\n");
+    _SETIO(fprintf(errout, " ]\n") >= 0, FileWriteError);
     break;
 
   case 7:
-    fprintf(errout, " (\n");
+    _SETIO(fprintf(errout, " (\n") >= 0, FileWriteError);
     break;
 
   case 8:
-    fprintf(errout, " ) + - ! constant variable ( function location\n");
+    _SETIO(fprintf(errout, " ) + - ! constant variable ( function location\n") >=
+	   0, FileWriteError);
     break;
 
   case 9:
-    fprintf(errout, " Label enumerated obj\n");
+    _SETIO(fprintf(errout, " Label enumerated obj\n") >= 0, FileWriteError);
     break;
 
   case 10:
-    fprintf(errout, " .x .y * /\n");
+    _SETIO(fprintf(errout, " .x .y * /\n") >= 0, FileWriteError);
     break;
 
   case 11:
-    fprintf(errout, " ! constant variable ( function location\n");
+    _SETIO(fprintf(errout, " ! constant variable ( function location\n") >= 0,
+	   FileWriteError);
     break;
 
   case 12:
-    fprintf(errout,
-      " sh variable + - ( corner Here ! string Label float function sprintf enumerated obj\n");
+    _SETIO(
+      fprintf(errout,
+	" sh variable + - ( corner Here ! string Label float function sprintf enumerated obj\n") >=
+      0, FileWriteError);
     break;
 
   case 13:
-    fprintf(errout, " string sprintf\n");
+    _SETIO(fprintf(errout, " string sprintf\n") >= 0, FileWriteError);
     break;
 
   case 14:
-    fprintf(errout, " )\n");
+    _SETIO(fprintf(errout, " )\n") >= 0, FileWriteError);
     break;
 
   case 15:
-    fprintf(errout, " constant variable ( function location\n");
+    _SETIO(fprintf(errout, " constant variable ( function location\n") >= 0,
+	   FileWriteError);
     break;
 
   case 16:
-    fprintf(errout,
-	    " + - string ! sprintf constant variable ( function location\n");
+    _SETIO(fprintf(errout,
+	     " + - string ! sprintf constant variable ( function location\n") >= 0,
+	   FileWriteError);
     break;
 
   case 17:
-    fprintf(errout, " ( corner Here Label enumerated obj\n");
+    _SETIO(fprintf(errout, " ( corner Here Label enumerated obj\n") >= 0,
+	   FileWriteError);
     break;
 
   case 18:
-    fprintf(errout, " between of < , + -\n");
+    _SETIO(fprintf(errout, " between of < , + -\n") >= 0, FileWriteError);
     break;
 
   case 19:
-    fprintf(errout, " ,\n");
+    _SETIO(fprintf(errout, " ,\n") >= 0, FileWriteError);
     break;
 
   case 20:
-    fprintf(errout, " logic opr\n");
+    _SETIO(fprintf(errout, " logic opr\n") >= 0, FileWriteError);
     break;
 
   case 21:
-    fprintf(errout, " the\n");
+    _SETIO(fprintf(errout, " the\n") >= 0, FileWriteError);
     break;
 
   case 22:
-    fprintf(errout, " way\n");
+    _SETIO(fprintf(errout, " way\n") >= 0, FileWriteError);
     break;
 
   case 23:
-    fprintf(errout, " between\n");
+    _SETIO(fprintf(errout, " between\n") >= 0, FileWriteError);
     break;
 
   case 24:
-    fprintf(errout, " and\n");
+    _SETIO(fprintf(errout, " and\n") >= 0, FileWriteError);
     break;
 
   case 25:
-    fprintf(errout, " ) ,\n");
+    _SETIO(fprintf(errout, " ) ,\n") >= 0, FileWriteError);
     break;
 
   case 26:
-    fprintf(errout, " variable\n");
+    _SETIO(fprintf(errout, " variable\n") >= 0, FileWriteError);
     break;
 
   case 27:
-    fprintf(errout, " =\n");
+    _SETIO(fprintf(errout, " =\n") >= 0, FileWriteError);
     break;
 
   case 28:
-    fprintf(errout, " ) ||\n");
+    _SETIO(fprintf(errout, " ) ||\n") >= 0, FileWriteError);
     break;
 
   case 29:
-    fprintf(errout, " ) + -\n");
+    _SETIO(fprintf(errout, " ) + -\n") >= 0, FileWriteError);
     break;
 
   case 30:
-    fprintf(errout, " , + -\n");
+    _SETIO(fprintf(errout, " , + -\n") >= 0, FileWriteError);
     break;
 
   case 31:
-    fprintf(errout, " ] + -\n");
+    _SETIO(fprintf(errout, " ] + -\n") >= 0, FileWriteError);
     break;
 
   case 32:
-    fprintf(errout, " ' + -\n");
+    _SETIO(fprintf(errout, " ' + -\n") >= 0, FileWriteError);
     break;
 
   case 33:
-    fprintf(errout, " } + -\n");
+    _SETIO(fprintf(errout, " } + -\n") >= 0, FileWriteError);
     break;
 
   case 34:
-    fprintf(errout, " ;\n");
+    _SETIO(fprintf(errout, " ;\n") >= 0, FileWriteError);
     break;
 
   case 35:
-    fprintf(errout, " [ []\n");
+    _SETIO(fprintf(errout, " [ []\n") >= 0, FileWriteError);
     break;
 
   case 36:
-    fprintf(errout, " to ,\n");
+    _SETIO(fprintf(errout, " to ,\n") >= 0, FileWriteError);
     break;
 
   case 37:
-    fprintf(errout, " + - do by\n");
+    _SETIO(fprintf(errout, " + - do by\n") >= 0, FileWriteError);
     break;
 
   case 38:
-    fprintf(errout, " do + -\n");
+    _SETIO(fprintf(errout, " do + -\n") >= 0, FileWriteError);
     break;
 
   case 39:
-    fprintf(errout, " if\n");
+    _SETIO(fprintf(errout, " if\n") >= 0, FileWriteError);
     break;
 
   case 40:
-    fprintf(errout, " then ||\n");
+    _SETIO(fprintf(errout, " then ||\n") >= 0, FileWriteError);
     break;
 
   case 41:
-    fprintf(errout, " name Label\n");
+    _SETIO(fprintf(errout, " name Label\n") >= 0, FileWriteError);
     break;
 
   case 42:
-    fprintf(errout,
-      " at corner . + - ( Here ! Label constant variable function enumerated obj\n");
+    _SETIO(
+      fprintf(errout,
+	" at corner . + - ( Here ! Label constant variable function enumerated obj\n") >=
+      0, FileWriteError);
     break;
 
   case 43:
-    fprintf(errout, " at\n");
+    _SETIO(fprintf(errout, " at\n") >= 0, FileWriteError);
     break;
 
   case 44:
-    fprintf(errout, " at of Label enumerated obj\n");
+    _SETIO(fprintf(errout, " at of Label enumerated obj\n") >= 0,
+	   FileWriteError);
     break;
 
   case 45:
-    fprintf(errout, " {\n");
+    _SETIO(fprintf(errout, " {\n") >= 0, FileWriteError);
     break;
 
   case 46:
-    fprintf(errout, " }\n");
+    _SETIO(fprintf(errout, " }\n") >= 0, FileWriteError);
     break;
 
   case 47:
-    fprintf(errout, " envvar\n");
+    _SETIO(fprintf(errout, " envvar\n") >= 0, FileWriteError);
     break;
 
   case 48:
-    fprintf(errout, " logic opr string sprintf\n");
+    _SETIO(fprintf(errout, " logic opr string sprintf\n") >= 0,
+	   FileWriteError);
     break;
 
   case 49:
-    fprintf(errout, " }\n");
+    _SETIO(fprintf(errout, " }\n") >= 0, FileWriteError);
     break;
 
   case 50:
-    fprintf(errout, " :\n");
+    _SETIO(fprintf(errout, " :\n") >= 0, FileWriteError);
     break;
 
   case 51:
-    fprintf(errout, " .PE ;\n");
+    _SETIO(fprintf(errout, " .PE ;\n") >= 0, FileWriteError);
     break;
 
   /*B%include parserrB*/
   /* lexical error messages */
   case 800:
-    fprintf(errout, "Character not recognized: ignored\n");
+    _SETIO(fprintf(errout, "Character not recognized: ignored\n") >= 0,
+	   FileWriteError);
     break;
 
   case 801:
-    fprintf(errout, "Null string not allowed\n");
+    _SETIO(fprintf(errout, "Null string not allowed\n") >= 0, FileWriteError);
     break;
 
   case 802:
-    fprintf(errout, "Invalid exponent character after e in a number\n");
+    _SETIO(fprintf(errout, "Invalid exponent character after e in a number\n") >=
+	   0, FileWriteError);
     break;
 
   case 803:
-    fprintf(errout,
-	    "Fill value must be non-negative and not greater than 1\n");
+    _SETIO(fprintf(errout,
+	     "Fill value must be non-negative and not greater than 1\n") >= 0,
+	   FileWriteError);
     break;
 
   case 804:
   case 807:
-    fprintf(errout, "End of file while reading ");
+    _SETIO(fprintf(errout, "End of file while reading ") >= 0, FileWriteError);
     if (emi == 807) {
-	fprintf(errout, "string in ");
+	_SETIO(fprintf(errout, "string in ") >= 0, FileWriteError);
     }
     switch (currprod) {
 
     case elsehead1:
-      fprintf(errout, "else");
+      _SETIO(fprintf(errout, "else") >= 0, FileWriteError);
       break;
 
     case ifhead1:
-      fprintf(errout, "if");
+      _SETIO(fprintf(errout, "if") >= 0, FileWriteError);
       break;
 
     case forhead1:
-      fprintf(errout, "for");
+      _SETIO(fprintf(errout, "for") >= 0, FileWriteError);
       break;
 
     case defhead1:
     case defhead2:
-      fprintf(errout, "define");
+      _SETIO(fprintf(errout, "define") >= 0, FileWriteError);
       break;
     }
-    fprintf(errout, " {...} contents\n");
+    _SETIO(fprintf(errout, " {...} contents\n") >= 0, FileWriteError);
     break;
 
   case 805:
-    fprintf(errout, "Bad macro argument number\n");
+    _SETIO(fprintf(errout, "Bad macro argument number\n") >= 0,
+	   FileWriteError);
     break;
 
   case 806:
-    fprintf(errout, "End of file while evaluating macro argument\n");
+    _SETIO(fprintf(errout, "End of file while evaluating macro argument\n") >=
+	   0, FileWriteError);
     break;
 
   /* context error messages */
   case 851:
-    fprintf(errout, "Variable not found\n");
+    _SETIO(fprintf(errout, "Variable not found\n") >= 0, FileWriteError);
     break;
 
   case 852:
-    fprintf(errout, "Zero divisor not allowed\n");
+    _SETIO(fprintf(errout, "Zero divisor not allowed\n") >= 0, FileWriteError);
     break;
 
   case 853:
-    fprintf(errout, "Only one copy file may be open at any time\n");
+    _SETIO(fprintf(errout, "Only one copy file may be open at any time\n") >=
+	   0, FileWriteError);
     break;
 
   case 854:
-    fprintf(errout, "Place name not found\n");
+    _SETIO(fprintf(errout, "Place name not found\n") >= 0, FileWriteError);
     break;
 
   case 855:
-    fprintf(errout, "Internal name not found\n");
+    _SETIO(fprintf(errout, "Internal name not found\n") >= 0, FileWriteError);
     break;
 
   case 856:
-    fprintf(errout, "Invalid non-positive value for object count\n");
+    _SETIO(fprintf(errout, "Invalid non-positive value for object count\n") >=
+	   0, FileWriteError);
     break;
 
   case 857:
-    fprintf(errout, "Enumerated or previous object not found\n");
+    _SETIO(fprintf(errout, "Enumerated or previous object not found\n") >= 0,
+	   FileWriteError);
     break;
 
   case 858:
-    fprintf(errout, "This usage is inapplicable in this context\n");
+    _SETIO(fprintf(errout, "This usage is inapplicable in this context\n") >=
+	   0, FileWriteError);
     break;
 
   case 859:
-    fprintf(errout, "File not readable\n");
+    _SETIO(fprintf(errout, "File not readable\n") >= 0, FileWriteError);
     break;
 
   case 860:
-    fprintf(errout, "Infinite looping not allowed\n");
+    _SETIO(fprintf(errout, "Infinite looping not allowed\n") >= 0,
+	   FileWriteError);
     break;
 
   case 861:
-    fprintf(errout, "Missing or blank string\n");
+    _SETIO(fprintf(errout, "Missing or blank string\n") >= 0, FileWriteError);
     break;
 
   case 862:
-    fprintf(errout, "For ... by *() limits must have the same sign\n");
+    _SETIO(fprintf(errout, "For ... by *() limits must have the same sign\n") >= 0,
+	   FileWriteError);
     break;
 
   case 863:
-    fprintf(errout, "Non-integer power of negative value\n");
+    _SETIO(fprintf(errout, "Non-integer power of negative value\n") >= 0,
+	   FileWriteError);
     break;
 
   case 864:
-    fprintf(errout, "Incorrect number of sprintf arguments\n");
+    _SETIO(fprintf(errout, "Incorrect number of sprintf arguments\n") >= 0,
+	   FileWriteError);
     break;
 
   case 865:
-    fprintf(errout, "Bad sprintf format\n");
+    _SETIO(fprintf(errout, "Bad sprintf format\n") >= 0, FileWriteError);
     break;
 
   case 866:
-    fprintf(errout, "String exceeds max length of 4095 characters\n");
+    _SETIO(fprintf(errout, "String exceeds max length of 4095 characters\n") >= 0,
+	   FileWriteError);
     break;
 
   case 867:
-    fprintf(errout, "Invalid log or sqrt argument\n");
+    _SETIO(fprintf(errout, "Invalid log or sqrt argument\n") >= 0,
+	   FileWriteError);
     break;
 
   case 868:
-    fprintf(errout, "Function argument out of bounds\n");
+    _SETIO(fprintf(errout, "Function argument out of bounds\n") >= 0,
+	   FileWriteError);
     break;
 
   case 869:
-    fprintf(errout, "Improper use of logical operator\n");
+    _SETIO(fprintf(errout, "Improper use of logical operator\n") >= 0,
+	   FileWriteError);
     break;
 
   case 870:
-    fprintf(errout, "Zero value of scale not allowed\n");
+    _SETIO(fprintf(errout, "Zero value of scale not allowed\n") >= 0,
+	   FileWriteError);
     break;
 
   case 871:
-    fprintf(errout, "Zero second argument of pmod not allowed\n");
+    _SETIO(fprintf(errout, "Zero second argument of pmod not allowed\n") >= 0,
+	   FileWriteError);
     break;
 
   case 872:
-    fprintf(errout, "Buffer overflow while defining macro argument\n");
+    _SETIO(fprintf(errout, "Buffer overflow while defining macro argument\n") >= 0,
+	   FileWriteError);
     break;
 
   /* lexical warning messages */
   case 901:
-    fprintf(errout, "String character generated at end of line\n");
+    _SETIO(fprintf(errout, "String character generated at end of line\n") >= 0,
+	   FileWriteError);
     break;
 
   case 903:
-    fprintf(errout, "Picture size adjusted to maxpswid value\n");
+    _SETIO(fprintf(errout, "Picture size adjusted to maxpswid value\n") >= 0,
+	   FileWriteError);
     break;
 
   case 904:
-    fprintf(errout, "Picture size adjusted to maxpsht value\n");
+    _SETIO(fprintf(errout, "Picture size adjusted to maxpsht value\n") >= 0,
+	   FileWriteError);
     break;
 
   /*905: writeln(errout,'Operating system command returns nonzero value'); */
   case 906:
-    fprintf(errout, "Safe mode: sh, copy, and print to file disallowed\n");
+    _SETIO(fprintf(errout,
+		   "Safe mode: sh, copy, and print to file disallowed\n") >= 0,
+	   FileWriteError);
     break;
   }/* case */
 
@@ -17494,10 +17559,10 @@ void nextline(Char lastchar)
 	  With = inbuf;
 	  FORLIM = With->savedlen;
 	  for (i = 1; i < FORLIM; i++) {
-	      putchar(With->carray[i]);
+	      _SETIO(putchar(With->carray[i]) >= 0, FileWriteError);
 	  }
 	  if (With->carray[With->savedlen] != bslch) {
-	      putchar('\n');
+	      _SETIO(putchar('\n') >= 0, FileWriteError);
 	  }
 	  With->savedlen = 0;
       }
@@ -17705,7 +17770,9 @@ boolean isprint_(Char ch)
 
 void pointinput(nametype *txt)
 { /* txt: strptr */
-  int i, FORLIM;
+  int i;
+  Char c;
+  int FORLIM;
 
   if (txt == NULL) {
       return;
@@ -17713,6 +17780,7 @@ void pointinput(nametype *txt)
   if (txt->segmnt == NULL) {
       return;
   }
+  c = ' ';                                                        /*F chr(0) F*/
   if (txt->len >= FILENAMELEN) {
       txt->len = FILENAMELEN - 1;
   }
@@ -17721,11 +17789,11 @@ void pointinput(nametype *txt)
       infname[i] = txt->segmnt[txt->seginx + i];
   }
   for (i = txt->len; i < FILENAMELEN; i++) {
-      infname[i] = ' ';
+      infname[i] = c;
   }
-  /*DUGHM if debuglevel > 0 then begin
+  /*DUGHMF if debuglevel > 0 then begin
      write(log,'Pointinput(segmnt ',seginx:1,', len ',len:1,') ');
-     for i := 1 to len do write(log,infname[i]); writeln(log) end; MHGUD*/
+     for i := 1 to len do write(log,infname[i]); writeln(log) end; FMHGUD*/
 
   if (savebuf != NULL) {
       markerror(853);
@@ -17741,9 +17809,9 @@ void pointinput(nametype *txt)
   else {
       copyin = fopen(P_trimname(infname, sizeof(mstring)), "r");
   }
-  if (copyin == NULL) {
-      _EscIO(FileNotFound);
-  }
+  _SETIO(copyin != NULL, FileNotFound);
+  /*F else begin
+     assign(copyin,infname); reset(copyin); F*/
   backup();
   ch = nlch;
   savebuf = inbuf;
@@ -17772,14 +17840,16 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
       }
   }
   outfnam[txt->len] = '\0';
-  /*DUGHM if debuglevel > 0 then begin
+  /*DUGHMF if debuglevel > 0 then begin
      write(log,'Pointoutput(',nw,' segmnt ',seginx:1,', len ',len:1,') "');
-     for i := 1 to len do write(log,outfnam[i]); writeln(log,'"') end;
-  MHGUD*/
+     for i := 1 to len do write(log,outfnam[i]); writeln(log,'"');
+     flush(log) end;
+  FMHGUD*/
   if (*ier != 0) {
       markerror(861);
       return;
   }
+
   if (nw) {
       if (redirect != NULL) {
 	  redirect = freopen(P_trimname(outfnam, sizeof(mstring)), "w",
@@ -17788,9 +17858,7 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
       else {
 	  redirect = fopen(P_trimname(outfnam, sizeof(mstring)), "w");
       }
-      if (redirect == NULL) {
-	  _EscIO(FileNotFound);
-      }
+      _SETIO(redirect != NULL, FileNotFound);
       return;
   }
   if (redirect != NULL) {
@@ -17799,9 +17867,13 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
   else {
       redirect = fopen(P_trimname(outfnam, sizeof(mstring)), "a");
   }
-  if (redirect == NULL) {
-      _EscIO(FileNotFound);
-  }
+  _SETIO(redirect != NULL, FileNotFound);
+  /*F
+  else begin
+    assign(redirect,outfnam);
+    if nw then rewrite(redirect)
+    else append(redirect)
+    end F*/
 }
 
 
@@ -18650,8 +18722,8 @@ void lexical(void)
 	      }
 	      else if (newsymb == XNL &&
 		       (oldsymb == XLelse || oldsymb == XLBRACE ||
-			oldsymb == XLthen ||
-			oldsymb == XCOLON || oldsymb == XNL)) {
+			oldsymb == XLthen || oldsymb == XCOLON ||
+			oldsymb == XNL)) {
 		  terminalaccepted = false;
 	      }
 	      else if (newsymb == XLT && inlogic) {
@@ -18738,7 +18810,7 @@ void lexical(void)
 		     if ord(ch) >=ord('A') then
 		        linesignal := 1+ord(ch)-ord('A')
 		     else if ord(ch) > ord('0') then begin
-		        openlogfile;
+		        if oflag <= 0 then openlogfile;
 		        debuglevel := ord(ch)-ord('0')
 		        end
 		     else if ord(ch) = ord('0') then debuglevel := 0;
@@ -18769,11 +18841,13 @@ void lexical(void)
 		  }
 	      }
 	      else if (newsymb == 0) {
-		  fprintf(errout, "Char chr(%d)", firstch);
+		  _SETIO(fprintf(errout, "Char chr(%d)", firstch) >= 0,
+			 FileWriteError);
 		  if (firstch > 32 && (firstch & 255) < 127) {
-		      fprintf(errout, "\"%c\"", firstch);
+		      _SETIO(fprintf(errout, "\"%c\"", firstch) >= 0,
+			     FileWriteError);
 		  }
-		  fprintf(errout, " unknown\n");
+		  _SETIO(fprintf(errout, " unknown\n") >= 0, FileWriteError);
 		  markerror(800);
 		  terminalaccepted = false;
 	      }
@@ -19272,11 +19346,8 @@ void parse(void)
   errcount = 0;
   /* change for debugging */
   /* linesignal := 0; */
-  /*D trace := false;
-  if trace then debuglevel := 1 else debuglevel := 0; D*/
-  /*DUGHM if oflag > 0 then debuglevel := oflag; MHGUD*/
-  /*DUGHM if trace and (oflag <= 0) then openlogfile; MHGUD*/
-  /* Dwriteln('debuglevel=',debuglevel); D */
+  /*DUGHMF trace := false;
+  if trace and (oflag = 0) then openlogfile; FMHGUD*/
 
   parsestack = Malloc(sizeof(tparsestack));
   produce(1, -2);
@@ -19326,7 +19397,7 @@ Char optionchar(Char *fn)
   j = 1;
   k = FILENAMELEN + 1;
   while (j < k) {
-      if (fn[j - 1] == ' ') {
+      if (fn[j - 1] == ' ') {                                     /*F chr(0) F*/
 	  j++;
       }
       else {
@@ -19356,21 +19427,17 @@ void getoptions(void)
 { Char cht;
   int istop;
 
-  /*DUGHM oflag := 0; linesignal := 0; MHGUD*/
+  /*DUGHMF oflag := 0; linesignal := 0; FMHGUD*/
   argct = 1;
-  istop = P_argc;                                        /*GH ParamCount+1; HG*/
+  istop = P_argc;                                      /*GHF ParamCount+1; FHG*/
   while (argct < istop) {
       P_sun_argv(infname, sizeof(mstring), argct);
-	  /*GH infname := ParamStr(argct); HG*/
+	  /*GHF infname := ParamStr(argct); FHG*/
       cht = optionchar(infname);
       if (cht == 0) {
 	  istop = argct;
 	  continue;
       }
-      /* if cht = 'q' then drawmode := PSmps */
-      /* Metapost-readable PS*/
-      /*
-      else */
       if (cht == 'd') {
 	  drawmode = PDF;
       }
@@ -19406,38 +19473,54 @@ void getoptions(void)
       }
       else if (cht == 'z') {
 	  safemode = true;
-	  /*DUGHM
-         else if cht = 'y' then linesignal := 2
-         else if (cht >= '0') and (cht <= '9') then oflag := ord(cht)-ord('0')
-         MHGUD*/
+	  /*DUGHMF
+	  else if cht = 'y' then linesignal := 2
+	  else if (cht >= '0') and (cht <= '9') then oflag := ord(cht)-ord('0')
+	  FMHGUD*/
       }
       else if (cht == 'h' || cht == '-') {
-	  fprintf(errout, " *** dpic version 2018.03.06\n");
-	  fprintf(errout, " options:\n");
-	  fprintf(errout, "     (none) LaTeX picture output\n");
-	  fprintf(errout, "     -d PDF output\n");
-	  fprintf(errout, "     -e Pict2e output\n");
-	  fprintf(errout, "     -f Postscript output, psfrag strings\n");
-	  fprintf(errout, "     -g PGF-TikZ output\n");
-	  fprintf(errout, "     -h write this message and quit\n");
-	  fprintf(errout, "     -m mfpic output\n");
-	  fprintf(errout, "     -p PSTricks output\n");
-	  fprintf(errout, "     -r Postscript output\n");
-	  fprintf(errout, "     -s MetaPost output\n");
-	  fprintf(errout, "     -t eepicemu output\n");
-	  fprintf(errout, "     -v SVG output\n");
-	  fprintf(errout, "     -x xfig output\n");
-	  fprintf(errout,
-	    "     -z safe mode (sh, copy, and print to file disabled)\n");
+	  _SETIO(fprintf(errout, " *** dpic version 2015.10.28\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, " options:\n") >= 0, FileWriteError);
+	  _SETIO(fprintf(errout, "     (none) LaTeX picture output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -d PDF output\n") >= 0, FileWriteError);
+	  _SETIO(fprintf(errout, "     -e Pict2e output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout,
+			 "     -f Postscript output, psfrag strings\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -g PGF-TikZ output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -h write this message and quit\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -m mfpic output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -p PSTricks output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -r Postscript output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -s MetaPost output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -t eepicemu output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout, "     -v SVG output\n") >= 0, FileWriteError);
+	  _SETIO(fprintf(errout, "     -x xfig output\n") >= 0,
+		 FileWriteError);
+	  _SETIO(fprintf(errout,
+		   "     -z safe mode (sh, copy, and print to file disabled)\n") >=
+		 0, FileWriteError);
 	  fatal(0);
       }
       else {
-	  fprintf(errout, " *** dpic terminating: Unknown option \"");
+	  _SETIO(fprintf(errout, " *** dpic terminating: Unknown option \"") >= 0,
+		 FileWriteError);
 	  if (isprint_(cht)) {
-	      fprintf(errout, "%c\"\n", cht);
+	      _SETIO(fprintf(errout, "%c\"\n", cht) >= 0, FileWriteError);
 	  }
 	  else {
-	      fprintf(errout, "char(%d)\"\n", cht);
+	      _SETIO(fprintf(errout, "char(%d)\"\n", cht) >= 0,
+		     FileWriteError);
 	  }
 	  fatal(0);
       }
@@ -19462,7 +19545,6 @@ main(int argc, Char *argv[])
   safemode = false;
 #endif
   getoptions();
-  /* D writeln('oflag=',oflag); D */
   openfiles();
   inputeof = false;
   attstack = Malloc(sizeof(attstacktype));
