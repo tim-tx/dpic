@@ -1,0 +1,31 @@
+.PS
+scale = 100
+linethick = 0.2*72
+
+define wscale {
+for x=0 to B.wid*2/scale do {
+  line thick 0.4 up 0.2*scale from (x/2,0.5)*scale
+  sprintf("%g",x/2) at last line.start below
+  } 
+}
+
+#efine lightgray {"0.8 0.8 0.8"}
+#efine lightgray {"lightgray"}
+
+a[1] = 0
+a[2] = 1
+a[3] = 3
+[]
+for i = 1 to 3 by 2 do {[
+  arrowhead = a[i]
+  B: box ht 2.75*scale wid 6.5*scale with .sw at (0,0) outlined "lightgray"
+  box thick 0.4 wid B.wid ht B.ht at B
+  arrow <-> from B.w to B.e width 1*scale ht 1*scale
+  wscale
+  spline <-> from 1/3<B.sw,B.se> up B.ht then to 1/3<B.se,B.sw> \
+    then up B.ht wid 1*scale ht 1*scale
+  arc cw <-> from B+(B.ht,B.ht)/2 to B+(-B.ht,B.ht)/2 with .c at B \
+    width 1.0*scale ht 1.0*scale
+  ] with .nw at last [].sw}
+
+.PE

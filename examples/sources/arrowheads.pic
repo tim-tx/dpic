@@ -1,0 +1,65 @@
+.PS
+define mark { { circle rad 0.01*scale at $1; "$1" at last circle.n above }}
+define marka { { $1: circle rad 0.01*scale at $1
+  "$1" at last circle.n above }}
+
+ P:(0.223607,0); L:(0.9,-0.338197); R:(0.9,0.338197);
+ Q:(1,0);
+ Px:(0.666667,0); Lx:(1,-0.5); Rx:(1,0.5);
+
+ C:(4.560660,-1.25)
+ Point:(3.81066,-0.5)
+ Ci:(4.816891,-0.83541)
+ Ai:(3.851494,-1.274737)
+ Co:(4.14607,-1.506231)
+ Ao:(3.105503,-1.300759)
+ Pa:(3.572525,-0.864529)
+ AoAi:(3.478498,-1.287748)
+ Pax:(3.513022,-1.084308)
+ Cox:(3.794885,-2.10683)
+ Cix:(4.19355,-0.270746)
+
+arrowwid = 1
+arrowht = 1
+arrowl = 3
+
+a[1] = 0
+a[2] = 1
+a[3] = 3
+[
+[]
+for j = 1 to 3 do {
+[
+  arrowhead = a[j]
+  A: line from (0,0) <-> right arrowl thick 0.2*72 color "yellow"
+  for i=0 to arrowl*2 do { line thick 0.2 down 0.1 from A.start+(i/2,-1/2)
+    sprintf("%g",i/2) below }
+   mark(P)
+   mark(L)
+   mark(R)
+   mark(Q)
+   mark(Px)
+   mark(Lx)
+   mark(Rx)
+
+   sprintf("arrowhead=%g",a[j]) at (1.5,0.8)
+
+[ Arc: arc <-> thick 0.2*72 color "green" \
+    from (-1,1)*arrowl/4 to (1,1)*arrowl/4 \
+    with .c at (0,0)
+ ] with .Arc.w at A.end+(0.5,0)
+
+ [ marka(C)
+   mark(Pa)
+   mark(Ci)
+   mark(Ai)
+   mark(Co)
+   mark(Ao)
+   if j==3 then { mark(Pax); mark(Cox); mark(Cix) }
+   ] with .C at last [].Arc.c
+
+  ] with .nw at last [].sw+(0,-0.5)
+  }
+] wid 6.5 ht 8
+
+.PE

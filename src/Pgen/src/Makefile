@@ -1,0 +1,31 @@
+NAME = PG
+INSTALLDIR = ..
+CC = gcc
+PROGS = $(NAME) $(NAME)c $(NAME)p $(NAME)f
+
+install: $(PROGS)
+	cp -p $(PROGS) $(INSTALLDIR)
+
+$(NAME): p2c.h pg.o p2clib.o
+	$(CC) -o $(NAME) pg.o p2clib.o
+
+$(NAME)c: p2c.h pgc.o p2clib.o
+	$(CC) -o $(NAME)c pgc.o p2clib.o
+
+$(NAME)p: p2c.h pgp.o p2clib.o
+	$(CC) -o $(NAME)p pgp.o p2clib.o
+
+$(NAME)f: p2c.h pgf.o p2clib.o
+	$(CC) -o $(NAME)f pgf.o p2clib.o
+	
+p2clib.o: ../../../p2clib.c
+	$(CC) -c ../../../p2clib.c
+
+p2c.h: ../../../p2c.h
+	cp -p ../../../p2c.h .
+
+clean:
+	rm -f p2c.h *.o
+
+veryclean: clean
+	rm -f $(NAME) $(NAME)c $(NAME)f $(NAME)p

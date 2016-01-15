@@ -11,8 +11,9 @@ make pdf
 make mfpic
 make psfrag
 make postscript
-make overlay
 make rawpdf
+make svg
+make overlay
 make pdfoverlay
 make metapost
 make xfig
@@ -20,6 +21,15 @@ make svg
 
 ... or, you can type 'make all' and stand well back.
 
+Perhaps overlay and pdfoverlay require explanation.  In each case, the
+labels are overlaid on a diagram that has been input first.  In
+this way, pic graphics or labels can overlay essentially any graphic.
+
+You can also try
+make man
+which will produce about 15 pages of diagrams from various pic manuals
+and other tests.
+
 Typing
 make clean
-deletes unneeded files.
+deletes unneeded files created in one of the above steps.

@@ -1,0 +1,2104 @@
+%                               dpicdoc.tex
+\documentclass[11pt]{article}
+\usepackage{verbatim,url}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{xspace}
+\usepackage{wrapfig}
+\usepackage{datetime}
+\usepackage{troffman}
+\usepackage{tikz}
+%                               Fix the table of contents:
+\usepackage{tocloft}
+%                               For links
+\usepackage{bookmark}
+\usepackage{pdfcomment}
+%                               Fonts
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+%                               Adjust the page size
+\addtolength{\textwidth}{3cm}
+\addtolength{\hoffset}{-1.5cm}
+\addtolength{\voffset}{-1.5cm}
+\addtolength{\headsep}{-0.5cm}
+\addtolength{\textheight}{4cm}
+\setcounter{topnumber}{3}
+%                               Minimum hyphenation length
+\lefthyphenmin=3
+\righthyphenmin=3
+%                               Left-justified captions
+\makeatletter
+\long\def\@makecaption#1#2{%
+  \vskip\abovecaptionskip
+  \sbox\@tempboxa{#1: #2}%
+  \ifdim \wd\@tempboxa >\hsize
+    #1: #2\par
+  \else
+    \global \@minipagefalse
+    \hb@xt@\hsize{\box\@tempboxa\hfil}%
+  \fi
+  \vskip\belowcaptionskip}
+
+%\def\@date{February 01, 2015}
+\makeatother
+%                               Customizations
+\newcommand{\bq}{}
+\newcommand{\pic}{{\bq pic}}
+\newcommand{\dvips}{{\bq dvips}}
+\newcommand{\Pic}{{\bq Pic}}
+\newcommand{\gpic}{{\bq gpic}}
+\newcommand{\Gpic}{{\bq Gpic}}
+\newcommand{\Dpic}{{\bq Dpic}}
+\newcommand{\tpic}{{\bq tpic}}
+\newcommand{\mfpic}{{\bq mfpic}}
+\newcommand{\groff}{{\bq groff}}
+\newcommand{\xfig}{{\bq xfig}}
+\newcommand{\PSTricks}{{\bq PSTricks}}
+\newcommand{\MetaPost}{{\bq MetaPost}}
+\newcommand{\Postscript}{{\bq Postscript}}
+\newcommand{\dpic}{{\bq dpic}}
+\newcommand{\Mfour}{{\bq m4}}
+\newcommand{\TPGF}{{\bq Ti{\it k}z~PGF}}
+%
+\setlength{\parindent}{0pt}
+\addtolength{\parskip}{1ex}
+\newcommand{\ntt}[1]{\\\hbox{}\quad{\tt #1}}
+\newcommand{\VL}{\hbox{$|$}}
+\newcommand{\tRA}{{\tt\char62}}
+\newcommand{\tBS}{{\tt\char92}}
+\newcommand{\tLB}{{\tt\char123}}
+\newcommand{\tRB}{{\tt\char125}}
+%
+\newcommand{\SR}[1]{\hyperref[#1]{Section~\ref*{#1}}}
+\newcommand{\PR}[1]{\hyperref[#1]{page~\pageref*{#1}}}
+\newcommand{\FR}[1]{\hyperref[#1]{Figure~\ref*{#1}}}
+%
+\hypersetup{
+ pdflang=English,
+ unicode=true,
+ colorlinks=true,
+ linkcolor=purple,
+ citecolor=purple}
+
+\begin{document}
+\title{Drawing with dpic}
+\author{Dwight Aplevich%
+\date{\the\day\ \monthname[\the\month]\ \the\year}
+\footnote{Copyright \textcopyright\ \the\year\ J.\ D.\ Aplevich,
+all rights reserved.  This document version is made available
+under the Creative Commons attribution licence version 3.0
+(\protect{\tt http://creativecommons.org/licenses/by/3.0/});
+you are free to copy
+and distribute this document provided proper attribution is given by
+identifying the author.
+}}
+\maketitle%
+%
+\pdfbookmark[section]{\contentsname}{toc}
+\begin{multicols}{2}
+\tableofcontents
+\end{multicols}
+\section{Introduction}
+
+This document is meant for persons using dpic to produce diagrams for
+LaTeX documents or web files.  You are assumed to have basic knowledge
+of the pic language as described for the original Documenter's
+Workbench (ATT) pic~\cite{KRpic} or the
+current GNU pic (gpic) processor~\cite{Raymond95}.
+However, a concise dpic language reference is included here in
+Appendix~A, and the context-free dpic input grammar is given in Appendix~B.
+
+\Dpic\ accepts gpic input for the most part but
+there are minor differences.  The outputs of gpic and dpic are quite
+different but both can serve as preprocessors that create diagrams for
+inclusion in LaTeX documents.
+
+The pic language is particularly suited for easily creating line diagrams
+such as electric circuits, and many persons use a set of macros
+called Circuit\_macros, which are processed using the m4 macro processor
+and \Dpic.
+The pic language
+itself allows macro definitions, and both pic and m4 macros
+will be described.
+
+\Dpic\ usage will be reviewed, some programming examples that illustrate
+dpic extensions of the pic language will be given, and then
+the differences among pic translators will be itemized, particularly
+the differences between gpic and dpic.
+
+   There had better be a disclaimer:  The temptation to change the pic
+   language has been resisted most of the time so that valid diagrams
+   can be processed with minimal changes using the original
+   Documenter's Workbench (ATT) pic, with gpic, or dpic.  There are
+   exceptions: embedded word-processor commands principally,
+   but also minor differences in defaults for valid pic input, a few
+   gpic constructs that dpic does not implement directly, and some dpic
+   extensions that gpic does not implement.
+   For details, see \SR{Diffs:}.
+
+\iffalse
+For a summary of dpic syntax, Appendix~A contains a formatted Unix man
+page for dpic, and Appendix~B contains the dpic grammar.
+\fi
+
+\section{Dpic usage}\label{Usage:}
+In the following, items in square brackets [~] are optional
+and items separated by a vertical line~\VL~are alternatives.
+To produce .tex output (for LaTeX, PSTricks, TikZ-PGF, mfpic
+   processing):
+   \ntt{dpic {\rm[}{\sl options}{\rm]} {\sl file}.pic \tRA\ {\sl file}.tex}\\
+   or
+   \ntt{cat {\sl file}.pic | dpic {\rm[}{\sl options}{\rm]} 
+     \tRA\ {\sl file}.tex}
+
+To produce other formats:
+   \ntt{dpic
+   {\rm[}-d{\VL}e{\VL}f{\VL}g{\VL}h{\VL}m%
+    {\VL}p{\VL}r{\VL}s{\VL}t{\VL}v{\VL}x{\rm]}
+   {\rm[}-z{\rm]}
+   {\sl file}.pic
+     \tRA\ {\sl file}{\rm[}.tex{\VL}eps{\VL}pdf{\VL}mp{\VL}fig{\VL}svg{\rm]}}
+
+\subsection{Options}
+\Dpic\ accepts the following options:
+\begin{tabbing}
+\quad\=\hbox{(none)\ }\= \kill
+\> (none) \> Latex picture output (very limited font-based drawing commands)\\
+\> {\tt -d} \> PDF output \\
+\> {\tt -e} \> pict2e output \\
+\> {\tt -f} \> Postscript output with psfrag strings \\
+\> {\tt -g} \> TikZ-PGF output \\
+\> {\tt -h} \> write out these options and quit \\
+\> {\tt -m} \> mfpic output \\
+\> {\tt -p} \> PSTricks output \\
+\> {\tt -r} \> raw Postscript output \\
+\> {\tt -s} \> MetaPost output \\
+\> {\tt -t} \> eepicemu output \\
+\> {\tt -v} \> SVG output \\
+\> {\tt -x} \> xfig 3.2 output \\
+\> {\tt -z} \> safe mode ({\tt sh}, {\tt copy}, and print to file disabled)
+\end{tabbing}
+
+The {\tt -p} option produces output for postprocessing by the
+LaTeX package PSTricks.
+Similarly, the {\tt -g} option produces output
+for the TikZ-PGF packages and makes pdf production
+via pdflatex a one-step process.
+
+Mfpic and MetaPost output are provided for
+compatibility.
+
+The {\tt -r} option produces Postscript {\tt eps}
+files, in which font changes or typesetting must be done explicitly.
+% Output in this form can be imported into CorelDraw and Adobe Illustrator. 
+The {\tt -f} option writes Postscript strings in psfrag
+format for tex or latex typesetting.
+
+The {\tt -d} option produces PDF files.
+This format is most useful for diagrams containing graphics only, since
+there is no simple way to change or manipulate fonts for labels.
+The Courier fixed-width font is employed by default.
+To produce PDF files containing significant text content,
+use an option such as TikZ with pdflatex.
+
+The {\tt -v} option produces SVG for inserting figures into web documents or for
+further processing by the Inkscape graphics editor, for which SVG is the
+native format.
+When the SVG output is used directly in a web document,
+then any required text formatting generally must be included explicitly.
+The other possibility for SVG output is that an SVG library of elements
+can be drawn with dpic, and Inkscape used to place and connect copies
+of the elements.  Then Inkscape can export the graphics as eps for
+processing by \LaTeX\ or as pdf for processing by pdflatex.  Inkscape
+will also export a tex file from which labels can be formatted and
+overlaid on the imported eps or pdf.
+
+In all cases, arbitrary postprocessor commands (that is, arbitrary PSTricks,
+SVG, Postscript, or other commands) can be inserted into the dpic output
+directly from the source.
+This possibility adds considerable power for manipulating diagram
+elements.
+% at the expense of integrating them into normal dpic output.
+
+The {\tt -z} option disables the commands that access external files.
+These commands can be permanently disabled by the use of a compile-time
+option.
+
+The file Examples.txt contains a minimal example of each of these
+options except {\tt -z}.  Consult the appropriate manual for processing
+mfpic, PSTricks, MetaPost, pgf, or psfrag output.
+
+Invoking dpic without options produces basic LaTeX drawing commands
+by default.  LaTeX line slopes, for example, are very limited and you
+must ensure that lines and arrows are drawn only at acceptable slopes.
+\Dpic\ sets the maximum slope integer to be 6 for LaTeX, 453 for eepic,
+and 1000 for pict2e.  To see the effect of the slope limitations,
+process the following:
+\begin{verbatim}
+  .PS
+  dtor = atan2(0,-1)/180
+  for d = 0 to 360 by 2 do {
+    line from (0,0) to (cos(d*dtor),sin(d*dtor))
+    }
+  line from (-1.2,0) to (1.2,0)
+  line from (0,-1.2) to (0,1.2)
+  .PE
+\end{verbatim}
+
+
+\subsection{Lexical error messages}
+  Lexical error messages are generated automatically, and state the
+lexical value that was found and what was expected.  Some
+slightly less than obvious expected lexical values are:
+
+\begin{tabbing}
+\quad\=\hbox{\tt<primitiv>\ }\= \kill
+\> {\tt corner} \> a compass corner or {\tt.c}, {\tt .start}, {\tt .end} \\
+\> {\tt envvar} \> environmental variable \\
+\> {\tt primitiv} \> {\tt box}, {\tt circle}, {\tt ellipse}, {\tt arc},
+   {\tt line}, {\tt arrow}, {\tt move}, {\tt spline}
+\end{tabbing}
+
+\section{Dpic programming}
+Pic is a simple language with a good ratio of power to complexity, so
+surprisingly sophisticated diagrams can be produced in several areas of
+application.
+Arbitrary postprocessor commands can be included in the output and several
+of the postprocessors are powerful drawing languages in their own
+right, so it can be argued that dpic has all the power of these languages.
+However, if you find yourself writing extensive postprocessor code then
+you might ask why you are not programming exclusively in that language.
+
+Pic is very suitable for line diagrams, and recent language extensions
+allow for basic color.  Elaborate fills and cropping are the domain of
+the postprocessors, but can be included easily with the use of macros.
+
+The following sections are intended to help you become familiar
+with dpic language features.  Some of these details
+are exclusive to dpic and are not described in the GNU manual
+but are discussed in \SR{Diffs:} of this document.
+
+\subsection{Blocks}
+The basic planar objects in pic are {\tt box}, {\tt circle}, and {\tt ellipse},
+the placing of which is done according to the current drawing direction or
+by explicit placement such as
+\ntt{box at {\sl position}}\\
+which places the object so that its center is at {\sl position}.
+
+A block (or a composite object) is a group of elements enclosed by square
+brackets, such as
+\ntt{Q: [ B: [A: arc]; circle ]}.\\
+
+\subsubsection{Positioning blocks}
+A block is placed by default as if it were a box, after which the
+compass points
+({\tt Q.n}, {\tt Q.sw},~$\ldots$ in the previous example)
+are automatically defined as for a box of the same size and position.
+
+A block can also be positioned by specifying the location of
+one of its defined points.  A defined point is one of the following:
+\begin{enumerate}
+ \item A compass corner {\tt .center}, {\tt .n}, {\tt .ne},~$\ldots$
+  of the block, e.g.,
+   \ntt{ Q: [ B: [A: arc]; circle ] with .ne at {\sl position}}
+ \item A defined point of a labeled object or position within the
+   block, preceded by a dot, e.g.,
+   \ntt{ Q: [ B: [A: arc]; circle ] with .B.A.ne at {\sl position}}
+\item A defined point of an enumerated object in the block,
+ preceded by a dot (but make sure there is a space after the dot if it
+ is followed by a number), e.g.,
+\ntt{ Q: [ B: [A: arc]; circle ] with .\ 1st circle at {\sl position}}\\
+ Even better, put braces around the ordinal value, which can now be
+ any expression, e.g.,
+\ntt{~$\ldots$ with .\tLB{}10-9\tRB{}th circle at~$\ldots$}
+\item A displacement {\tt (x,y)} from the lower left corner of the block, e.g.,
+\ntt{ Q: [ B: [A: arc]; circle ] with (0.5,0.2) at {\sl position}}
+\end{enumerate}
+Reference to a defined point
+ may correspond to drilling down through several block layers,
+ as the second example above shows.
+
+\subsubsection{Defining scope}\label{Scope:}
+Variables defined within a block are accessible only within the block
+itself or its sub-blocks.
+Thus, the statement {\tt x = 5} creates the variable {\tt x}
+and assigns it a value.  If the statement is {\tt x~:=~5} then {\tt x}
+must already have been defined either in the block or in a scope
+containing the block.  Limiting the scope to a block avoids name conflicts
+but occasionaly results in subtle behavior. The code 
+\ntt{x = 5}
+\ntt{[ x = x + 2; print x ]}
+\ntt{print x}\\
+prints 7 on the first line and 5 on the second because the assignment
+within brackets creates variable {\tt x} with scope within the brackets.
+However, \Dpic\ allows a second line of the form
+\ntt{[ x += 2; print x ]}\\
+which changes the previously defined variable {\tt x} and the value
+7 is printed twice.
+
+Locations inside a block are accessible
+from outside as shown in the previous section,
+but the values of variables are not; thus, an error results from
+\ntt{Q: [ v = 5 ]; y = Q.v}\\
+The {\tt :=} assignment operator in
+\ntt{v = 0; Q: [ v := 5 ]; y = v}\\
+works around this problem, but this method requires the internal name {\tt v}
+to be known and defined in advance of the block.
+
+Variable values can be exported by the use of macro arguments as shown
+later in \SR{Macros:} or, if you must, by using the following trick:
+\ntt{Q: [ v = 5; w = 6}
+\ntt{\quad Origin:\ (0,0); Export:\ (v,w) ]}
+\ntt{v = Q.Export.x - Q.Origin.x}
+\ntt{w = Q.Export.y - Q.Origin.y}\\
+This method works because all locations ({\tt Origin} and {\tt Export})
+inside the block will be
+translated by the same amount no matter where the block is positioned.
+\iffalse
+Their differences therefore remain constant, with one exception:
+if the dpic {\tt scaled {\sl x}} construct is employed, the trick has
+to be modified as shown:
+\ntt{s = 0.7}
+\ntt{Q: [ v = 5; w = 6}
+\ntt{\quad Origin:\ (0,0); Export:\ (v,w) ] scaled s}
+\ntt{v = (Q.Export.x - Q.Origin.x)/s}
+\ntt{w = (Q.Export.y - Q.Origin.y)/s}
+\fi
+
+\subsection{Dpic macros}\label{Macros:}
+Macros can be used to turn the basic dpic language into a powerful
+tool for producing line drawings. A macro serves to
+\begin{itemize}\addtolength{\itemsep}{-0.5\baselineskip}
+\item specialize the pic language in order to draw components from an
+  application area
+\item abbreviate long sequences of repetitive commands
+\item substitute particular values in commands by the use of macro arguments
+\item provide conditional text replacement depending on the value of its
+ arguments
+\item provide recursive looping
+\end{itemize}
+Macro definitions are not local to blocks so care must be taken
+to avoid conflicts with macro names.
+
+The pic language includes basic macro facilities, but the m4 macro processor
+\cite{KRm4,Seindal94} makes a good companion to the language, so both will
+be mentioned.
+General-purpose macro definitions can be stored in files external to the
+diagram source and read in automatically.
+In particular, the author has written a package
+called Circuit\_macros for drawing electric circuits
+and other diagrams using dpic and m4 \cite{Aplevich09},
+from which examples will be taken.
+
+%\subsection{Dpic macros}
+A dpic macro is defined by the statement
+\ntt{define {\sl name} \tLB\ {\sl contents} \tRB}\\
+where {\sl name} may begin with a lowercase or uppercase letter.  Then
+any separate appearance of {\sl name} in the following lines is replaced
+by the characters between the defining braces, including newlines.
+If the name is given arguments of the form
+\ntt{{\sl name}({\sl x, y, z,~$\ldots$})}\\
+then, in the macro body,
+ {\tt\$}$n$ expands to the $n$th argument, which may be nul, if
+  at least one argument has been defined and $n$ is a positive integer.
+  Otherwise {\tt\$}$n$ is not evaluated.
+
+The line
+\ntt{undefine {\sl name}}\\
+deletes the macro definition.
+
+\Dpic\ skips white space immediately preceding macro arguments so that,
+ for example, 
+\ntt{{\sl name}( x, }
+\ntt{ y, z )}\\
+is equivalent to
+\ntt{{\sl name}(x,y,z )}
+
+In a macro invocation, the arguments are separated by commas.  An argument
+may contain commas if they are enclosed within strings or
+{\tt (~)} parentheses.  A double quote character within a string
+must be preceded by a backslash.
+Thus, for example, the macro invocation
+\ntt{{\sl name}(ABc"{\textbackslash}"t,"(,DE,F))}\\
+has one argument.
+
+  In a dpic macro, the value of {\tt\$+} is the number of arguments given to
+  the macro on invocation.  Thus if {\sl x} is a macro name, the values of
+  {\tt\$+}
+  when the macro is invoked as {\sl x}, {\sl x}{\tt()}, {\sl x}{\tt(8)},
+  {\sl x}{\tt(8,9)}, and {\sl x}{\tt(,,)} are
+  respectively 0, 1, 1, 2, and 3.
+
+To check whether an argument is null, put it in a string; for example,
+\ntt{if "\$3" == "" then \{ $\ldots$ \}}
+
+Values internal to a scope can be passed back through macro arguments
+with the {\tt :=} operator;
+thus, executing the following
+\ntt{define m \{[ v = 5; \$1 := v ]\}; y = 0; m(y)}\\
+gives {\tt y} the internal value of {\tt v}.
+Notice that {\tt y} must be defined prior to macro expansion.
+
+The use of macros will be illustrated in the following examples.
+
+\subsubsection{Finding roots}
+A root finder is a powerful tool for determining where lines or
+curves intersect in diagrams, and can be implemented using
+a macro.
+Consider the trivial example in which
+we wish to find the root of $x^2-1$ between $0$ and $2$.
+First, define a macro called {\tt bisect} by reading in a library file
+containing definitions using a command such as
+\ntt{copy "{\sl filename}"}\\
+or by writing a definition such as given below, which employs
+the method of bisection,
+a suitably robust (but not particularly fast) algorithm.
+Define the two-argument macro corresponding to the function
+of which we want to calculate the root:
+\ntt{define parabola \tLB\ \$2 = (\$1)\char94{}2 - 1 \tRB}\\
+In general, many statements might be required to calculate the function,
+but the essential statement is to assign the function value to the name given
+by the second argument.
+Then call the {\tt bisect} macro using a command such as
+\ntt{bisect( parabola, 0, 2, 1e-8, x )}\\
+where the second and third arguments define
+the search interval, the fourth argument specifies the solution
+precision, and the fifth argument is the name of the variable to be set
+to the root.  A basic version of {\tt bisect} is given by
+\begin{verbatim}
+define bisect {
+  x_m = $2; x_M = $3
+  x_c = (x_m+x_M)/2
+  if (abs(x_m-x_M) <= $4) then { $5 = x_c } else {
+     $1(x_m,f_m)
+     $1(x_c,f_c)
+     if (sign(f_c)==sign(f_m)) then { bisect($1,x_c,x_M,$4,$5) } \
+     else { bisect($1,x_m,x_c,$4,$5) } }
+  }
+\end{verbatim}
+%\iffalse
+\begin{wrapfigure}[12]{r}{0.4\textwidth}%
+  \vspace*{-4\baselineskip}%
+  \hspace*{1em}%
+% \parbox{0.4\textwidth}{\includegraphics{Spiral.pdf}}%
+  \parbox{0.4\textwidth}{\input{Spiral.tex}}%
+ \end{wrapfigure}%
+%\fi
+
+This macro repeatedly calls {\tt parabola} and then itself,
+halving the search interval until it is smaller than the
+prescribed precision.
+The Circuit\_macros library version
+operates essentially as above but avoids name clashes by appending
+the value of the first argument to the internal names.
+
+A somewhat more sophisticated use of a root finder is shown at the right.
+Drawing the spiral on the surface of the sphere requires knowing the
+points of transition of the curve from visible to hidden and back.
+A root finder provides
+a method that is both simple and adaptable to other shapes.
+The source file {\tt Spiral.m4} makes use of both m4 macros and pic macros.
+
+\subsubsection{Composing statements}
+\Dpic\ macro arguments can be expanded almost anywhere.
+Suppose that circles {\tt A} and {\tt B} have been
+defined, with intersections at positions {\tt AB} and {\tt BA} found
+using the macro {\tt cintersect} from Circuit\_macros, for example.
+Then the boundary of the region within both circles might be drawn using the
+macro shown, invoked as {\tt lozenge(A,B)}:
+\begin{verbatim}
+define lozenge {
+  arc from $1$2 to $2$1 with .c at $2
+  arc from $2$1 to $1$2 with .c at $1 }
+\end{verbatim}
+\smash{\hspace*{4in}\input circles.tex}%
+\vspace*{-\baselineskip}
+
+\subsubsection{Evaluating arguments}
+A macro argument is referenced as {\tt\$}$n$,
+where $n$ must be an integer and
+may not be an integer expression.  Consequently, the following does
+not work in a \dpic\ macro:
+\ntt{for i=1 to \$+ do \tLB\ c[i] = \$i \tRB}\\
+Instead, use the dpic statement
+\ntt{exec {\sl string}}\\
+which executes the contents of {\sl string} as if it were
+the current input line.
+Since
+\ntt{sprintf("{\sl format}",{\sl expression},$\ldots$)}\\
+behaves like a string, the following works:
+\ntt{for i=1 to \$+ do \tLB\ exec sprintf("c[i] = \$\%g",i) \tRB}
+
+Macro arguments are passed verbatim, as for example,
+{\tt function(x,y+z)}, inside which {\tt \$1} is replaced by {\tt x}
+and {\tt \$2} is replaced by {\tt y+z}.
+To pass arguments by value, use {\tt exec sprintf ...}, for example,
+{\tt exec sprintf("function(\%g,\%g)",x,y+z)}.
+The recursive calls near the bottom of the sorting algorithm shown
+are another example:
+\begin{verbatim}
+#                               dpquicksort(a,lo,hi,ix)
+#                               Given array a[lo:hi] and index
+#                               array ix[lo:hi] = lo,lo+1,lo+2,...hi, sort
+#                               a[lo:hi] and do identical exchanges on ix
+define dpquicksort { [ if $3 > $2 then {
+  pivot = $1[($2+($3))/2]
+  loop(lo = $2; hi = $3, lo <= hi,
+    loop(,$1[lo] < pivot, lo = lo + 1)
+    loop(,$1[hi] > pivot, hi = hi - 1)
+    if lo < hi then {
+      tmp = $1[lo]; $1[lo] := $1[hi]; $1[hi] := tmp
+      tmp = $4[lo]; $4[lo] := $4[hi]; $4[hi] := tmp }
+    if lo <= hi then { lo = lo + 1; hi = hi - 1 } )
+  if hi > $2 then { exec sprintf("dpquicksort($1,%g,%g,$4)",$2,hi) }
+  if lo < $3 then { exec sprintf("dpquicksort($1,%g,%g,$4)",lo,$3) }
+  } ] }
+\end{verbatim}
+
+\subsubsection{Branching}\label{Branching:}
+Pic has a basic if-statement of the form
+\ntt{if {\sl expression} then \tLB\ {\sl if-true} \tRB\ else
+ \tLB\ {\sl if-false} \tRB}\\
+but lacks a case statement.  Multiple branches
+can be defined by nested {\tt if} statements but there is another way.
+%that uses the dpic statement
+%\ntt{exec {\sl string}}\\
+%which executes the contents of {\sl string} as if it were
+%the current input line.
+The macro
+\ntt{define case \tLB\ exec sprintf("\$\%g",floor(\$1+0.5)+1); \tRB}\\
+adds 1 to its rounded first argument to determine which
+alternative among the remaining arguments should be executed.
+The semicolon (or a newline) forces
+dpic to perform the {\tt exec} statement before leaving the macro.
+For example,
+\ntt{case(2,}
+\ntt{\quad print "A",}
+\ntt{\quad print "B")}\\
+executes the second alternative (the third argument) and prints B.
+
+\subsection{Hiding variables}
+As mentioned in \SR{Scope:}, locations inside a block are accessible
+from outside, but the values of variables are not.  Therefore, a block
+can be used to hide variables internal to a macro, as in the following example:
+\begin{verbatim}
+define rgbtohsv { $4=0; $5=0; $6=0; [
+  r = $1; g = $2; b = $3
+  maxc = max(max(r,g),b)
+  minc = min(min(r,g),b)
+  if maxc==minc then { $4 := 0 } \
+  else {if maxc == r then { $4 := pmod(60*((g-b)/(maxc-minc)),360) } \
+  else {if maxc == g then { $4 := 60*((b-r)/(maxc-minc)) + 120 } \
+  else                    { $4 := 60*((r-g)/(maxc-minc)) + 240 }}}
+  if maxc == 0 then { $5 := 0 } else { $5 := 1 - (minc/maxc) }
+  $6 := maxc
+  ] }
+\end{verbatim}
+The three assignments in the first line of the example
+ensure that the variables exist when the {\tt :=} assignments
+are performed.
+
+This is not the full story, however. Macro arguments are called by name
+rather than by value; should the fourth argument, for example, be
+literally {\tt x[minc]}, then the interior variable {\tt minc} prevails.
+A block is only a partial solution to the problem of hiding variables, and
+care must be exercised in chosing the names of arguments.
+A more robust solution is to call by value using {\tt exec}; thus,
+
+{\tt exec sprintf("rgbtohsv(\%g, \%g, \%g, h, s, v)",%
+{\sl expr1},{\sl expr2},{\sl expr3})}
+
+In this case however, the last three arguments remain vulnerable to
+name clashes and should be named with care.
+
+When, as in the example, no drawing commands appear in a {\tt [ ]} block,
+then the block has zero size but has position {\tt Here} so the block
+can affect the diagram bounding box if {\tt Here} happens to be outside the
+bounding box of drawn elements. An alternative to this complication is to
+omit the {\tt [ ]} brackets and rename the local variables to avoid
+name clashes. For example, {\tt r} above could be {\tt r\_rgbtohsv} and
+so on for other variables. 
+
+\subsection{Looping}
+The pic language includes a basic for-loop, such as the following:
+\ntt{for x = 1 to 10 by 2 do \{ print x \}}\\
+but there is no explicit language element (except macro recursion)
+for executing a block of code an
+indefinite number of times. However, the {\tt for} variable can be reset
+within the executable code, as in the following example where
+the first macro argument is printed and doubled
+repeatedly until it becomes greater than the second argument:
+\ntt{define series \{ x = \$1; for i=1 to 2 do \{}
+\ntt{  if x \tRA\ \$2 then \{ i = 2 \} else \{ print x; x = x*2; i=1 \} \} \}}
+
+If this trick seems like an abuse of language, it can be disguised somewhat
+by the definition of a C-like loop. For example, suppose we wish to
+write
+\ntt{loop(\ x=1,\ x<10,\ x*=2,}
+\ntt{ \ loop(\ y=1,\ y<=4,\ y+=1,}
+\ntt{ \ \ print (x,y)\ )\ )}
+
+Then the following defines a suitable mechanism with a loop depth index to
+allow nesting:
+% (As usual, commas within the arguments must be in strings or
+% protected by~{\tt(~)} parentheses.):
+\ntt{ld\_\_ = 0}
+\ntt{define loop \{ld\_\_+=1; \$1}
+\ntt{\ for lx\_\_[ld\_\_]=0 to 1 do \{}
+\ntt{\ \ if \$2 then \{ lx\_\_[ld\_\_]=0; \$4; \$3 \}
+ else \{lx\_\_[ld\_\_]=1\}\}}
+\ntt{\ ld\_\_-=1;\}}
+
+However, {\tt loop()} is a macro, so references to arguments
+in the body will refer to {\tt loop()} arguments, which may not be desired.
+In that case, use a {\tt for} loop.
+
+\subsection{M4 macros}
+M4 is a simple but powerful macro language originally distributed with
+Unix systems \cite{KRm4}, but free versions are available for
+other operating systems.  The use of this language requires an extra
+processing step, but the power and flexibility of the macros easily
+make up for it.  The macro definitions are read before the text to
+be processed, typically by a system command such as
+\ntt{m4 {\sl configurationfile}.m4 {\sl diagram}.m4 | dpic -g
+ \tRA\ {\sl diagram}.tex}
+
+An m4 macro is defined as follows:
+\ntt{define(`{\sl name}',`{\sl contents}')}\\
+so that distinct occurrences of {\sl name} will be replaced by {\sl contents}
+in the following text. This basic description is a vast simplification
+of the power that results from conditional substitution,
+recursion, file inclusion, integer arithmetic, shell commands, and
+multiple input and output streams.  The online manual \cite{Seindal94}
+is a good source of details.
+
+A general rule might be that floating point computation is in the domain
+of dpic macros but text substitution is often better done in m4 macros.
+
+When m4 reads text, it strips off pairs of single quotes: thus,
+{\tt `text'} becomes {\tt text}.  If {\tt text} is read again, as
+when it is a macro argument, for example, then the process is repeated.
+The single quotes serve to delay the evaluation of macros within
+{\tt text}, as in macro definitions described above.  Therefore, to
+avoid m4 changing dpic macro definitions or LaTeX, enclose
+them in single quote pairs.
+
+Some simple applications of m4 macros are illustrated in the subsections
+that follow.
+
+\subsubsection{Branching}
+As an illustration of m4 macros, suppose that commands
+that are specific to the postprocessor must be generated.
+Then the macro
+\ntt{ifpgf(`{\sl pgf-specific commands}',`{\sl other commands}')}\\
+for example,
+should expand to its first argument if pgf is to be the postprocessor, otherwise
+it should expand to the second argument.  To implement this, {\tt ifpgf}
+is defined in the statement
+\ntt{define(`ifpgf',`ifelse(m4postprocessor,pgf,`\$1',`\$2')')}\\
+which tests for equality of the character sequences {\tt m4postprocessor}
+and {\tt pgf}.  However, if {\tt m4postprocessor} is a macro,
+it is replaced by the macro text before the test is performed,
+and if the macro text is {\tt pgf}, then
+the first argument of {\tt ifpgf} is evaluated.  In the Circuit\_macros package,
+m4 is required to read a postprocessor-specific file before anything
+else, and that file contains the required definition of {\tt m4postprocessor}.
+
+The built-in macro {\tt ifelse} can have multiple branches, as illustrated
+below:
+\ntt{ifelse(m4postprocessor,pstricks,`{\sl PSTricks code}',}
+\ntt{  m4postprocessor,pgf,`{\sl TikZ PGF code}',}
+\ntt{  m4postprocessor,mfpic,`{\sl Mfpic code}',}
+\ntt{  m4postprocessor,mpost,`{\sl MetaPost code}',}
+\ntt{  m4postprocessor,xfig,`{\sl Xfig code}',}
+\ntt{  m4postprocessor,postscript,`{\sl Postscript code}',}
+\ntt{  m4postprocessor,pdf,`{\sl PDF code}',}
+\ntt{  m4postprocessor,svg,`{\sl SVG code}',}
+\ntt{  `{\sl default code}')}
+
+\subsubsection{Perpendiculars}
+The Circuit\_macros {\tt vperp} macro illustrates how m4 macros can extend
+the pic language.  The purpose is to generate a pair of values representing
+the unit vector perpendicular to a given line, say.
+\begin{verbatim}
+define(`vperp',
+ `define(`m4pdx',`(`$1'.end.x-`$1'.start.x)')dnl
+  define(`m4pdy',`(`$1'.end.y-`$1'.start.y)')dnl
+  -m4pdy/vlength(m4pdx,m4pdy),m4pdx/vlength(m4pdx,m4pdy)')
+\end{verbatim}
+The macro can be invoked as {\tt vperp(A)} where {\tt A} is the name of a line.
+Another invocation might be {\tt vperp(last line)}.
+First, two macros (beginning with {\tt m4} to avoid name clashes) are defined
+as the $x$-distance $dx$ and $y$-distance $dy$ of the end of the line from
+the start.  The macro evaluates to the pair
+$-dy/\sqrt{(dx)^2+(dy)^2},\,dx/\sqrt{(dx)^2+(dy)^2},$ where the denominators
+are calculated by the macro {\tt vlength}.
+
+\subsubsection{Setting directions}
+The pic language defines the concept of the current drawing direction, which
+is limited to {\tt up}, {\tt down}, {\tt left}, and {\tt right}.
+Two-terminal circuit elements, for example, might have to be drawn in
+any direction, which calls for the ability to define diagrams without
+knowing their final orientation and to rotate the result at will.
+This capability can be added to the basic pic language
+by judicious use of macros.
+
+First, instead of specifying positions in the usual way, such as in
+\ntt{line from (x1,y1) to (x2,y2)}\\
+for example, let us agree to write
+\ntt{line from vec\_(x1,y1) to vec\_(x2,y2)}\\
+where {\tt vec\_(x1,y1)} evaluates to
+\ntt{(a*x1 + b*y1, c*x1 + d*y1)}\\
+Then if {\tt a} and {\tt d} are {\tt cos(theta)}, {\tt b} is
+{\tt -sin(theta)}, and {\tt c} is {\tt sin(theta)}, this transformation
+corresponds to rotating the argument vector by an angle {\tt theta}.
+To produce relative coordinates, the macro {\tt rvec\_(x,y)}
+evaluates to
+\ntt{Here + vec\_(x,y)},\\
+so writing
+\ntt{line to rvec\_(x1,y1)}\\
+draws a line from the current position
+{\tt Here} to a point {\tt (x1,y1)} defined with respect to rotated
+coordinates relative to {\tt Here}.
+
+The Circuit\_macros package makes extensive use of versions of the above two
+macros.
+The angle and transformation constants are set using macros
+\ntt{Point\_({\sl degrees})}, {\tt point\_({\sl radians})},
+or {\tt setdir\_(}{\tt[U|D|L|R|}{\sl degrees}{\tt],}{\sl default}{\tt)}\\
+which have angles as arguments.
+
+This usage is illustrated by the macro {\tt lbox}, which draws a
+pic-like box oriented in the current direction. It can be defined as
+\begin{verbatim}
+define(`lbox',
+ `define(`m4bwd',ifelse(`$1',,boxwid,`($1)'))dnl
+  define(`m4bht',ifelse(`$2',,boxht,`($2)'))dnl
+  line from rvec_(m4bwd,0) to rvec_(m4bwd,m4bht/2) \
+    then to rvec_(0,m4bht/2) \
+    then to rvec_(0,-m4bht/2) \
+    then to rvec_(m4bwd,-m4bht/2) \
+    then to rvec_(m4bwd,0) `$3' ')
+\end{verbatim}
+The macro is invoked as {\tt lbox({\sl width}, {\sl height}, {\sl type})};
+for example,
+\ntt{Point\_(20); lbox(,,fill 0.9)}\\
+draws a light gray-filled box of default size at an angle of 20 degrees from
+the horizontal. 
+In the macro, the width and height of the box are first defined,
+using default values
+if the first and second arguments are not given.  Then a line is drawn
+to outline the box, and the {\tt fill 0.9} argument is appended to the
+line command to fill the box.  A slightly more elaborate version
+that encloses the box in {\tt [}, {\tt ]} brackets is given by the
+Circuit\_macros {\tt rotbox} macro.
+
+\subsection{Subscripts}
+\Dpic\ allows variables and capitalized labels to have subscripts; thus
+{\tt x} and {\tt x[4]} are distinct variable names, and can be employed
+in expressions as usual.  Similarly, {\tt P} and {\tt P[3]} are distinct
+labels.
+
+
+\subsubsection{Assigning an array of numbers}
+We can assign an array of numbers to subscripted variables using
+statements such as
+\ntt{x[1] = 47}
+\ntt{x[2] = 63}
+\ntt{$\vdots$}\\
+and so on, but generating the subscripts is inconvenient, particularly
+when these statements are obtained by editing a data file.
+One way of entering the data is to employ the m4 macro definition
+\ntt{define(`inx',`define(`m4x',ifdef(`m4x',`incr(m4x)',1))m4x')}\\
+Then, writing
+\ntt{x[inx] = 47}
+\ntt{x[inx] = 63}
+\ntt{$\vdots$}\\
+and processing with m4 automatically generates the required subscripts.
+The macro sets {\tt m4x} to 1 if it is not yet defined, otherwise it
+increments {\tt m4x}, and then it evaluates to {\tt m4x}.  On completion
+of the assignments, {\tt m4x} has the value of the last subscript.
+
+Another way of assigning variables to a subscripted variable is by
+the definition
+\ntt{define array \tLB}
+\ntt{\quad for i=2 to \$+ do \tLB\ exec sprintf("\$1[\%g] = \$\%g",i-1,i);
+ \tRB\ \tRB }\\
+which equates the subscripted first argument to the values in argument 2, 3,
+$\ldots$ so that, for example,
+\ntt{array(x,9,-4,7,4.2,0,0,7.9,0,0,10,11,12,13,14,10)}\\
+assigns the second to sixteenth arguments to {\tt x[1]} to {\tt x[15]}
+respectively.
+
+\Dpic\ does not define vector operations, but it is easy to define macros
+for them. For example, macros can be used to define 3-dimensional vectors,
+transform them, and to project them onto a drawing plane.
+
+\subsection{Splines}
+\Dpic\ implements standard pic splines by default, as on the left in the
+following figure, which shows the result of the command
+\ntt{spline up 1.5 then right 2 then down 1.5}\\[-1.5\baselineskip]
+\input spline.tex
+\par
+A straight line is drawn along
+the first half of the first segment and the last half of the last segment.
+The curve is tangent to the centres of the segments.
+The dpic result of including an expression after {\tt spline}, as in
+\ntt{spline x up 1.5 then right 2 then down 1.5}\\
+is shown on the right of the figure, as the tension parameter {\tt x}
+varies from 0.2 to 1.4.  The curve begins at the start of the first
+segment and terminates at the end of the last segment.
+The tension parameter can be varied to assist in fitting a multisegment
+spline to a curve.  It turns out, for example, that the optimum tension
+for approximating a circle using four splines is the value 0.551784.
+
+\subsubsection{Curve fitting}
+Splines are drawn with respect to control points, but only pass through
+the first and last point.  Suppose that a sequence of points
+{\tt X[0]}, {\tt X[1]},~$\ldots$ {\tt X[n]}
+has been given, and a spline is to be
+found to pass through each point.  The control points
+{\tt P[0]}, {\tt P[1]},~$\ldots$ {\tt P[n]}
+have to be calculated.  These points satisfy the following equations:
+\ntt{P[0] = X[0]}\
+\ntt{P[i-1]/8 + P[i]*3/4 + P[i+1]/8 = X[i]} for {\tt i = 1} to {\tt n-1}
+\ntt{P[n] = X[n]}\\
+The Circuit\_macros {\tt fitcurve} macro performs the required calculations
+and draws the spline to pass through the given points.
+
+\subsection{Postprocessor commands and color}
+Arbitrary postprocessor commands can be interspersed with pic
+statements  to achieve effects such as gradient fills, clipping,
+and transformations. There are two ways of passing
+commands into dpic output.
+
+\Dpic\ lines beginning with the backslash \tBS\ are passed through to the
+output without modification.  This method works well for TeX statements,
+LaTeX statements, and commands to postprocessors that rely on the TeX macro
+processing.
+
+The second method is the form
+\ntt{command "{\sl text}"}\\
+or
+\ntt{command sprintf("{\sl format}",{\sl expression},$\ldots$)}\\
+both of which pass the contents of the string into the
+output stream without the enclosing quotes. The string need not start
+with a backslash.
+
+Both of the above methods add considerable power to the pic language, but there
+are two issues.  The first is that if a postprocessor transformation changes
+the size of a drawn element, the pic processor will not know the new size
+parameters unless they are explicitly calculated.  The second is
+the challenge of designing a single macro that
+produces appropriate postprocessor code to have
+identical effect with different postprocessors.
+
+%The gradient fill operations for PSTricks or SVG, for example, are a good use
+%of this facility.  Path operations such as clipping can also be used,
+%depending on the postprocessor.
+%It is more of a challenge to design
+%macros that have identical effect with a variety of postprocessors,
+%since their syntax differs.
+The Circuit\_macros library contains
+several routines that produce equivalent or nearly equivalent results
+for several postprocessors.  It is probably a good rule to stick with
+one or two postprocessors such as Tikz-pgf or PSTricks.
+
+  Dpic defines a number of internal variables for controlling
+  actions that depend on output format. Internal variables
+  {\tt optTeX}, {\tt opttTeX}, {\tt optpict2e}, {\tt optPSTricks},
+  {\tt optPDF}, {\tt optPGF}, {\tt optMFpic}, {\tt optPS}, {\tt optPSfrag},
+  {\tt optMpost}, {\tt optSVG},
+ and {\tt optxfig} have numerical values 1 to 12
+  respectively, and
+  variable {\tt dpicopt} is given the value corresponding to the output format
+  specified on the command line.
+  Therefore, conditional drawing with a {\tt case} statement as described on
+  page \PR{Branching:}, or with {\tt if} as in the following can be
+  performed:\\
+  \ntt{if (dpicopt==optPS) || (dpicopt==optPDF) then \tLB}\\
+      \hspace*{2em}{\sl drawing commands for postscript or pdf}$\;$ \tRB \tBS
+  \ntt{else \tLB$\;$ {\sl drawing commands for latex-related formats} \tRB}\\
+
+  The variable {\tt optsafe} is set to true if option {\tt -z} has been
+  specified or if dpic has been compiled to allow only safe mode.
+
+\subsubsection{Color}
+  From version 18, gpic allows coloured lines and filled objects as follows,
+  and dpic allows them where the postprocessor supports them:
+    \ntt{{\sl object} outlined {\sl string}}
+    \ntt{{\sl object} shaded {\sl string}}
+    \ntt{{\sl object} colored {\sl string}}\\
+  where {\sl string} specifies a colour compatible with the postprocessor.
+  For planar objects, the third case
+  is equivalent to
+    \ntt{{\sl object} outlined {\sl string} shaded {\sl string}}\\
+  For the linear objects line, arrow, spline,
+  dpic treats
+    \ntt{colored {\sl string}}\\
+  to be the same as
+    \ntt{outlined {\sl string}}\\
+  but fill can be added by explicitly writing
+    \ntt{outlined {\sl string} shaded {\sl string}}
+
+  The original pic language did not include the {\tt outlined} or
+  {\tt shaded} attributes.  Current processors recognize these but
+  know nothing about color except as strings attached to drawing
+  elements.  What the string should contain depends on the postprocessor.
+
+\iffalse
+\subsection{Arbitrary filled paths}
+  The unaugmented pic language and its gpic extensions do not allow the
+  filling of arbitrary closed curves other than boxes, circles, and
+  ellipses.  However, the recent outlined and shaded attributes allow
+  the filling of areas outline by one linear object such as a
+  multi-segment line or spline, as described above.
+  Use the \verb|\pscustom| function of PSTricks, for example,
+  for more elaborate fills.
+\fi
+
+\subsubsection{Filling with color}
+Basic pic shapes such as boxes, circles, and ellipses
+can be colored and filled using, for example,
+\ntt{ellipse shaded "{\sl color}" outlined "{\sl color}"}\\
+and, if the two colors are the same, this can be abbreviated as
+\ntt{ellipse colored "{\sl color}"}\\
+where the color strings are compatible with the postprocessor.
+For example, the definitions
+\begin{verbatim}
+define(`gold_',`1,0.84,0')
+ifelse(m4postprocessor,pstricks,
+ `command "\definecolor{`gold'}{rgb}{gold_}"',
+m4postprocessor,pgf,
+ `command "\definecolor{`gold'}{rgb}{gold_}"',
+m4postprocessor,mpost,
+ `define(`gold',`(gold_)')',
+m4postprocessor,postscript,
+ `define(`gold',`1 0.84 0')',
+m4postprocessor,pdf,
+ `define(`gold',`1 0.84 0')')
+\end{verbatim}
+allow the command
+\ntt{circle shaded "gold"}\\
+to work for the three different postprocessors specified plus
+direct postscript or PDF output.
+Alternatively, the \Mfour\ macro
+{\tt rgbstring({\sl fraction,fraction,fraction})}
+evaluates to a string compatible with the postprocessor
+so that the following produces the same result:
+\ntt{circle shaded rgbstring(1,0.84,0)}.
+
+  More elaborate options can also be invoked. For example, with PSTricks
+  output the sequence
+    \ntt{box shaded "lightgray,fillstyle=hlines*,linecolor=blue,}
+    \ntt{hatchwidth=0.5pt,hatchsep=5pt,hatchcolor=red,hatchangle=45"}\\
+  produces a hatched multicoloured fill and is equivalent to
+    \ntt{command "\tBS{}pscustom[fillcolor=lightgray,fillstyle=hlines*,linecolor=blue,"}
+    \ntt{command "hatchwidth=0.5pt,hatchsep=5pt,hatchcolor=red,hatchangle=45]\tLB\%"}
+      \ntt{\quad box}
+    \ntt{command "\tRB\%"}
+
+One limitation of the pic language is that it lacks the concept of a path
+composed of different basic curves such as lines, splines, and
+arcs.
+% The language was never explicitly designed to draw filled objects
+% of arbitrary shape.
+\Dpic, however, extends the {\tt shaded} and {\tt outlined} directives to
+linear objects such as lines or splines where the output postprocessor allows.
+Consider, for example, the following macro:
+\begin{verbatim}
+define slantbox { [
+  w = $1 ; h = $2 ; xs = $3 ; ys = $4
+  NE: (w+xs,h+ys)/2 ; SE: (w-xs,-h+ys)/2
+  SW: (-w-xs,-h-ys)/2 ; NW: (-w+xs,h-ys)/2
+  N: 0.5 between NW and NE ; E: 0.5 between NE and SE
+  S: 0.5 between SE and SW ; W: 0.5 between SW and NW
+  C: 0.5 between SW and NE
+  line $5 from N to NE then to SE then to SW then to NW then to N
+  ] }
+\end{verbatim}
+This macro implements a version of
+the {\tt xslanted} and {\tt yslanted}
+attributes recently introduced for gpic boxes, for example
+\ntt{box wid 0.1 ht 0.5 xslanted 0 yslanted 0.1 \tBS}
+\ntt{\quad shaded "Dandelion" outlined "black"}\\
+The {\tt slantbox} macro
+defines the implied compass corners {\tt N,} {\tt S}, {\tt NE},~$\ldots$.
+Its fifth argument can be used to fill or otherwise specify the line.
+For example, the command
+\ntt{slantbox(0.1,0.5,0,0.1,shaded "Dandelion" outlined "black")}\\
+is equivalent to the gpic example.  The above macro can be
+modified easily to produce arbitrary polygons, for example.
+The color {\tt Dandelion} is automatically defined for PSTricks
+by the LaTeX line
+\ntt{\tBS{}usepackage[dvipsnames]\tLB{}pstricks\tRB}\\
+For TikZ-PGF, try
+\ntt{\tBS{}usepackage[usenames,dvipsnames]\tLB{}xcolor\tRB}
+\ntt{\tBS{}usepackage\tLB{}tikz\tRB}
+
+\subsubsection{External files}
+  Dpic can send print output to a file (operating system permitting)
+  using the command
+    \ntt{print {\sl arg} \tRA\ "{\sl filename}"}\\
+  which creates the named file, or
+    \ntt{print {\sl arg} \tRA\tRA\ "{\sl filename}"}\\
+  which appends output to the named file if it exists and creates the file
+  if not.
+  If the {\tt -z} option has been invoked or dpic was compiled in safe mode,
+  both of these give warning messages rather than writing to the file.
+
+  External files can be used to implement forward referencing.  For
+  example, sometimes the final size of a diagram component is required in
+  order to draw a background object that will be overlaid by the
+  component.  One solution is to process the diagram twice.  In the
+  following code fragment, an assignment to {\tt x} is written to an
+  external file so that the required value of {\tt x} will be known after
+  the file is read on the second pass.
+\begin{verbatim}
+  x = <default value>
+  print "" >> "datafile"       # Make sure the file exists
+  copy "datafile"              # On second pass, read x = <required value>
+  ... draw objects and calculate required value y ...
+  print sprintf("x = %g",y) > "datafile"  # Write out the assignment
+\end{verbatim}
+\iffalse
+  Provided the diagram source is a file ({\tt test.pic}, for example),
+  the second explicit call to \dpic\ can be avoided
+  by modifying the above example to something like the following;
+\begin{verbatim}
+  filerecursion = 0 ; x = <default value>
+  print "" >> "datafile" ; copy "datafile"
+  ... draw objects and calculate required value y ...
+  if filerecursion == 0 then {
+    print sprintf("filerecursion = 1; x = %g",y) > "datafile"
+    sh "dpic -p test.pic > test.tex" }
+\end{verbatim}
+\fi
+
+%===============================================================================
+
+\section{SVG, PDF, and Postscript output}\label{SVG:}
+
+The {\tt-r} (raw Postscript),
+{\tt-v} (SVG),
+{\tt-d} (PDF),
+and {\tt-x} (xfig) options
+of dpic produce output that is not intended to be processed directly by LaTeX
+or, in some cases, printed on paper.  Postscript output can be inserted
+into a document with the {\tt \tBS{}includegraphics} macro. This command
+will also import pdf for processing by pdflatex. 
+
+\subsection{Bounding boxes}
+  The bounding box of a diagram is not always known exactly or even defined
+  exactly, since it can depend on the context in which the diagram is to be
+  used.  Within a diagram, different line widths, mitred joints, splines,
+  colored output, over-painting, arbitrary text, arbitrary Postscript or SVG,
+  and other complications are allowed; consequently dpic can only provide an
+  estimate of the exact bounding box.
+
+  There is apparently no reliable way to know the exact bounding box of
+  arbitrary SVG text, so \dpic\ uses an approximation, and text placement
+  on diagrams may have to be adjusted by hand.
+
+  {\em Truncated text:}
+  The dpic {\tt textht} environmental variable often gives dpic a good estimate
+  of the actual height of embedded text, but the width of the text is more
+  difficult to estimate.
+  Consequently, text is often truncated by the figure 
+  bounding box at the left or right edge of the figure.
+  Setting the width of strategic strings by hand, e.g. 
+  {\tt "string" wid 0.75}
+  often serves as a quick cure in specific cases, but is better done
+  automatically as described in the Circuit\_macros documentation
+  \cite{Aplevich09}.
+  Otherwise, strategic {\tt move} commands can be used
+  to enlarge the bounding box as illustrated at the end of the discussion
+  below.
+
+  Dpic uses the constant-width Courier font in pdf files, which allows
+  the width of strings to be calculated from their height, which is
+  specified by {\tt textht} with default $11\,$pt, or by the
+  ``{\tt height} {\sl number}'' attribute.  The string width is calculated
+  from the height and character count, but can be set explicitly
+  by using {\tt width} {\sl number} as the rightmost string attribute.
+
+  {\em Psfrag output} is another special case.  If {\tt textht} is set to a
+  nonzero value, then its value relative to $11\,$bp is
+  given as a scale factor to the psfrag {\tt \tBS{}tex} command.
+  An alternative way of changing the diagram text height is to set it in
+  the main document; for example,
+  {\tt \tLB\tBS{}small \tBS{}includegraphics\tLB{\sl file}.eps\tRB\tRB}.
+
+  {\em Postscript bounding boxes:}
+  For a while, the dpic \verb|%%BoundingBox| output line simply gave the nominal
+  bounding box determined by line ends and other control points.  The
+  use of dpic in server mode has induced a change that correctly
+  defines the bounding box for very basic diagrams.  More explicitly,
+  consider
+\begin{verbatim}
+  .PS
+  box with .sw at 0,0
+  .PE
+\end{verbatim}
+  which draws a box with southwest corner line centres intersecting at
+  Postscript coordinates 0,0 and northeast intersection at 54,36.
+  Dpic {\tt -r} augments this nominal bounding box by half of the last
+  {\tt linethick} value (default {\tt linethick} is 0.8 bp)
+  in the outermost diagram scope to
+  produce the Postscript bounding-box definitions
+\begin{verbatim}
+  %%BoundingBox: -1 -1 55 37
+  %%HiResBoundingBox: -0.4 -0.4 54.4 36.4
+\end{verbatim}
+  The \verb|%%BoundingBox| line contains integer values that enclose the
+  high-resolution coordinates.
+
+  {\em PDF bounding boxes:}
+  PDF includes a MediaBox element which serves approximately the same
+  purpose as the postscript BoundingBox, and is calculated the same way.
+  By default, dpic puts the lower left corner of PDF output
+  at coordinates $(0,0)$.
+
+  {\em Manual bounding box adjustment:}
+  It may be necessary to adjust the bounding box manually.  To zero the
+  automatic adjustment,
+  put {\tt linethick=0} at the end of the outermost scope.
+  Then arbitrary margins can be added to the nominal box as shown
+  below, where 2, 1, 1, and 0 points are added to the left,
+  bottom, right, and top margins respectively:\\
+  \ntt{.PS}
+  \ntt{Diagram: [}
+    \ntt{\quad{\sl drawing commands}}
+    \ntt{]}
+  \ntt{linethick = 0}
+  \ntt{move from Diagram.sw-(2,1)/72*scale to Diagram.ne+(1,0)/72*scale}
+  \ntt{.PE}
+
+%===============================================================================
+
+\section{Pic processor differences}\label{Diffs:}
+Differences among processors, and between dpic and gpic particularly,
+are summarized below.  Normally, the
+only changes required to process correct pic or gpic input with dpic are
+changes to \tLB$\ldots$\tRB\ instead of {\tt X}$\ldots${\tt X}
+syntax as explained below, together with text formatting
+if the original code was written for groff.  The remaining
+differences documented below are small syntactical differences or
+relate to the use of PSTricks or the other dpic output formats.
+Sometimes, differences in default syntax (such as for arcs) must be
+considered.
+
+Gpic is being actively maintained so some of the items below apply only
+to older versions.
+
+\subsection{Command-line options}  They are completely different, of course.
+  Type dpic -h to see a list of dpic options.
+
+\subsection{Output formats}
+  Gpic {\tt-t} output consists of a sequence of \verb|\special| statements
+  contained in the TeX box \verb|\box\graph|.  The \verb|\special| statements
+  are
+  automatically copied into the {\tt.dvi} file for interpretation by a
+  printer driver such as dvips.
+
+  Dpic does not generate tpic specials.
+  See the option list in \SR{Usage:} for output formats.
+
+\subsection{. lines and program-generated pic}
+  Gpic passes lines beginning with {\tt.}\ through to the output,
+  thereby allowing
+  arbitrary Troff macros to be interspersed with pic drawing commands.  Some
+  programs that generate pic output automatically insert the Troff line
+  \ntt{.ps 11}\\
+  on the assumption that the text point size should be 11.  Dpic ignores
+  non-continuation lines beginning with {\tt.}\ within pictures.
+  Some programs (e.g., pstoedit) add Troff
+  comment lines beginning with \verb|.\"| outside the
+  {\tt.PS}, {\tt.PE} delimiters.  These
+  lines must be dealt with separately.
+
+\subsection{\tBS\ lines}
+  Both gpic and dpic pass lines beginning with \tBS\ to the output but
+  dpic does not automatically append a {\tt\%} at the end as gpic does.
+
+\subsection{{\tt for}-loop and {\tt if} bodies}
+  In gpic, a for loop has the form
+    \ntt{for {\sl variable} = {\sl expr1} to {\sl expr2}
+      {\rm[}by {\rm[}*{\rm]}{\sl expr3}{\rm]} do X {\sl body} X}\\
+  where X is any character not occurring in {\sl body}, but \tLB\ {\sl
+  body} \tRB\ is also allowed.  In dpic only the latter is allowed.
+  Similarly, the required form of an if statement for dpic is
+    \ntt{if {\sl expr} then \tLB\ {\sl if-true} \tRB\ {\rm[}else
+    \tLB\ {\sl if-false} \tRB{\rm]}}
+
+  The test for termination of the multiplicative form of the for loop
+  is not identical for dpic and gpic but the effects are identical for
+  positive parameters.
+
+  Both gpic and recent versions of dpic allow the
+  loop index variable to be changed within the loop, so infinite
+  repetition or control of termination by a test are possible.
+
+\subsection{End of line}
+  The line end is significant in the pic grammar.
+  However, dpic ignores line ends following {\tt then}, {\tt \tLB},
+  {\tt else}, or end of line.
+  Both the CR (octal 015) and NL (octal 012) characters are treated as
+  line ends.
+
+  If the last character of a line is \tBS\ (but not within a string),
+  then reading is continued on the next line. Dpic allows this to occur
+  within keywords or constants.  Strings can contain multiple lines.
+
+  The {\tt\#} character begins a comment which ends at the end of the line.
+
+  The construction
+    \ntt{if {\sl condition} then \tLB\ {\sl if-true} \tRB}
+    \ntt{else \tLB\ {\sl if-false} \tRB}\\
+  produces an error with all pic interpreters.  To avoid this error, write
+    \ntt{if {\sl condition} then \tLB\ {\sl if-true} \tRB\ \tBS}
+    \ntt{else \tLB\ {\sl if-false} \tRB}\\
+
+\subsection{Logic}
+  Dpic and gpic give slightly different default precedences to the logical
+  operators {\tt !}, {\tt \&\&}, {\tt ||}, {\tt ==}, {\tt !=}, {\tt >=},
+  {\tt <=}, {\tt <}, and {\tt >}, so judicious use of
+  parentheses may sometimes be in order to guarantee identical behavior.
+  In addition, put string comparisons in parentheses, e.g.
+  \ntt{("{\sl text1}" == "{\sl text2}")}
+
+  The construct {\tt x<A,B>} is intended to have the same meaning as
+  {\tt (x between A and B)} but, in some obscure
+  circumstances, all pic interpreters have difficulty determining whether
+  the {\tt<} character is part of such an expression or is a logical comparison
+  operator.  Dpic treats {\tt<}
+  as a comparison in the expression following {\tt if} so
+  the form {\tt(x between A and B)} should be used in such expressions,
+  e.g.
+   \ntt{\tt if (0.5 between A and B).y < 2 then }\tLB~$\ldots$ \tRB\\
+% In other cases, putting a comparison using {\tt<} inside parentheses will
+% ensure correct results.
+
+\subsection{{\tt then}}
+  Versions of gpic up to 1.19 ignore the {\tt then} keyword, so that
+   \ntt{line -> then up 0.5}\\
+  draws one line segment and is the same as
+   \ntt{line -> up 0.5}\\
+  whereas dpic does not ignore {\tt then}, and draws two line segments.
+  Newer versions of gpic also draw two segments.
+
+\subsection{{\tt line}, {\tt spline}, {\tt arrow}, {\tt move}}
+  Dpic treats the defaults for linear objects consistently with planar
+  objects with respect to the {\tt at} modifier.  Versions of gpic up to 1.19
+  treated them differently:
+
+  In dpic, {\tt line at Here} means {\tt line with .center at Here}.\\
+  In gpic, {\tt line at Here} means {\tt line with .start at Here}.
+
+  In dpic, the location corresponding to {\tt last line} is
+    {\tt last line.c}.\\
+  In gpic, the location corresponding to {\tt last line} is
+    {\tt last line.start}.
+
+% Gpic and ATT pic use {\tt .start} for all of the compass corners of these
+% objects, whereas dpic attempts a slightly more elaborate computation.
+  The compass corners of multisegmented linear objects are not precisely defined
+  and they should be used with care.
+
+% Be explicit in placing objects rather than relying on defaults.
+
+\subsection{Arc defaults}  Gpic and dpic have different algorithms for picking
+  a default radius.  The best practice is to specify arcs completely.
+  There is also ambiguity in the pic language.  The statement
+% Note the ambiguity in the pic language:
+   \ntt{arc cw rad x from A to B}\\
+  does not define a unique arc.
+  There are two arcs, with centres on opposite sides of the line
+  joining {\tt A} and {\tt B}, that satisfy this specification, and the
+  interpreter will choose one.
+  Instead, use
+   \ntt{arc cw from A to B with .c at C}
+
+\subsection{Strings}
+Strings are arbitrary character sequences between double quotes, with double
+quotes in strings preceded by the backslash character.  Equivalently, a
+string is produced by the C-like sprintf function
+\ntt{sprintf("{\sl format}" {\rm[}, expression,~$\ldots$ {\rm]})}\\
+The C sprintf function is used for implementing this; therefore, the
+precision of default formats such as {\tt \%g} may vary by machine and compiler.
+To produce transportable results, specify the precision completely,
+e.g. {\tt \%8.5f}.  As in C, the pair {\tt \%\%}
+in the format string prints the percent
+character.  Only the {\tt f}, {\tt e}, {\tt g} formatting parameters are
+valid, since expressions are stored as floating-point numbers, e.g.
+\ntt{line sprintf("\%g\%g0", 2, 0 ) above}\\
+is equivalent to
+\ntt{line "200" above}
+
+Similarly,
+\ntt{command sprintf("\tBS{}pscircle(\%g,\%g)\tLB\%g\tRB",0,0,0.5)}\\
+places the formatted string into the output.  The numerical {\tt sprintf}
+arguments can be arbitrary expressions rather than the constants shown.
+
+  Dpic allows strings to be concatenated by the {\tt+} operator; thus,
+  \ntt{"abc" + sprintf(" def\%g",2)}\\
+  is equivalent to {\tt"abc def2"}.
+
+  Both dpic and gpic treat \tBS\ as an escape character prior to the
+  quote character in a string, so {\tt"\tBS""} is a length-one string containing
+  the double quote.  Otherwise, the backslash is an ordinary string
+  character.
+  For example, the characters \verb|\\"U| in a string are output as \verb|\"U|
+  to produce \"U when processed by LaTeX.
+
+  In a macro, a dollar sign followed by an integer in a
+  string will expand to the corresponding macro argument if it is
+  defined.  Separate the dollar sign from the integer to avoid
+  expansion, as in the TeX strings
+%"{\$}1", "$\$ 1$", or "${0}$"
+   {\tt"\tLB\tBS\$\tRB{}1"}, {\tt"\$\tBS\$ 1\$"}, or {\tt"\$\tLB 0\tRB\$"},
+  for example.
+%  Some previous versions of dpic allowed {\tt\$} to escape the
+%  dollar sign in strings but this created other difficulties.
+
+  Both dpic and gpic allow logical comparison of strings.
+  Put the comparison in parentheses.
+
+  String height and width are unscaled on final output from dpic since
+  these depend on later formatting by LaTeX.
+
+\subsection{{\tt print} {\sl arg},~$\ldots$}
+  Dpic allows only one argument, which may be an expression, position,
+  or string.  To print several quantities at once, use
+   \ntt{print sprintf($\ldots$)}\\
+  to generate a string and, if the string is complicated, remember that
+  {\tt {\sl string1} + {\sl string2} +~$\ldots$} evaluates to one string.
+
+\subsection{{\tt command} {\sl arg},~$\ldots$}
+  Arbitrary commands are sent to the standard output stream.  Dpic allows only
+  one argument, which is a string or {\tt sprintf($\ldots$)}.
+
+\subsection{Operating system commands}
+  With dpic, the required form for a shell (operating system) command is
+   \ntt{sh "{\sl shell command}"}\\
+  or
+   \ntt{sh sprintf("{\sl format}",{\sl expression},$\ldots$)}.\\
+  The value returned by the operating system can be captured by putting
+  the command in parentheses; for example,
+   \ntt{if (sh "{\sl shell command}") == 0 then \tLB\ldots\tRB }
+
+\subsection{{\tt copy}}
+  Dpic supports the command
+    \ntt{copy "{\sl filename}"}\\
+  but does not directly support the commands
+    \ntt{copy {\rm[}{\sl filename}{\rm]}
+      thru X {\sl body} X {\rm[} until {\sl word} {\rm]}}
+    \ntt{copy {\rm[}{\sl filename}{\rm]}
+      thru {\sl macro} {\rm[} until {\sl word} {\rm]}}
+
+  These functions (and many more) are readily implementable with dpic in any
+  unix-like environment.
+%  To customize an operation such as
+%    \ntt{copy {\sl filename} thru {\sl macro}}\\
+%  modify the following example, as appropriate.
+%  This usage is not as
+%  simple as a built-in function but allows much more flexibility of data.
+%\begin{verbatim}
+%  .PS
+%  #                               Suppose that file.dat contains rows of data
+%  #                               delimited by spaces.
+%
+%  #                               Macro to process a row of data, e.g.
+%  #                               save the first 4 values:
+%    define store { n = n+1; x[n] = $1; y[n] = $2; z[n] = $3; w[n] = $4 }
+%
+%  #                               Use sed to convert the data to a sequence
+%  #                               of calls to the store macro:
+%    sh "sed -e 's/^ */store(/' -e 's/ *$/)/' -e 's/  */,/g' file.dat >tempfile"
+%
+%  #                               Initialize the counter and process the data
+%    n = 0; copy "tempfile"
+%  #                               Delete the temporary file
+%    sh "rm tempfile"
+%  .PE
+%\end{verbatim}
+For example, a basic implementation of
+{\tt copy {\sl filename} thru {\sl macro}}
+is given by the following macro:
+\begin{verbatim}
+#                               copythru(macro_name,"filename")
+#                               Implements copy filename thru macro_name 
+#                               for data separated by comma, spaces, or tabs
+define copythru { sh "sed -e 's/^[ \t]*/$1(/' -e 's/[ \t]*$/)/' \
+  -e 's/[, \t][ \t]*/,/g' $2 > copy_tmp__"
+copy "copy_tmp__"
+sh "rm -f copy_tmp__" }
+\end{verbatim}
+The lines of the {\sl filename} file are changed to calls of the {\tt
+macro\_name} macro and written into a temporary file, which is then
+read by \dpic.  Such usage is not as simple as a built-in function but
+allows greater flexibility of data by customization of the {\tt copythru}
+macro to suit.
+
+\subsection{{\tt plot}}
+  The {\tt plot} command is deprecated in gpic and not allowed in dpic.
+
+\subsection{{\tt fill}}
+  In gpic, a fill value of 0 means white, 1 means black.
+  Dpic uses 0 as black and 1 as
+  white as do Postscript and the original ATT pic.
+
+  The pic language specifies fill only for box, ellipse, and circle, but fill is
+  supported by dpic using the {\tt shaded} directive.  The concept of a path
+  containing several arbitrary linear objects does not exist in the pic
+  language but can be implemented using postprocessor commands inserted
+  into {\tt command {\sl string}} statements.
+  Arbitrary paths can also be constructed using a single spline and the
+  {\tt continue} statement.
+
+\subsection{Scaling}
+  Dpic implements a {\tt scaled} attribute, so that
+  \ntt{box scaled 1.2}\\
+  produces a box with dimensions scaled by 1.2, and
+  \ntt{[box; line scaled 3; circle] scaled 0.5}\\
+  scales all objects within the block by 0.5.  The latter can be used
+  in place of setting the scale environment variable when, for example,
+  different parts of a diagram require different scaling.  As always,
+  line thicknesses are not scaled.
+
+\subsection{Arrowheads}
+  Pic processors provide a limited variety of built-in arrowhead
+  shapes.
+  Dpic draws arrowheads according to the environment variable {\tt arrowhead}
+  as shown below.
+\par
+\input arrow.tex
+\par
+  Any other value of {\tt arrowhead}
+  produces the default filled head shown but also
+  results in an a head shape native to the postprocessor in some cases.
+  The default
+  value of {\tt arrowhead} is 1 in conformance with other pic processors.
+  Postprocessor parameters can be changed using lines of the form
+    \ntt{command "{\sl postprocessor commands}"}
+
+% Dpic also allows arrowhead shape to be locally specified by appending
+% a parameter after {\tt ->}, {\tt <-}, or {\tt <->}; for example,
+%   \ntt{line -> 0 thick 3 wid 0.2 ht 0.3 ... }
+
+  Changing the line thickness does not affect arrowhead size
+  parameters, which have to be changed explicitly by either of the
+  following methods.  The line thickness is specified in points but the
+  arrowhead size parameters are in drawing units:
+\begin{verbatim}
+# Method 1 (global change within the current block):
+  linethick = 2    # default 0.8 (bp)
+  arrowht = 0.18   # default 0.1 (in)
+  arrowwid = 0.09  # default 0.05 (in)
+  arrowhead = 0    # default 1
+  arrow
+
+# Method 2 (change only the currently drawn object):
+  arrow thick 2 ht 0.18 wid 0.09 -> 0
+\end{verbatim}
+
+  There is a subtle language problem concerning arrowheads.  Let us
+  agree that the following examples should all produce an arrow of
+  length 1 inch and arrowhead width 1 millimetre:
+\begin{verbatim}
+  .PS
+    arrow right 1 width 1/25.4
+  .PE
+  .PS
+    scale = 25.4
+    arrow right 25.4 width 1
+  .PE
+  .PS 1
+    arrow right 1/4 width 1/25.4
+  .PE
+\end{verbatim}
+
+  The original (ATT) pic fails on the second example, insisting that
+  arrowhead dimensions be given in inches.  Gpic fails on the third by
+  scaling the arrowhead on final output.  Although it might be argued
+  that this is a feature, it causes serious awkwardness when diagrams
+  are to be scaled to exact final dimensions using the {\tt.PS} $x$
+  construction, since the effective scale factor is unknown until the
+  {\tt.PE} line is processed.  Dpic generates the same arrow in all three
+  cases, treating arrowhead parameters like line thickness (unscaled)
+  parameters on final output.
+
+\subsection{Compass corners}
+  Dpic consistently requires a dot before compass corners, so the gpic line
+    \ntt{x at center of last box}\\
+  should be written for dpic as
+    \ntt{x at .center of last box}
+
+\subsection{{\tt continue}}
+  In dpic, the {\tt continue} command appends a linear drawn object to
+  the previous drawn object as if {\tt then} had been used in the original
+  command, but calculations can be performed to determine size or placement
+  of the appended part as in, for example,
+   \ntt{line up right}
+     \ntt{\quad\sl calculations}
+   \ntt{continue down}
+     \ntt{\quad\sl more calculations}
+   \ntt{continue up left}
+
+  The keyword {\tt continue} can also be used slightly differently. The line
+  drawn by
+   \ntt{move to (0,0); line right 1 then to (Here,(2,1))}
+
+  terminates at {\tt(0,1)} since {\tt Here} is the position {\tt(0,0)},
+  whereas the
+  following terminates at {\tt(1,1)} since {\tt Here} is {\tt(1,0)}:
+   \ntt{move to (0,0); line right 1; continue to (Here,(2,1))}
+
+  Input parsing would be possible if {\tt continue} were to be replaced by
+  {\tt then}:
+   \ntt{move to (0,0); line right 1; then to (Here,(2,1))}\\
+  The keyword {\tt continue} would not have been necessary
+  but it has been retained for historical compatibility.
+
+\subsection{Subscripted variables and locations}
+  Dpic allows subscripted variables and positions, as an aid in
+  geometric calculations such as fitting splines to a set of points.
+  Thus {\tt Pos[{\sl expression}]} is a valid name for a position.  The rounded
+  integer value of the expression is used.  Similarly,
+  {\tt x[{\sl expression}]} is
+  a valid variable name.  There are no array operations, but it is easy
+  to write macros for them.
+
+\iffalse
+\subsection{Macros}
+  The macro
+    \ntt{define spot \tLB}
+      \ntt{\quad circle at \$1}
+    \ntt{\tRB}\\
+  invoked as
+    \ntt{A: spot((1,2))}\\
+  is expanded by gpic to
+    \ntt{A: circle at (1,2)}\\
+  whereas it is expanded literally by dpic to
+    \ntt{A:}
+      \ntt{\quad circle at (1,2)}\\
+
+  (Gpic ignores the white space after the \tLB\ but not before the \tRB).
+  To emulate the gpic behaviour, write
+    \ntt{define spot \tLB\ }\tBS
+      \ntt{\quad circle at \$1}
+    \ntt{\tRB}\\
+  or simply use
+    \ntt{define spot \tLB\ circle at \$1 \tRB}\\
+  To allow, for example,
+    \ntt{A: spot((1,2)) dashed}\\
+  use the last definition above or write
+    \ntt{define spot \tLB\ \tBS}
+      \ntt{\quad circle at \$1 \tBS}
+    \ntt{\tRB}
+\fi
+
+\subsection{Splines}
+  Gpic extends the ATT pic grammar to make {\tt line 0.5} legal and mean
+  ``a line of length 0.5 in the current direction.'' All linear objects are
+  treated similarly.  Dpic does the same except for splines.  In the
+  statement
+   \ntt{spline $x$ from A to B then to C}~$\ldots$\\
+  the parameter $x$ is a
+  tension parameter, normally between 0 and 1, to control the spline
+  curvature.  If $x$ is not present as in the normal pic grammar, the
+  curve starts with a straight line halfway along the first segment and
+  ends with a straight line along the second half of the last segment.
+  However when $x$ is present, dpic draws the spline from the start of the
+  first segment to the end of the last segment.
+
+\subsection{Arithmetic}
+  In an expression, \gpic\ allows terms of the form {\tt x*-y}, whereas
+  \dpic\ produces an error message. Use {\tt x*(-y)} or the equivalent.
+
+  \Dpic\ allows the assignment operators {\tt +=}, {\tt -=}, {\tt *=}, 
+    {\tt /=}, {\tt \%=}, which do not create a new variable but update
+    the value of the variable already defined.
+    Thus, the assignment {\tt x += 1} is equivalent to
+    {\tt x := x + 1}.
+
+\subsection{Vector arithmetic}
+  The dpic grammar permits the following:
+  \ntt{X: Y + Z}\\
+  where {\tt Y} and {\tt Z} are
+  defined positions.  Gpic requires
+  \ntt{X: Y + (Z.x,Z.y)}\\
+  Dpic also allows
+  scalar multiplication:
+  \ntt{X: Y*2/3}\ (but not {\tt X: 2/3*Y})
+
+\subsection{Positions}
+  If {\tt X} is a position, then {\tt (X)} is a valid position for dpic but
+  not old versions of gpic, which gave an error for
+  \ntt{(a between A and B) + (x,y)}\\
+  Dropping the parentheses to avoid the error gives
+  \ntt{a between A and B + (x,y)}\\
+  which is not the same resulting position. Use dpic or a recent gpic
+  if you need this construction.
+
+\subsection{{\tt int()}}
+  Gpic {\tt int()} up to version 1.19 computed the floor of its argument
+  rather than the integer part as specified by ATT pic.  Dpic provides
+  both the {\tt floor()} and {\tt int()} functions but {\tt int()}
+  does not compute the
+  same value as these versions of gpic {\tt int()} for non-integer negative
+  arguments.
+
+\subsection{{\tt exec}}
+  In dpic the contents of a string can be executed using
+   \ntt{exec {\sl string}}\\
+  or
+   \ntt{exec sprintf({\sl format string}, {\sl args})}\\
+  as if the string were the next line of input.  This enables the
+  programmed generation of names and labels, for example:
+   \ntt{for i=1 to 10 do { exec sprintf("A\%g: x\%g,y\%g",i,2*i,3*i) }}
+
+\subsection{Functions}
+A few additional mathematical functions are defined in dpic:
+  {\tt abs}, {\tt acos}, {\tt asin}, {\tt expe}, {\tt floor},
+  {\tt loge}, {\tt sign}, {\tt tan}, and {\tt pmod}.
+
+\subsection{PSTricks anomaly}
+  Some time in the mid 2000 to 2010 interval,
+  the behaviour of the low-level PSTricks command
+  {\tt \tBS{}psbezier}
+  was changed to match the existing context-dependent behavior
+  of the {\tt \tBS{}pscurve} command within the~\verb|\pscustom| environment%
+\footnote{%
+  The context-dependency of {\tt \tBS{}pscurve} was taken to be a feature
+  rather than a bug.
+  An alternative that preserves command orthogonality would have been
+  to define two curve (and spline) commands for the in-pscustom and out of
+  pscustom contexts.
+% presumably without consideration of independently
+% generated coordinate data.
+% Since curve-defining code then has to be modified
+% depending on where it occurs with respect to {\tt \tBS{}pscustom},
+% the functionality could have been kept while preserving command
+% orthogonality by the use of command options or additional commands.
+  Such are the difficulties of software library maintenance.%
+}.
+  \Dpic\ does not generate the {\tt \tBS{}pscurve} command,
+  but the new behaviour affects \dpic-defined filled splines.
+  The ``normal'' PSTricks spline syntax is
+   \ntt{\tBS psbezier(x1,y1)(x2,y2)(x3,y3)(x4,y4)~$\ldots$}\\
+  However, if a correctly defined path containing this spline as its second
+  or later subpath is now enclosed in a\verb|\pscustom| environment, the
+  path coordinates are incorrect;
+% the\verb|\psbezier| command is not the
+% first segment of a path within a\verb|\pscustom| environment then
+  {\tt (x1,y1)} must be omitted since, under these
+  conditions,\verb|\psbezier|
+  takes its first coordinate pair to be the current position.
+  This anomaly would not
+  be a significant problem if it were always known at the time of
+  generating the\verb|\psbezier| coordinates whether the curve will be enclosed
+  within\verb|\pscustom|, but such is not the case.
+
+% Within the pic language in particular, the\verb|\pscustom| command may be
+% introduced via {\tt command} {\sl string} independently of anything else,
+% so \dpic\ cannot know automatically
+% whether\verb|\pscustom| has been invoked.
+
+  Dpic always generates four (or
+  more) coordinate-pair arguments as in the normal syntax, sometimes
+  resulting in the addition of an extraneous path segment produced
+  within\verb|\pscustom|.
+
+  For some versions of PSTricks,
+  a workaround for the problem has been to insert a
+  PSTricks patch in your LaTeX code if you are enclosing splines
+  within\verb|\pscustom| commands.
+  More recent versions of the PSTricks package have changed
+  again but, starting from the
+  August~27, 2010 {\tt pstricks.tex} distribution file, a parameter
+  {\tt noCurrentPoint} has been introduced,
+  which prevents\verb|\psbezier| (and other commands)
+  from taking the current point as the first coordinate pair.
+  The following line inserted into a latex document avoids an
+  error message if the PSTricks version is August 2010 or later:
+\begin{verbatim}
+ \psset{noCurrentPoint}
+\end{verbatim}
+%  As a result, the following file inserted into a latex document seems
+%  to handle both cases in which a workaround is possible: 
+  Older versions of PSTricks are handled using the following workaround:
+\begin{verbatim}
+command "\makeatletter\@ifundefined{ifPst@noCurrentPoint}%
+{\@ifundefined{MPS@Patch}{\gdef\MPS@Patch{}%
+ \typeout{ Dpic -p: patching psbezier in pstricks.tex (some versions) }%
+ \def\psbezier@ii{\addto@pscode{%
+  \ifshowpoints true \else false \fi\tx@OpenBezier%
+  \ifshowpoints\tx@BezierShowPoints\fi}\end@OpenObj}}{}}%
+{\@ifundefined{MPS@PatchMsg}{\gdef\MPS@PatchMsg{}%
+ \typeout{ Dpic -p: Setting noCurrentPoint to use all coord pairs }}{}%
+ \psset{noCurrentPoint}}\makeatother%"
+\end{verbatim}
+
+\iffalse
+  If you are using a version of PSTricks dated August 2010 or later
+  then the above can be simplified to
+\begin{verbatim}
+ \psset{noCurrentPoint}
+\end{verbatim}
+\fi
+
+  This patch need only be executed once per LaTeX run rather than with
+  every diagram.
+
+  If the above fix does not work then, for now,
+  do not insert {\tt spline} commands into paths within the {\tt \tBS pscustom}
+  environment, {\em unless} the spline is the first path segment. It is probably
+  safe to say that this anomaly does not occur very often, but it
+  can cause considerable difficulty when it does; the cure is to update your
+  PSTricks files.
+
+  Legacy diagrams can often be treated in the following way, if pstricks97.tex
+  is available on your machine as in MiKTeX distributions, for example.
+  Replace the line \verb|\usepackage{pstricks}| with
+  \verb|\usepackage[97]{pstricks}| or \verb|\input{pstricks97.tex}|.
+  However, this method precludes using the newer PSTricks facilities.
+
+\pdfbookmark[section]{\refname}{refs}
+\bibliographystyle{plain}
+\bibliography{dpicdoc}
+
+%===============================================================================
+%\iffalse
+\clearpage
+\section{Appendix A: dpic man page}
+%\verbatiminput{dpic.man}
+\input dpic_man.tex
+%\fi
+%===============================================================================
+\clearpage
+\section{Appendix B: dpic grammar}
+The tokens recognized by the dpic parser are as shown.  The tokens
+in {\tt <} {\tt >} pairs are generated internally.  Equated tokens
+({\tt ";" = "<NL>"}) have identical effect.
+
+\begin{verbatim}
+    emptyterm: "<EMPTY>"
+    
+    terminals:
+         "<ERROR>"
+         "<" "cw" "ccw"
+         "(" ")" "*" "+" "-" "/" "%" ";" = "<NL>"
+         "^" "!" "&&" "||" 
+         "," ":" "[" "]" "{" "}" "." "[]" "`" "'"
+         "=" ":=" "+=" "-=" "*=" "/=" "%=" (* the order matters *)
+         "&"
+         "<float>" "<name>" "<Label>" "<LaTeX>"
+         '"' = "<string>"
+         "#"
+         "$" = "<arg>"
+         "<START>" "<END>"
+         "ht" = "height" "wid" = "width"
+         "rad" = "radius" "diam" = "diameter"
+         "thick" = "thickness"
+         "scaled"
+         "from" "to" "at" "with" "by" "then" "continue"
+         "chop" "same"
+         "of" "the" "way" "between" "and" "Here"
+         "st" = "rd" = "nd" = "th" "last"
+         "fill" = "filled"
+         ".x" ".y"
+         "print" "copy" "reset" "exec" "sh" "command"
+         "define" "undef" = "undefine"
+         "rand"
+         "if" "else" "for" "do" "<endfor>"
+         "sprintf"
+      "<corner>"
+         ".ne" ".se" ".nw" ".sw"
+         ".t" = ".top" = "top" = ".north" = ".n"
+         ".b" = ".bot" = ".bottom" = "bottom" = ".south" = ".s"
+         ".right" = ".r" = ".east" = ".e"
+         ".left" = ".l" = ".west" = ".w"
+         ".start" = "start"
+         ".end" = "end"
+         ".center" = ".centre" = ".c"
+      "<compare>"
+         "==" "!=" ">=" "<=" ">"
+      "<param>"
+         ".height" = ".ht"
+         ".width" = ".wid"
+         ".radius" = ".rad"
+         ".diameter" = ".diam"
+         ".thickness" = ".thick"
+         ".length"
+      "<func1>"
+         "abs" "acos" "asin" "cos" "exp" "expe" "int" "log" "loge"
+         "sign" "sin" "sqrt" "tan" "floor"
+      "<func2>"
+         "atan2" "max" "min" "pmod"
+      "<linetype>"
+         "solid" "dotted" "dashed" "invis" = "invisible"
+      "<colrspec>"
+         "color" = "colour" = "colored" = "coloured"
+         "outline" = "outlined"
+         "shade" = "shaded"
+      "<textpos>"
+         "centre" = "center" "ljust" "rjust" "above" "below"
+      "<arrowhd>"
+         "<-" "->" "<->"
+      "<directon>"
+         "up" "down" "right" "left"
+      "<primitiv>"
+         "box" "circle" "ellipse" "arc" "line" "arrow" "move" "spline"
+      "<envvar>"
+        "arcrad" "arrowht" "arrowwid" "boxht" "boxrad" "boxwid"
+        "circlerad" "dashwid" "ellipseht" "ellipsewid" "lineht"
+        "linewid" "moveht" "movewid" "textht" "textoffset" "textwid"
+      = "<lastsc>"          (* marker for last scaled env var *)
+        "arrowhead" "fillval" "linethick" "maxpsht" "maxpswid" "scale" 
+      = "<lastenv>"         (* marker for last env var *)
+\end{verbatim}
+
+
+The expanded dpic grammar follows:
+\begin{verbatim}
+    0   METAGOAL = input "<EOF>" 
+
+    1   input = "<EMPTY>" 
+    2         | input picture NL 
+
+    3   picture = start NL elementlist "<END>" 
+    4           | start NL elementlist NL "<END>" 
+
+    5   NL = ";" 
+    6      | "<ERROR>" 
+
+    7   start = "<START>" 
+    8         | "<START>" term 
+    9         | "<START>" term term 
+
+   10   elementlist = "<EMPTY>" 
+   11               | element 
+   12               | elementlist NL element 
+
+   13   term = factor 
+   14        | term "*" factor 
+   15        | term "/" factor 
+   16        | term "%" factor 
+
+   17   element = namedobj 
+   18           | "<Label>" suffix ":" position 
+   19           | assignlist 
+   20           | "<directon>" 
+   21           | "<LaTeX>" 
+   22           | command 
+   23           | lbrace "{" elementlist optnl "}" 
+   24           | ifpart 
+   25           | elsehead "{" elementlist optnl "}" 
+   26           | for "}" 
+   27           | "command" stringexpr 
+   28           | "exec" stringexpr 
+
+   29   lbrace = "<EMPTY>" 
+
+   30   namedobj = object 
+   31            | "<Label>" suffix ":" object 
+
+   32   suffix = "<EMPTY>" 
+   33          | "[" expression "]" 
+
+   34   position = pair 
+   35            | expression "between" position "and" position 
+   36            | expression "of" "the" "way" "between" position "and" position 
+   37            | expression "<" position "," position "<compare>" shift 
+
+   38   assignlist = assignment 
+   39              | assignlist "," assignment 
+
+   40   command = "print" expression redirect 
+   41           | "print" position redirect 
+   42           | "print" stringexpr redirect 
+   43           | "reset" 
+   44           | "reset" resetlist 
+   45           | systemcmd 
+   46           | "copy" stringexpr 
+   47           | defhead optnl "{" "}" 
+   48           | "undefine" "<name>" 
+   49           | "undefine" "<Label>" 
+
+   50   optnl = "<EMPTY>" 
+   51         | NL 
+
+   52   ifpart = ifhead "{" elementlist optnl "}" 
+
+   53   elsehead = ifpart "else" 
+
+   54   for = forhead "{" elementlist optnl 
+   55       | for forincr "<endfor>" elementlist optnl 
+
+   56   stringexpr = string 
+   57              | stringexpr "+" string 
+
+   58   string = "<string>" 
+   59          | sprintf ")" 
+
+   60   assignment = "<name>" suffix "=" expression 
+   61              | "<name>" suffix "=" assignment 
+   62              | "<envvar>" "=" expression 
+   63              | "<envvar>" "=" assignment 
+
+   64   expression = term 
+   65              | "+" term 
+   66              | "-" term 
+   67              | expression "+" term 
+   68              | expression "-" term 
+
+   69   ifhead = setlogic "if" logexpr "then" 
+
+   70   setlogic = "<EMPTY>" 
+
+   71   logexpr = logprod 
+   72           | logexpr "||" logprod 
+
+   73   forhead = "for" assignlist "to" expression do 
+
+   74   forincr = "<EMPTY>" 
+
+   75   do = "do" 
+   76      | by expression "do" 
+
+   77   by = "by" 
+   78      | "by" "*" 
+
+   79   redirect = "<EMPTY>" 
+   80            | "<compare>" stringexpr 
+   81            | "<compare>" "<compare>" stringexpr 
+
+   82   resetlist = "<envvar>" 
+   83             | resetlist "," "<envvar>" 
+
+   84   systemcmd = "sh" stringexpr 
+
+   85   defhead = "define" "<name>" 
+   86           | "define" "<Label>" 
+
+   87   sprintf = "sprintf" "(" stringexpr 
+   88           | "sprintf" "(" stringexpr "," exprlist 
+
+   89   exprlist = expression 
+   90            | expression "," exprlist 
+
+   91   object = block 
+   92          | object "height" expression 
+   93          | object "width" expression 
+   94          | object "radius" expression 
+   95          | object "diameter" expression 
+   96          | object "thickness" expression 
+   97          | object "scaled" expression 
+   98          | object "<directon>" optexp 
+   99          | object "<linetype>" optexp 
+  100          | object "chop" optexp 
+  101          | object "filled" optexp 
+  102          | object "<arrowhd>" optexp 
+  103          | object "then" 
+  104          | object "cw" 
+  105          | object "ccw" 
+  106          | object "same" 
+  107          | object stringexpr 
+  108          | object "by" position 
+  109          | object "from" position 
+  110          | object "to" position 
+  111          | object "at" position 
+  112          | object "<textpos>" 
+  113          | object "<colrspec>" stringexpr 
+  114          | objectwith "at" position 
+  115          | objectwith "<corner>" "at" position 
+  116          | objectwith pair "at" position 
+  117          | "continue" 
+
+  118   openblock = "<EMPTY>" 
+
+  119   block = "<primitiv>" optexp 
+  120         | stringexpr 
+  121         | openblock "[" closeblock "]" 
+  122         | openblock "[]" 
+
+  123   optexp = "<EMPTY>" 
+  124          | expression 
+
+  125   closeblock = elementlist optnl 
+
+  126   objectwith = object "with" 
+  127              | objectwith "." "<Label>" suffix 
+  128              | objectwith "." nth primobj 
+
+  129   pair = expression "," expression 
+  130        | location shift 
+
+  131   nth = ncount "th" 
+  132       | ncount "th" "last" 
+  133       | "last" 
+
+  134   primobj = "<primitiv>" 
+  135           | "[]" 
+  136           | "<string>" 
+  137           | "[" "]" 
+
+  138   shift = "<EMPTY>" 
+  139         | shift "+" location 
+  140         | shift "-" location 
+
+  141   location = "(" position ")" 
+  142            | "(" position "," position ")" 
+  143            | place 
+  144            | location "*" factor 
+  145            | location "/" factor 
+
+  146   place = placename 
+  147         | placename "<corner>" 
+  148         | "<corner>" placename 
+  149         | "<corner>" "of" placename 
+  150         | "Here" 
+
+  151   factor = primary 
+  152          | "!" primary 
+  153          | primary "^" factor 
+
+  154   placename = "<Label>" suffix 
+  155             | nth primobj 
+  156             | placename "." "<Label>" suffix 
+  157             | placename "." nth primobj 
+
+  158   ncount = "<float>" 
+  159          | "`" expression "'" 
+  160          | "{" expression "}" 
+
+  161   logprod = logval 
+  162           | logprod "&&" logval 
+
+  163   logval = lcompare 
+  164          | stringexpr "<" stringexpr 
+  165          | expression "<" expression 
+
+  166   lcompare = expression 
+  167            | stringexpr 
+  168            | lcompare "<compare>" expression 
+  169            | lcompare "<compare>" stringexpr 
+
+  170   primary = "<envvar>" 
+  171           | "<name>" suffix 
+  172           | "<float>" 
+  173           | "(" logexpr ")" 
+  174           | location ".x" 
+  175           | location ".y" 
+  176           | placename "<param>" 
+  177           | "rand" "(" ")" 
+  178           | "rand" "(" expression ")" 
+  179           | "<func1>" "(" expression ")" 
+  180           | "<func2>" "(" expression "," expression ")" 
+  181           | "(" assignlist ")" 
+  182           | "(" systemcmd ")" 
+\end{verbatim}
+
+\end{document}\endinput

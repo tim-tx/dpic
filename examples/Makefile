@@ -1,12 +1,11 @@
 DPIC = dpic
-# DPIC = $$HOME/dpic/test/dpic
 
 nooption:
 	cp sources/diag1.pic diag.pic
 	cp sources/test1.tex tst.tex
 	$(DPIC) diag.pic > diag.tex
-#	latex tst
-#	dvips -Ppdf tst.dvi
+	latex tst
+	dvips -Ppdf tst.dvi
 
 all: nooption epic pstricks pgf pdf mfpic psfrag postscript overlay metapost \
   rawpdf pdfoverlay xfig svg
@@ -43,9 +42,10 @@ mfpic:
 	cp sources/test4.tex tst.tex
 	$(DPIC) -m diag.pic > diag.tex
 	latex tst
-	mf tst-mfpic
+	mf tst-mfpic.mf
 	latex tst
-	dvips tst.dvi
+	gftopk tst-mfpic.600gf tst-mfpic.pk
+	dvips -D600 tst.dvi
 
 psfrag:
 	cp sources/diag1.pic diag.pic
@@ -97,6 +97,15 @@ xfig:
 	cp sources/diag9.pic diag.pic
 	$(DPIC) -x diag.pic > diag.fig
 
+MANSRC = arcs.pic arrowheads.pic arrows.pic basictests.pic
+man:
+	cp sources/man.tex sources/mode.tex .
+	for file in $(MANSRC) `(cd sources; ls man*.pic )` ; do \
+      dpic -p sources/$$file > `basename $$file .pic`.tex ; done
+	latex man
+	dvips man
+
 clean:
 	rm -f *.ps *.eps *.dvi *.log *.mp *.1 mpxerr* *pk *gf *.mpx *.dim *.mf
 	rm -f *.tfm *.aux *.pfg tst.tex diag.pic diag.tex *.trace *.fig *.pdf *.svg
+	rm -f man* *.pic arcs.* arrowheads.* arrows.* basictests* mode.tex

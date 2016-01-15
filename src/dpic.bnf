@@ -1,0 +1,295 @@
+(*
+
+EBNF description of the dpic grammar, of the form:
+
+emptyterm:
+   Definition of empty terminal
+   .
+terminals:
+   A terminal is a character sequence in " " or ' ' quotes,
+   and is given a unique integer value by the parser generator.
+   The terminals <ERROR> and <EMPTY> are special,
+   and other special terminals of the form <abc...>
+   can be defined to designate internally generated
+   terminals or classes of terminals.
+   Equated terminals have identical lexical integer values,
+   e.g. "term1" = "term2"
+   .
+   Syntax definitions
+   .
+*)
+
+(* To add a general repeat { ...
+                             if expr then {...; break}
+                             ...}
+   remove the comments labelled repeat here and in the code *)
+
+(* Allowed terminals: *)
+
+emptyterm: "<EMPTY>" .  (* For nul productions *)
+
+terminals:              (* Punctuation: *)
+     "<ERROR>"  (* special terminal used for syntax error recovery *)
+     "<" "cw" "ccw"
+     "(" ")" "*" "+" "-" "/" "%" "<NL>" = ";"
+     "^" "!" "&&" "||" 
+     "," ":" "[" "]" "{" "}" "." "[]" "`" "'"
+     "=" ":=" "+=" "-=" "*=" "/=" "%=" (* the order matters *)
+     "&"
+     "<float>" "<name>" "<Label>" "<LaTeX>"
+     '"' = "<string>"
+     "#"
+     "$" = "<arg>"
+                        (* keywords *)
+     "<START>" "<END>"
+     "ht" = "height" "wid" = "width"
+     "rad" = "radius" "diam" = "diameter"
+     "thick" = "thickness"
+     "scaled"
+     "from" "to" "at" "with" "by" "then" "continue"
+     "chop" "same"
+     "of" "the" "way" "between" "and" "Here"
+     "st" = "rd" = "nd" = "th" "last"
+     "fill" = "filled"
+     ".x" ".y"
+     "print" "copy" "reset" "exec" "sh" "command"
+     "define" "undef" = "undefine"
+     "rand"
+     "if" "else" "for" "do" "<endfor>" (* repeat "repeat" "break" *)
+     "sprintf"
+  "<corner>"            (* in the grammar <corner> is any of the following *)
+     ".ne" ".se" ".nw" ".sw"
+     ".t" = ".top" = "top" = ".north" = ".n"
+     ".b" = ".bot" = ".bottom" = "bottom" = ".south" = ".s"
+     ".right" = ".r" = ".east" = ".e"
+     ".left" = ".l" = ".west" = ".w"
+     ".start" = "start"
+     ".end" = "end"
+     ".center" = ".centre" = ".c"
+  "<compare>"           (* "<" in logic or any of the following, in order *)
+     "==" "!=" ">=" "<=" ">"
+  "<param>"
+     ".height" = ".ht"
+     ".width" = ".wid"
+     ".radius" = ".rad"
+     ".diameter" = ".diam"
+     ".thickness" = ".thick"
+     ".length" = ".len"
+  "<func1>"
+     "abs" "acos" "asin" "cos" "exp" "expe" "int" "log" "loge"
+     "sign" "sin" "sqrt" "tan" "floor"
+  "<func2>"
+     "atan2" "max" "min" "pmod"
+  "<linetype>"
+     "solid" "dotted" "dashed" "invis" = "invisible"
+  "<colrspec>"
+     "color" = "colour" = "colored" = "coloured"
+     "outline" = "outlined"
+     "shade" = "shaded"
+  "<textpos>"
+     "centre" = "center" "ljust" "rjust" "above" "below"
+  "<arrowhd>"
+     "<-" "->" "<->"
+  "<directon>"
+     "up" "down" "right" "left"
+  "<primitiv>"
+     "box" "circle" "ellipse" "arc" "line" "arrow" "move" "spline"
+  "<envvar>"
+    "arcrad" "arrowht" "arrowwid" "boxht" "boxrad" "boxwid"
+    "circlerad" "dashwid" "ellipseht" "ellipsewid" "lineht"
+    "linewid" "moveht" "movewid" "textht" "textoffset" "textwid"
+  = "<lastsc>"          (* marker for last scaled env var *)
+    "arrowhead" "fillval" "linethick" "maxpsht" "maxpswid" "scale" 
+  = "<lastenv>"         (* marker for last env var *)
+  .
+
+
+(* Grammar *)
+input = { $ picture NL} .
+
+picture = start NL elementlist [NL] "<END>" .
+
+start = "<START>" [term [term]] .
+
+NL = "<NL>" | "<ERROR>" .
+
+elementlist = "<EMPTY>"
+            | element
+            | elementlist NL element .
+
+lbrace = "<EMPTY>" .
+
+element = namedobj
+        | "<Label>" suffix ":" position
+        | assignlist
+        | "<directon>"
+        | "<LaTeX>"
+        | command
+        | lbrace "{" elementlist optnl "}"
+        | ifpart
+        | elsehead "{" elementlist optnl "}"  (* reset braceentry *)
+        | for "}"                             (* reset braceentry *)
+        | "command" stringexpr
+        | "exec" stringexpr
+        (* repeat
+        | loop "}"
+        | break *)
+        .
+
+stringexpr = {string $ "+" } .
+
+assignlist = {assignment $ ","} .
+
+assignment = "<name>" suffix "=" (expression | assignment)
+           | "<envvar>" "=" (expression | assignment) .
+
+ifpart = ifhead "{" elementlist optnl "}" .   (* reset braceentry *)
+
+ifhead = setlogic "if" logexpr "then" . (* unset inlogic, set braceentry *)
+
+elsehead = ifpart "else" .          (* set braceentry *)
+
+for = forhead "{" elementlist optnl 
+    | for forincr "<endfor>" elementlist optnl 
+    .
+
+forhead = "for" assignlist "to" expression do .
+
+forincr = "<EMPTY>" .
+
+(* repeat
+loop = loophead "{" elementlist optnl 
+     | loopincr elementlist optnl .
+
+loophead = "repeat" .
+
+loopincr = loop "<endfor>" .
+
+break = "break" .
+*)
+
+do = [by expression] "do" .
+
+by = "by" ["*"] .
+
+setlogic = "<EMPTY>" .                 (* set inlogic *)
+
+optnl = [NL] .
+
+command = "print" (expression | position | stringexpr) redirect
+        | "reset" [resetlist:{"<envvar>" $ ","} ]
+        | systemcmd
+        | "copy" stringexpr
+        | defhead optnl "{" "}"
+        | "undefine" ("<name>" | "<Label>")
+        .
+
+systemcmd = "sh" stringexpr .
+
+(* redirect = [ ">"     stringexpr |           ">>"          stringexpr ]. *)
+redirect = ["<compare>" stringexpr | "<compare>" "<compare>" stringexpr ].
+
+defhead = "define" ("<name>" | "<Label>") .
+
+string = "<string>"
+       | sprintf ")" .
+
+sprintf = "sprintf" "(" stringexpr ["," exprlist] .
+
+exprlist = {expression $ "," }R .
+
+namedobj = ["<Label>" suffix ":"] object .
+
+openblock = "<EMPTY>" .
+
+block = "<primitiv>" optexp
+       | stringexpr
+       | openblock "[" closeblock "]"
+       | openblock "[]" .
+
+closeblock = elementlist optnl .
+
+object = block
+       | object (
+          ("height"|"width"|"radius"|"diameter"
+                   |"thickness"|"scaled") expression
+          | ("<directon>"|"<linetype>"|"chop"|"fill"|"<arrowhd>") optexp
+          | "then"
+          | "cw" | "ccw"
+          | "same"
+          | stringexpr
+          | ("by"|"from"|"to"|"at") position
+          | "<textpos>"
+          | "<colrspec>" stringexpr
+          )
+       | objectwith ["<corner>"|pair] "at" position
+       | "continue"
+       .
+
+objectwith = object "with"
+           | objectwith "." ("<Label>" suffix | nth primobj) .
+
+optexp = [expression] .
+
+position = pair
+         | expression ["of" "the" "way"] "between" position "and" position
+         | expression "<" position "," position "<compare>" shift
+         .
+
+pair = expression "," expression
+     | location shift
+     .
+
+location = "(" position ["," position] ")"
+         | place
+         | location ("*" | "/") factor
+         .
+
+shift = {$ ("+"|"-") location} .
+
+place = placename ["<corner>"]
+      | "<corner>" ["of"] placename
+      | "Here"
+      .
+
+placename = { ("<Label>" suffix | nth primobj)  $ "." } .
+
+nth = ncount "th" ["last"] | "last".
+
+primobj = "<primitiv>" | "[]" | "<string>" | "[" "]" .
+
+ncount = "<float>" | "`" expression "'" | "{" expression "}" .
+
+logexpr = { logprod $ "||" } .
+
+logprod = { logval $ "&&" } .
+
+logval = lcompare
+       | stringexpr "<" stringexpr
+       | expression "<" expression .
+
+lcompare = { (expression|stringexpr) $ "<compare>" } .
+
+expression = ["+" | "-"] term
+    | expression ("+"|"-") term .
+
+term = { factor $ ("*"|"/"|"%") } .
+
+factor = ["!"] primary
+       | primary "^" factor .
+
+primary = "<envvar>"
+        | "<name>" suffix
+        | "<float>"
+        | "(" logexpr ")"
+        | location (".x"|".y")
+        | placename "<param>"
+        | "rand" "(" [expression] ")"
+        | "<func1>" "(" expression ")"
+        | "<func2>" "(" expression "," expression ")"
+        | "(" assignlist ")"
+        | "(" systemcmd ")"
+        .
+
+suffix = [ "[" expression "]" ] .
+.

@@ -1,3 +1,7 @@
+
+Dpic is an implementation of the pic "little language" for creating line
+drawings and illustrations for documents, web pages, and other uses.
+
 Copying: 
 The files in this distribution are copyright (c) 2015, J. D. Aplevich,
 and are distributed under the licence at the end of this file, except for
@@ -26,8 +30,8 @@ Unix installation:
    The file dpic.1 in the doc directory is a Unix-compatible man file.
 
 Web-server installation:
-   You probably should disable the sh and copy commands.
-   Uncomment the SAFEMODE definition in Makefile or add -DSAFE_MODE
+   You probably should disable the sh and copy commands in dpic for safety
+   reasons.  Uncomment the SAFEMODE definition in Makefile or add -DSAFE_MODE
    to your compiler command.  If you do not do this, the -z command-line
    option has the same effect (see below).
 
@@ -90,13 +94,33 @@ Testing:
       \end{figure}
       \end{document}
 
-You can also do the tests in the examples directory.
+You can also do the tests in the examples directory (see below for
+the distribution directory structure).
+
+           |-doc------
+           |
+           |-examples-|-sources-
+           |          
+ dpic-DATE-|          |-Pgen----|-src--
+           |          |
+           |-src------|-p2c-----|-src--
+                      |
+                      |-pascal--|-test-
+                      |-tables--
+
+Typing "make" in the pascal directory converts the proto-pascal in
+the src directory to pascal that is compatible either with GNU pascal
+(gpc) or with Free Pascal (fpc) and compiles the source, placing the
+executable and the required tables in the pascal/test directory.
+GNU pascal is the default; to compile using fpc, uncomment the required
+lines in the Makefile in the pascal directory. 
 
 Bugs:
    If you discover a bug, please check that your version is the
    latest.  Feel free to send bug reports.  Dpic has been relatively
    solid but, by definition, it hasn't been tested for all possible
-   illegal input.
+   illegal input, and the distribution has undergone some recent changes
+   to simplify the source and make the pascal available.
 
    When inconsistencies between dpic and gpic are found, I usually check
    to see whether dpic should be changed to conform.  Error and warning
@@ -105,9 +129,22 @@ Bugs:
 
 Version:
    The version of dpic is the date the source was created, printed as a
-   comment in dpic output.  The source is maintained in Pascal, but has
-   been translated to ANSI C by P2C, then changed to simplify reading
-   and compilation and to run on a variety of platforms.
+   comment in dpic output.
+
+Source:
+   The source code was originally written and maintained in Pascal to
+   run on IBM VM/CMS and DEC VMS operating systems, but it has been
+   moved several times since and has evolved considerably.  The Pascal
+   is translated to ANSI C by P2C, then changed to simplify reading
+   and compilation and to run on a variety of platforms.  Proto-Pascal
+   source files are included here in the src directory.  Selected lines
+   must be uncommented for translation to C or for Pascal compilation.
+   GNU pascal and Free Pascal are supported currently.  A parser generator
+   such as the ubiquitous yacc was not readily available when dpic was
+   first written so a different tool was employed.  If source files in
+   the src directory are changed, the Makefile compiles, as necessary,
+   the pascal to C translator and the parser generator with its output
+   filters and runs them to produce new files in the formats requred.
 
 -------------------------------------------------------------------
 BSD Licence:

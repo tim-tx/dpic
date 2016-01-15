@@ -1,0 +1,52 @@
+%\newif\ifpst
+%%\psttrue
+%\documentclass{article}
+%\ifpst
+%  \usepackage[usenames,dvipsnames]{xcolor}
+%  \usepackage{mtgreek,boxdims,pstricks}
+%\else
+%  \usepackage[usenames,dvipsnames]{xcolor}
+%  \usepackage{mtgreek,boxdims,tikz}
+%\fi
+%\pagestyle{empty}
+%\begin{document}
+%\centerline{%
+.PS
+# a three-dimensional block
+#
+define slantbox { [
+  if "$1"=="" then { w = boxwid } else { w = $1 }
+  if "$2"=="" then { h = boxht } else { h = $2 }
+  if "$3"=="" then { xs = 0 } else { xs = $3 }
+  if "$4"=="" then { ys = 0 } else { ys = $4 }
+  NE: (w+xs,h+ys)/2
+  SE: (w-xs,-h+ys)/2
+  SW: (-w-xs,-h-ys)/2
+  NW: (-w+xs,h-ys)/2
+  N: 0.5 between NW and NE
+  E: 0.5 between NE and SE
+  S: 0.5 between SE and SW
+  W: 0.5 between SW and NW
+  C: 0.5 between SW and NE
+  line $5 from N to NE then to SE then to SW then to NW then to N
+  ] }
+
+# Dandelion = 1,0.71,0.16
+# Goldenrod = 0.855, 0.648, 0.125
+
+# tblock(<width>, <height>, <text>)
+define tblock { [
+  box ht $2 wid $1 color "Goldenrod" outlined "black" $3
+  slantbox($1,0.1,0.1,0,shaded "yellow" outlined "black") \
+    with .sw at last box .nw
+  slantbox(0.1,$2,0,0.1,shaded "Dandelion" outlined "black") \
+    with .ne at last [] .ne;
+  ] }
+
+  tblock(1, 0.5, "Master" "1");
+  move -0.1
+  tblock(0.5, 1, "Slave");
+
+.PE
+%}%
+%\end{document}

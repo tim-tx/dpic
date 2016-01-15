@@ -1,0 +1,155 @@
+\documentclass[11pt]{article}
+% Driver file to produce example diagrams from the pic ang gpic manuals.
+
+\newif\ifepic
+\newif\ifmfpic
+\newif\ifPDF
+\newif\ifpgf
+\newif\ifps
+\newif\ifpstricks
+\newif\ifmpost
+
+\input mode
+
+\ifpstricks
+  \usepackage[dvipsnames]{pstricks}
+\else\ifpgf
+  \usepackage[usenames,dvipsnames]{xcolor}
+  \usepackage{tikz}
+\else\ifepic
+  \usepackage{epic,eepicemu}
+\else\ifmfpic
+  \usepackage[metapost]{mfpic}
+  \opengraphsfile{man-mfpic}
+  \mfpdefinecolor{Dandelion}{rgb}{1,0.71,0.16}
+  \mfpdefinecolor{Goldenrod}{rgb}{0.855,0.648,0.125}
+  \mfpdefinecolor{yellow}{rgb}{1,1,0}
+  \mfpdefinecolor{cyan}{rgb}{0,1,1}
+  \mfpdefinecolor{lightgray}{rgb}{0.75,0.75,0.75}
+\else\ifPDF
+  \usepackage[pdftex]{graphicx}
+\else\ifps
+  \usepackage[dvips]{graphicx}
+\else\ifmpost
+  \usepackage[dvips]{graphicx}
+  \usepackage{colordvi}
+  \makeatletter
+  \def\bfig{\@ifnextchar[{\@bfig}{\@bfig[t]}}
+     \def\@bfig[#1]{ \begin{figure}[#1] \begin{center} }
+  \makeatother
+  \newcommand{\efig}[2]{ \caption{#1} \label{#2} \end{center} \end{figure} }
+\else
+  \usepackage[dvips]{pict2e}
+\fi\fi\fi\fi\fi\fi\fi
+\usepackage[cm]{fullpage}
+
+\newcommand{\yfig}[1]{}
+\newcommand{\mfig}[1]{\par
+\begin{minipage}{\textwidth}
+\ifPDF \centerline{\includegraphics{#1.pdf}}
+\else\ifps \centerline{\includegraphics{#1.eps}}
+\else\ifmpost \centerline{\includegraphics{figs.#1}}
+\else \centerline{\input #1.tex} \fi\fi\fi
+ \ \\
+ \centerline{#1.pic}
+\end{minipage}
+ \ \\[1em]}
+
+\begin{document}
+%\ %
+\ifmpost{}\else
+\mfig{man01}
+\mfig{man02}
+\mfig{man03}
+\mfig{man04}
+\mfig{man45}
+\mfig{man46}
+\mfig{man05}
+\mfig{man06}
+\mfig{man07}
+\mfig{man08}
+\mfig{man09}
+\mfig{man10}
+\mfig{man11}
+\mfig{man12}
+\mfig{man13}
+\mfig{man14}
+\mfig{man15}
+\mfig{man16}
+\mfig{man17}
+\mfig{man18}
+\mfig{man19}
+\mfig{man20}
+\mfig{man21}
+\mfig{man22}
+\mfig{basictests}
+\mfig{arrows}
+\mfig{arcs}
+\mfig{arrowheads}
+\ifepic\else
+\mfig{man24}
+\fi
+\mfig{man25}
+\mfig{man26}
+\mfig{man28}
+\ifepic\else
+\mfig{man29}
+\fi
+\mfig{man30}
+\mfig{man31}
+\mfig{man32}
+\ifepic\else
+%\mfig{man33}
+\mfig{man34}
+\clearpage
+\fi
+\mfig{man35}
+\ifepic\else
+\mfig{man36}
+\fi
+\ifmfpic{\closegraphsfile}\fi
+\fi % ifmpost
+\ifmpost{
+\mfig{1}
+\mfig{2}
+\mfig{3}
+\mfig{4}
+\mfig{5}
+\mfig{6}
+\mfig{7}
+\mfig{8}
+\mfig{9}
+\mfig{10}
+\mfig{11}
+\mfig{12}
+\mfig{13}
+\mfig{14}
+\mfig{15}
+\mfig{16}
+\mfig{17}
+\mfig{18}
+\mfig{19}
+\mfig{20}
+\mfig{21}
+\mfig{22}
+\mfig{23}
+\mfig{24}
+\mfig{25}
+\mfig{26}
+\mfig{27}
+\mfig{28}
+\mfig{29}
+\mfig{30}
+\mfig{31}
+\mfig{32}
+\mfig{33}
+\mfig{34}
+\mfig{35}
+\mfig{36}
+\mfig{37}
+\mfig{38}
+\mfig{39}
+\mfig{40}
+}\fi
+
+\end{document}

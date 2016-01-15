@@ -1,0 +1,49 @@
+% circles.m4
+.PS
+
+define lozenge {
+  arc from $1$2 to $2$1 with .c at $2
+  arc from $2$1 to $1$2 with .c at $1 }
+
+A: circle dotted diam 0.7 thick 0.4  fill 0.95  "A" thick 0.4
+B: circle dotted diam 0.45 at A+(0.4,0.2)  fill 0.95  "B" thick 0.4
+
+# Code from Circuit_macros cintersect macro:
+# AB:         ((((((B).x-(A).x)^2+((B).y-(A).y)^2)+\
+# (A.rad)^2-(B.rad)^2)/2)/(((B).x-(A).x)^2+((B).y-(A).y)^2)\
+#  between A and B) +\
+#   ((sqrt(max(0,(((B).x-(A).x)^2+((B).y-(A).y)^2)*(A.rad)^2\
+#  -(((((B).x-(A).x)^2+((B).y-(A).y)^2)+\
+#  (A.rad)^2-(B.rad)^2)/2)^2))/(((B).x-(A).x)^2+\
+#  ((B).y-(A).y)^2))*(-((B).y-(A).y)),\
+#  (sqrt(max(0,(((B).x-(A).x)^2+((B).y-(A).y)^2)*(A.rad)^2-\
+#  (((((B).x-(A).x)^2+((B).y-(A).y)^2)+\
+#  (A.rad)^2-(B.rad)^2)/2)^2))/(((B).x-(A).x)^2+\
+#  ((B).y-(A).y)^2))*(((B).x-(A).x)))
+  AB: (0.54428,0.291128)
+  "AB" at AB +(0.05,0.06) above rjust
+
+# Code from Circuit_macros cintersect macro:
+# BA:         ((((((A).x-(B).x)^2+((A).y-(B).y)^2)+\
+#  (B.rad)^2-(A.rad)^2)/2)/(((A).x-(B).x)^2+((A).y-(B).y)^2)\
+#   between B and A) +\
+#   ((sqrt(max(0,(((A).x-(B).x)^2+((A).y-(B).y)^2)*(B.rad)^2-\
+#  (((((A).x-(B).x)^2+((A).y-(B).y)^2)+(B.rad)^2-\
+#  (A.rad)^2)/2)^2))/(((A).x-(B).x)^2+((A).y-(B).y)^2))*(-((A).y-(B).y)),\
+#  (sqrt(max(0,(((A).x-(B).x)^2+((A).y-(B).y)^2)*(B.rad)^2-\
+#  (((((A).x-(B).x)^2+((A).y-(B).y)^2)+(B.rad)^2-\
+#  (A.rad)^2)/2)^2))/(((A).x-(B).x)^2+((A).y-(B).y)^2))*(((A).x-(B).x)))
+  BA: (0.69947,-0.019253)
+  "BA" at BA below ljust
+
+  "\tt shade(0.5,lozenge(A,B))" at A.s + (0.7,0) below
+
+linethick = 0.8
+  command "\global\let\dpicshdraw=\dpicdraw\global\def\dpicdraw{}"
+    command "\global\def\dpicstop{--}"
+    command sprintf("\dpicshdraw[fill=white!%g!black]",(0.5)*100)
+  lozenge(A,B)
+  command "cycle; \global\let\dpicdraw=\dpicshdraw\global\def\dpicstop{;}"
+#ozenge(A,B)
+
+.PE

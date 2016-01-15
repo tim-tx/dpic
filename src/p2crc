@@ -1,0 +1,37 @@
+# Configuration options for translating dpic.p
+
+Language	BERK	# Berkeley Pascal
+
+UseEnum		0	# Not necessary except to keep Sun's pitpicking
+			# compiler happy.
+UnsignedTrick		0	# Because we test reals as well as integers
+BitwiseMod		1	# x mod 16 becomes x&15
+BitwiseDiv		1	# x div 16 becomes x>>4
+Integer16		0	# 32 bit integers (but {Integer16=2} added on translation)
+AnsiC			1	# ANSI C output
+#PhysTabSize		0
+BracesAlways	1
+BraceCombine	1
+BraceElse		1
+BraceElseLine	1
+ElseIf			1
+Indent			+2
+BlockIndent		+2
+CommentIndent	-80
+
+#				Standard C functions
+LeaveAlone	system
+LeaveAlone	sprintf
+#				C macros
+FuncMacro	isalnum(c)=((isalnum(c)!=0) || (c == '_'))
+FuncMacro	isdigit(c)=(isdigit(c)!=0)
+FuncMacro	isupper(c)=(isupper(c)!=0)
+
+#				These are changed to avoid the possibility of errors in
+#               translating machine-dependent comments in the source code.
+EmbedComment	P2CC	# Insert C source 
+NoSkipComment	P2CP	# Insert Pascal source
+SkipComment	P2CIP	# Ignore following Pascal source
+# SprintfName	sprintf
+#				To include the local file:
+HeaderName	"p2c.h"
