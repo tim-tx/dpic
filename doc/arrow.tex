@@ -1,0 +1,29 @@
+% arrow.pic
+\begin{tikzpicture}[scale=2.54]
+% dpic version 2017.01.01 option -g for TikZ and PGF 1.01
+\ifx\dpiclw\undefined\newdimen\dpiclw\fi
+\global\def\dpicdraw{\draw[line width=\dpiclw]}
+\global\def\dpicstop{;}
+\dpiclw=0.8bp
+\dpiclw=1.2bp
+\dpicdraw (0.347917,0.029431)
+ --(0.465641,0)
+ --(0.347917,-0.029431)
+\dpicstop
+\dpicdraw (0,0)
+ --(0.465641,0)\dpicstop
+\draw (0,0) node[left=-1.5bp]{\tt arrowhead = 0};
+\filldraw[line width=0bp](0.4,-0.15)
+ --(0.35,-0.1875)
+ --(0.5,-0.15)
+ --(0.35,-0.1125) --cycle\dpicstop
+\dpicdraw (0,-0.15)
+ --(0.465641,-0.15)\dpicstop
+\draw (0,-0.15) node[left=-1.5bp]{\tt arrowhead = 3};
+\filldraw (0.35,-0.3375)
+ --(0.5,-0.3)
+ --(0.35,-0.2625) --cycle\dpicstop
+\dpicdraw (0,-0.3)
+ --(0.465641,-0.3)\dpicstop
+\draw (0,-0.3) node[left=-1.5bp]{default};
+\end{tikzpicture}

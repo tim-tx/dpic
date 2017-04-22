@@ -1,0 +1,71 @@
+# Installation shortcuts: change the following and type "make install"
+
+# For Linux (expects "make DESTDIR=xxx PREFIX=yyy install"):
+DESTDIR = /usr
+PREFIX = .
+DEST = ${DESTDIR}/${PREFIX}/bin
+
+MANDIR = /usr/share/man/man1
+DOCDIR = /usr/share/doc/dpic
+
+#-----------------------------------------------------------------------
+
+DEFS= @defrand@ @defno_snprintf@ @safe_mode@ @no_intt@
+
+CC=@CC@
+CFLAGS += $(DEFS) -O -ansi
+
+OBJECTS = dpic.o p2clib.o
+
+#DATE = `date +%Y.%m.%d`
+DATE=@VERSION@
+
+#-----------------------------------------------------------------------
+
+SOURCES = \
+ src/dp0.x src/dpic.x src/dpic1.x src/mfp.x \
+ src/mpo.x src/pdf.x src/pgf.x src/ps.x src/pst.x src/svg.x \
+ src/sysdep.x src/tex.x src/xfig.x \
+ src/dpic.bnf
+
+dpic: dpic.c $(OBJECTS)
+	$(CC) -o dpic $(OBJECTS) -lm
+
+LEXCINCLUDES = entryhp.h lxhp.h lxnp.h lxtv.h entrytv.h lxch.h
+CMPR = awk '{b=b$$0; if(length(b) > 75){print b; b=""}}; END{print b}'
+dpic.c: $(SOURCES)
+	(cd src; make DEBUG="$(DEBUG)" DATE=$(DATE) )
+	cp src/dpic.c src/parstab.i .
+	for name in $(LEXCINCLUDES) ; do \
+       $(CMPR) src/$$name > $$name ; done;
+	chmod 644 *.c *.i *.h
+	if test -n "$(DEBUG)" ; \
+      then $(CC) -c src/sysdep.c; fi
+
+install: dpic doc/dpicdoc.pdf
+	mkdir -p $(DEST)
+	if test -x dpic.exe ; then \
+      strip dpic.exe; install dpic.exe $(DEST) ; \
+    else \
+      strip dpic; install -m 755 dpic $(DEST) ; \
+    fi
+	mkdir -p $(DOCDIR)
+	cp -p doc/dpicdoc.pdf $(DOCDIR)
+	mkdir -p $(MANDIR)
+	cat doc/dpic.1 | gzip > $(MANDIR)/dpic.1.gz
+
+uninstall:
+	rm -f $(DEST)/dpic* $(MANDIR)/dpic.1.gz
+	if test `basename $(DOCDIR)` = dpic ; then \
+      rm -r $(DOCDIR) ; \
+    else rm -f $(DOCDIR)/dpicdoc.pdf ; \
+    fi
+
+doc/dpicdoc.pdf:
+	(cd doc; make)
+
+#                               Delete compiled files
+clean:
+	-rm -f *.o dpic dpic.exe *.LOG
+	(cd src; make -f Makefile.default clean )
+	(cd doc; make clean )

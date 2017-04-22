@@ -1,6 +1,6 @@
 /* dpic translator program. */
 /* BSD Licence:
-    Copyright (c) 2015, J. D. Aplevich
+    Copyright (c) 2016, J. D. Aplevich
     All rights reserved.
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -32,9 +32,6 @@
 
 #include "p2c.h"
 #include <time.h>
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)
-#define __CYGMIN
-#endif
 
 
 /*D,log D*/
@@ -682,7 +679,7 @@ int lexstate;                    /* 0..4: <.PS; .PS; in pic; .PE; >.PE */
 int lexsymb;
 boolean inlogic;                      /* set < to <compare> in context */
 boolean instr;                           /* set while reading a string */
-fbuffer *inbuf, *savebuf, *freeinbuf;
+fbuffer *inbuf, *savebuf, *freeinbuf, *topbuf;
 /* Error handling */
 int errcount;                     /* becomes nonzero when errors found */
 int lineno;                               /* current input line number */
@@ -827,7 +824,7 @@ extern int access(Char *f, int n);
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'random' FHG*/
-#if defined(__MSDOS__) || defined(__CYGMIN) || defined(RAND) 
+#if defined(__MSDOS__) || defined(RAND) 
 #undef random
 #define random() rand()
 #else
@@ -843,7 +840,7 @@ extern long random(void);
 /*GHF 'srandom' FHG*/
 #if defined(_POSIX_SOURCE) || defined(__sun)
 extern void srandom(unsigned s);
-#elif defined(__MSDOS__) || defined(__CYGMIN) || defined(RAND) 
+#elif defined(__MSDOS__) || defined(RAND) 
 extern void srand(unsigned s);
 #define srandom(x) srand((unsigned)(x))
 #elif defined(mips)
@@ -856,6 +853,10 @@ extern void srandom(int s);
 
 
 /*-----------------------------------------------------------------*/
+/*DFGHM function odp(p:pointer): integer; MHGFD*/
+/*D begin
+      odp := ordp(p) mod 10000
+      end; D*/
 /* Numerical utilities: */
 double principal(double x, double r)
 { while (x > r) {
@@ -921,9 +922,7 @@ boolean ismdistmax(double x)
 double datan(double y, double x)
 { double r;
 
-  /*D if debuglevel=2 then write(log,'datan(',y:8:4,',',x:8:4,')='); D*/
   r = atan2(y , x);
-  /*D if debuglevel=2 then writeln(log,r:8:4); D*/
   return r;
 }
 
@@ -982,8 +981,8 @@ void disposebufs(fbuffer **buf)
 { /*D; loc: integer D*/
   fbuffer *bu;
 
-  /*D if debuglevel > 0 then
-      write(log,'disposebufs(',loc:1,')[',ordp(buf):1,']'); D*/
+  /*D if debuglevel > 0 then begin writeln(log);
+      write(log,'disposebufs(',loc:1,')[',odp(buf):1,']') end; D*/
   if (*buf == NULL) {
       return;
   }
@@ -1011,7 +1010,7 @@ void newarg(arg **ar)
   }
   With = *ar;
   /*D; if debuglevel > 0 then
-     writeln(log,' newarg[',ordp(ar):1,']') D*/
+     writeln(log,' newarg[',odp(ar):1,']') D*/
   With->argbody = NULL;
   With->highera = NULL;
   With->nexta = NULL;
@@ -1022,7 +1021,7 @@ void newarg(arg **ar)
 void disposeargs(arg **ar)
 { arg *a;
 
-  /*D if debuglevel > 0 then writeln(log,'disposeargs[',ordp(ar):1,']'); D*/
+  /*D if debuglevel > 0 then writeln(log,'disposeargs[',odp(ar):1,']'); D*/
   if (*ar == NULL) {
       return;
   }
@@ -1074,7 +1073,7 @@ void deletebufs(fbuffer **buf, boolean mv)
 void epilog(void)
 { deletebufs(&inbuf, true);
   /*D if debuglevel > 0 then
-     writeln(log,'dispose(chbuf)[',ordp(chbuf):1,']'); D*/
+     writeln(log,'dispose(chbuf)[',odp(chbuf):1,']'); D*/
   Free(chbuf);
   /*D if debuglevel > 0 then begin
         writeln(log,'stackhigh=',stackhigh:1);
@@ -1711,7 +1710,7 @@ void nesw(primitive *ptmp)
     break;
   }
   /*D;if debuglevel > 0 then with ptmp^ do begin
-     write(log, 'nesw(',ordp(ptmp):1,') ptype=',ptype:1);
+     write(log, 'nesw(',odp(ptmp):1,') ptype=',ptype:1);
      wlogfl('W',west,0); wlogfl('S',south,0);
      wlogfl('E',east,0); wlogfl('N',north,1)
      end D*/
@@ -1795,7 +1794,7 @@ boolean iscorner(double theta)
 
 
 int hcf(int x, int y)
-{ int i, small, large;
+{ int i;
 
   if (x < 0) {
       x = -x;
@@ -1803,40 +1802,31 @@ int hcf(int x, int y)
   if (y < 0) {
       y = -y;
   }
-  if (y < x) {
-      small = y;
-      large = x;
+  if (y > x) {
+      i = y;
+      y = x;
+      x = i;
   }
-  else {
-      small = x;
-      large = y;
+  while (y > 0) {
+      i = y;
+      y = x - x / y * y;
+      x = i;
   }
-  while (small > 0) {
-      i = small;
-      small = large % small;
-/* p2c: dpic.p, line 1048:
- * Note: Using % for possibly-negative arguments [317] */
-      large = i;
-  }
-  if (large == 0) {
+  if (x == 0) {
       return 1;
   }
   else {
-      return large;
+      return x;
   }
 }
 
 
-int iabs(int i)
-{ if (i < 0) {
-      return (-i);
-  }
-  else {
-      return i;
-  }
-}
-
-
+/*
+function iabs(i: integer): integer;
+begin
+  if i < 0 then iabs := -i else iabs := i
+  end;
+*/
 void wrslope(double xp, double yp, boolean arrow)
 { int i, ix, iy;
   double r;
@@ -2260,7 +2250,7 @@ void xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2018.03.06 option -x for Fig 3.1')
+     writeln('# dpic version 2017.01.01 option -x for Fig 3.1')
      */
   printf("#FIG 3.2\n");
   printf("Landscape\n");
@@ -2270,7 +2260,7 @@ void xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2018.03.06 option -x for Fig 3.2\n");
+  printf("# dpic version 2017.01.01 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 }
 
@@ -2692,7 +2682,7 @@ void svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2018.03.06 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2017.01.01 option -v for SVG 1.1 -->\n");
   hsize = (e - w + 2 * lth) / fsc;
   vsize = (n - s + 2 * lth) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -3578,7 +3568,7 @@ void pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2018.03.06 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2017.01.01 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -4348,7 +4338,7 @@ void mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2018.03.06 option -m for mfpic\n");
+  printf("\n%% dpic version 2017.01.01 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -5043,7 +5033,7 @@ void mfpdraw(primitive *node)
 /* Output routines for MetaPost */
 void mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2018.03.06 option -s for MetaPost\n");
+  printf("%% dpic version 2017.01.01 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -5709,7 +5699,7 @@ void mpodraw(primitive *node)
 /* pgf output routines */
 void pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2018.03.06 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2017.01.01 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -6422,7 +6412,7 @@ void psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2018.03.06 option ");
+  printf("\n%%%%Creator: dpic version 2017.01.01 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -7298,11 +7288,8 @@ void pdfstream(Char *s, int ls, nametype **strm)
 
 
 void pdfwln(Char *s, int ln, nametype **strm)
-{ Char STR1[256];
-
-  pdfstream(s, ln, strm);
-  sprintf(STR1, "%c", nlch);
-  pdfstream(STR1, 1, strm);
+{ pdfstream(s, ln, strm);
+  pdfstream("\n", 1, strm);
 }
 
 
@@ -7322,7 +7309,7 @@ void pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2018.03.06 option -d for PDF\n");
+  printf("%% Creator: dpic version 2017.01.01 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
   /* 1. 2. 3. 4. 5. 6. */
@@ -7408,9 +7395,7 @@ void pdfwfloat(double y)
   }
   do {
       j++;
-      k = ix % 10;
-/* p2c: dpic.p, line 4574:
- * Note: Using % for possibly-negative arguments [317] */
+      k = ix - ix / 10 * 10;
       if (j == 7 && nz) {
 	  ln++;
 	  ts[ln-1] = '.';
@@ -7476,13 +7461,13 @@ void pdfwlz(int n)
 { Char s[10];
   int i;
   int j = 10;
+  int k;
 
   while (n > 0) {
-      s[j-1] = n % 10 + '0';
-/* p2c: dpic.p, line 4604:
- * Note: Using % for possibly-negative arguments [317] */
+      k = n / 10;
+      s[j-1] = n - k * 10 + '0';
       j--;
-      n /= 10;
+      n = k;
   }
   for (i = 1; i <= j; i++) {
       putchar('0');
@@ -8274,7 +8259,7 @@ void texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2018.03.06 option ");
+  printf("%% dpic version 2017.01.01 option ");
   switch (drawmode) {
 
   case TeX:
@@ -9467,7 +9452,9 @@ void setangles(double *strtang, double *arcang, postype ctr, double xs,
 
 
 void eqop(double *x, int op, double y)
-{ switch (op) {
+{ int i, j;
+
+  switch (op) {
 
   case XEQ:
   case XLcoloneq:
@@ -9496,13 +9483,14 @@ void eqop(double *x, int op, double y)
     break;
 
   case XLremeq:
-    if (y == 0) {
+    i = (long)floor(*x + 0.5);
+    j = (long)floor(y + 0.5);
+    if (j == 0) {
 	markerror(852);
+	*x = 0.0;
     }
     else {
-	*x = (long)floor(*x + 0.5) % (long)floor(y + 0.5);
-/* p2c: dpic.p, line 5990:
- * Note: Using % for possibly-negative arguments [317] */
+	*x = i - i / j * j;
     }
     break;
   }
@@ -9728,15 +9716,13 @@ int varhash(Char *chb, chbufinx chbufx, chbufinx length)
 
   if (chb == NULL) {
       idx = 0;
-      return (idx % (HASHLIM + 1));
+      return (idx - idx / (HASHLIM + 1) * (HASHLIM + 1));
   }
   idx = chb[chbufx];
   if (length > 2) {
       idx += chb[chbufx + length - 2];
   }
-  return (idx % (HASHLIM + 1));
-/* p2c: dpic.p, line 6109:
- * Note: Using % for possibly-negative arguments [317] */
+  return (idx - idx / (HASHLIM + 1) * (HASHLIM + 1));
 }
 
 
@@ -10044,10 +10030,12 @@ double pheight(primitive *pr)
     ph = 2.0 * pr->Upr.Ucircle.radius;
     break;
 
+  /* XLline,XLarrow,XLmove: ph := abs(endpos.ypos - aat.ypos); */
   case XLline:
   case XLarrow:
   case XLmove:
-    ph = fabs(pr->Upr.Uline.endpos.ypos - pr->aat.ypos);
+  case XLspline:
+    ph = pr->Upr.Uline.height;
     break;
 
   default:
@@ -10059,42 +10047,44 @@ double pheight(primitive *pr)
 
 
 double pwidth(primitive *pr)
-{ double ph;
+{ double pw;
 
   if (pr == NULL) {
-      ph = 0.0;
-      return ph;
+      pw = 0.0;
+      return pw;
   }
   switch (pr->ptype) {
 
   case XLbox:
   case XLstring:
-    ph = pr->Upr.Ubox.boxwidth;
+    pw = pr->Upr.Ubox.boxwidth;
     break;
 
   case XBLOCK:
-    ph = pr->Upr.UBLOCK.blockwidth;
+    pw = pr->Upr.UBLOCK.blockwidth;
     break;
 
   case XLellipse:
-    ph = pr->Upr.Uellipse.elwidth;
+    pw = pr->Upr.Uellipse.elwidth;
     break;
 
   case XLcircle:
-    ph = 2.0 * pr->Upr.Ucircle.radius;
+    pw = 2.0 * pr->Upr.Ucircle.radius;
     break;
 
+  /* XLline,XLarrow,XLmove: pw := abs(endpos.xpos - aat.xpos); */
   case XLline:
   case XLarrow:
   case XLmove:
-    ph = fabs(pr->Upr.Uline.endpos.xpos - pr->aat.xpos);
+  case XLspline:
+    pw = pr->Upr.Uline.width;
     break;
 
   default:
-    ph = 0.0;
+    pw = 0.0;
     break;
   }
-  return ph;
+  return pw;
 }
 
 
@@ -11109,6 +11099,7 @@ void getscale(double xv, double yv, primitive *lp, double *sfact,
 void addelem(primitive *prold, primitive *prnew)
 { primitive *pp, *pq;
 
+  /*D if debuglevel > 0 then write(log,'addelem: '); D*/
   if (prold == NULL || prnew == NULL) {
       return;
   }
@@ -11242,7 +11233,7 @@ void deletestringbox(primitive **pr)
 /* addsuffix(chbuf,chbufx,length,attstack^[newp+1].xval); */
 void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
 {                                                             /*DGHF ordp FHGD*/
-  int i, j, FORLIM;
+  int i, j, k, FORLIM;
 
   /*D if debuglevel <> 0 then begin writeln(log,
     'addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; suff:real)');
@@ -11282,11 +11273,10 @@ void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
       i = -i;
   }
   do {
-      buf[*inx + j] = i % 10 + '0';
-/* p2c: dpic.p, line 6933:
- * Note: Using % for possibly-negative arguments [317] */
+      k = i / 10;
+      buf[*inx + j] = i - k * 10 + '0';
+      i = k;
       j--;
-      i /= 10;
   } while (i != 0);
   if ((long)floor(suff + 0.5) < 0) {
       buf[*inx + j] = '-';
@@ -11440,6 +11430,7 @@ void produce(stackinx newp, int p)
   arg *macp, *lastp;
   primitive *primp, *prp, *eb;
   int i, j, k, kk, lj, ll, nexprs;
+  /*D kx: integer; D*/
   double r, s, t, x1, y1, dx, dy, ts;
   boolean bswitch;
   attribute *With, *With1;
@@ -11656,10 +11647,11 @@ void produce(stackinx newp, int p)
     if (With->prim != NULL && With->lexval != XLcontinue) {
 	i = newp - 1;
 	j = 1;
-	/*D if debuglevel>0 then writeln(log,
-	   ' Elementlist2: Searching for last drawn element'); D*/
+	/*D if debuglevel>0 then write(log,
+	   ' Elementlist2: Searching for last drawn element, newp=',newp:1);D*/
 	while (i > j) {
-	    if ((attstack[i].lexval == XLendfor ||
+	    if ((attstack[i].lexval == XLabel ||
+		 attstack[i].lexval == XLendfor ||
 		 attstack[i].lexval == XFOR ||
 		 attstack[i].lexval == XLBRACE ||
 		 attstack[i].lexval == XNL) && attstack[i].prim == NULL) {
@@ -11669,28 +11661,33 @@ void produce(stackinx newp, int p)
 		j = i;
 	    }
 	}
-	/*D if debuglevel > 0 then begin
-	   if i = 1 then write(log,' Not found') else write(log,' Found:');
-	   writeln(log,' newp=',newp:1,
-	      ', attstack^[',i:1,'].lexval=',attstack^[i].lexval:1);
-	   if attstack^[i].prim<>nil then begin
-	      writeln(log,'attstack^[',i:1,'].prim=');
-	      snaptype(log,attstack^[i].prim^.ptype)
-	      end
-	   end; D*/
+	/*D if debuglevel>0 then begin
+	   if i = 1 then writeln(log,' Not found') else begin
+	     write(log,' Found:');
+	     writeln(log,', attstack^[',i:1,'].lexval=',attstack^[i].lexval:1);
+	     if attstack^[i].prim<>nil then begin
+	       writeln(log,'attstack^[',i:1,'].prim=');
+	       snaptype(log,attstack^[i].prim^.ptype)
+	       end end end; D*/
 	if (attstack[i].prim != NULL) {
 	    addelem(attstack[i].prim, With->prim);
-	    /*D if debuglevel > 0 then printobject(attstack^[i].prim); D*/
+	    /*D if debuglevel > 0 then begin
+	       writeln(log,' From stack[',newp:1,'] to [',i:1,']');
+	       printobject(attstack^[i].prim) end; D*/
 	    With->state = i - newp;
 	}
 	else if (attstack[i].lexval == XBRACKETL) {
 	    attstack[i+1].prim = With->prim;
-	    /*D if debuglevel > 0 then printobject(attstack^[i+1].prim); D*/
+	    /*D if debuglevel > 0 then begin
+	       writeln(log,' From stack[',newp:1,'] to [',i+1:1,']');
+	       printobject(attstack^[i+1].prim) end; D*/
 	    With->state = i - newp + 1;
 	}
 	else {
 	    attstack[i].prim = With->prim;
-	    /*D if debuglevel > 0 then printobject(attstack^[i].prim); D*/
+	    /*D if debuglevel > 0 then begin
+	       writeln(log,' state[',newp:1,']=',i-1:1);
+	       printobject(attstack^[i].prim) end; D*/
 	    With->state = i - newp;
 	}
     }
@@ -11734,15 +11731,14 @@ void produce(stackinx newp, int p)
     break;
 
   case term4:
-    if (attstack[newp+2].xval == 0.0) {
+    i = (long)floor(With->xval + 0.5);
+    j = (long)floor(attstack[newp+2].xval + 0.5);
+    if (j == 0) {
 	markerror(852);
 	With->xval = 0.0;
     }
     else {
-	With->xval = (long)floor(With->xval + 0.5) %
-		     (long)floor(attstack[newp+2].xval + 0.5);
-/* p2c: dpic.p, line 7226:
- * Note: Using % for possibly-negative arguments [317] */
+	With->xval = i - i / j * j;
     }
     break;
 
@@ -12160,7 +12156,7 @@ void produce(stackinx newp, int p)
     With1 = &attstack[newp+1];
     if (With1->prim != NULL) {
 #ifdef SAFE_MODE
-	markerror(906);
+	markerror(901);
 #else
 	pointinput(With1->prim->textp);
 #endif
@@ -12418,7 +12414,8 @@ void produce(stackinx newp, int p)
     inlogic = false;
     With->xval = attstack[newp+2].xval;
     /*D if debuglevel > 0 then begin
-        if xval <> 0.0 then writeln(log,' true') else writeln(log,' false')
+        if xval <> 0.0 then writeln(log,' logexpr=true')
+        else writeln(log,'logexpr=false')
         end; D*/
     if (With->xval != 0.0) {
 	for (i = 1; i <= 3; i++) {
@@ -12637,7 +12634,7 @@ void produce(stackinx newp, int p)
 	    markerror(869);
 	}
 	else if (safemode) {
-	    markerror(906);
+	    markerror(901);
 	}
 	else {
 	    bswitch = true;
@@ -12645,7 +12642,7 @@ void produce(stackinx newp, int p)
     }
 #ifdef SAFE_MODE
     if (bswitch) {
-	markerror(906);
+	markerror(901);
     }
 #else
     if (bswitch) {
@@ -12669,7 +12666,7 @@ void produce(stackinx newp, int p)
 	    markerror(869);
 	}
 	else if (safemode) {
-	    markerror(906);
+	    markerror(901);
 	}
 	else {
 	    bswitch = true;
@@ -12677,7 +12674,7 @@ void produce(stackinx newp, int p)
     }
 #ifdef SAFE_MODE
     if (bswitch) {
-	markerror(906);
+	markerror(901);
     }
 #else
     if (bswitch) {
@@ -12708,18 +12705,14 @@ void produce(stackinx newp, int p)
 		if (With4->seginx + With4->len >= CHBUFSIZ) {
 		    markerror(866);
 		}
+		else if (safemode) {
+		    markerror(901);
+		}
 		else {
-#ifdef SAFE_MODE
-		    markerror(906);
-#else
-		    if (safemode) {
-			markerror(906);
-		    }
-		    else {
-			With4->segmnt[With4->seginx + With4->len] = '\0';
-			attstack[newp].xval = system(&With4->segmnt[With4->seginx]);
+#ifndef SAFE_MODE
+		    With4->segmnt[With4->seginx + With4->len] = '\0';
+		    attstack[newp].xval = system(&With4->segmnt[With4->seginx]);
 #endif
-		    }
 		}
 	    }
 	}
@@ -12858,7 +12851,7 @@ void produce(stackinx newp, int p)
 		}
 		j++;
 		/*D if debuglevel > 0 then begin write(log,'format="');
-		  for k := lj to j-1 do write(log,segmnt^[seginx+k]);
+		  for kx := lj to j-1 do write(log,segmnt^[seginx+kx]);
 		  write(log, '" nexprs=',nexprs:2,' Numerical print value=');
 		  wfloat(log,attstack^[newp+4+2*i].xval); writeln(log);
 		  flush(log) end; D*/
@@ -12880,52 +12873,37 @@ void produce(stackinx newp, int p)
 		for (ll = k + 1; ll < j; ll++) {
 		    r = 10.0 * r + With4->segmnt[With4->seginx + ll] - '0';
 		}
-		ll = 1;
-		if (s > CHBUFSIZ - 1 || r > CHBUFSIZ - 1) {
+		ll = 0;
+		if (s > CHBUFSIZ - 2 || r > CHBUFSIZ - 2) {
 		    markerror(865);
 		    j = With4->len;
 		}
 		else {
 		    lastc = With4->segmnt[With4->seginx + j];
 		    With4->segmnt[With4->seginx + j] = '\0';
-		    sprintf(&tmpbuf[1], &With4->segmnt[With4->seginx + lj],
-			     attstack[newp + i * 2 + 4].xval);
+		    ll = sprintf(&tmpbuf[1],
+				  &With4->segmnt[With4->seginx + lj],
+				  attstack[newp + i * 2 + 4].xval);
 		    With4->segmnt[With4->seginx + j] = lastc;
-		    k = CHBUFSIZ;
-		    while (ll < k) {
-			if (tmpbuf[ll] == '\0') {
-			    k = ll;
-			}
-			else {
-			    ll++;
-			}
-		    }
-		    ll--;
 		}
 #else
 		lastc = With4->segmnt[With4->seginx + j];
 		With4->segmnt[With4->seginx + j] = '\0';
-		k = snprintf(&tmpbuf[1], CHBUFSIZ,
-			     &With4->segmnt[With4->seginx + lj],
-			     attstack[newp + i * 2 + 4].xval);
+		ll = snprintf(&tmpbuf[1], CHBUFSIZ - 1,
+			      &With4->segmnt[With4->seginx + lj],
+			      attstack[newp + i * 2 + 4].xval);
 		With4->segmnt[With4->seginx + j] = lastc;
-		if (k > CHBUFSIZ - 2) {
+#endif
+		if (ll > CHBUFSIZ - 2) {
 		    markerror(865);
 		    ll = CHBUFSIZ - 2;
 		}
-		else if (k > 0) {
-		    ll = k;
-		}
-		else {
-		    ll = 0;
-		}
-#endif
 		/*D if debuglevel > 0 then begin
 		   write(log,' tmpbuf(1:',ll:1,')=');
-		   for lj := 1 to ll do write(log,tmpbuf^[lj]);
+		   for kx := 1 to ll do write(log,tmpbuf^[kx]);
 		   writeln(log); flush(log) end; D*/
 		/* Copy tmpbuf to the string */
-		if (ll > 0 && ll <= CHBUFSIZ - 2) {
+		if (ll > 0) {
 		    kk = putstring(kk, attstack[newp].prim->textp, tmpbuf, 1,
 				   ll);
 		}
@@ -15447,19 +15425,47 @@ begin F*/
    openparse
    end;
 F*/
+boolean isprint_(Char ch)
+{ return (ch >= 32 && ch <= 126);
+}
+
+
+void wchar(FILE **iou, Char c)
+{ if (isprint_(c)) {
+      putc(c, *iou);
+      return;
+  }
+  if (c == nlch) {
+      putc('\n', *iou);
+      return;
+  }
+  if (c == crch) {
+      fprintf(*iou, "\\r");
+      return;
+  }
+  if (c == tabch) {
+      fprintf(*iou, "\\t");
+      return;
+  }
+  if (c < 32) {
+      fprintf(*iou, "^%c", c + 64);
+  }
+  else {
+      fprintf(*iou, "\\%d%d%d", (c >> 6) & 7, (c >> 3) & 7, c & 7);
+  }
+}
+
+
 /*------------------------------ For debug: -------------------------*/
-/*D procedure wrchar( c: char );
+/*D procedure logchar( c: char );
 begin
    write(log,'ch(',ord(c):1,')="');
-   case ord(c) of
-      ordETX: write(log,'^C');
-      ordNL: writeln(log);
-      ordCR: write(log,'\r');
-      ordTAB: write(log,'\t');
-      0: write(log,'\^');
-      otherwise write(log,c)
-      end;
+   wchar(log,c);
    write(log,'"')
+   end;
+procedure winbuf;
+begin
+   write(log,' inbuf=[',odp(inbuf):1,'] ')
    end;
 procedure wlogfl D*/
 /*DF(nm: string; v: real; cr: integer)FD*/
@@ -15476,7 +15482,7 @@ procedure logaddr D*/
 /*D;
 begin
    write(log,'[');
-   if b <> nil then write(log,ordp(b):1) else write(log,'nil');
+   if b <> nil then write(log,odp(b):1) else write(log,'nil');
    writeln(log,']')
    end;
 procedure wrbuf D*/
@@ -15488,9 +15494,9 @@ begin
   else with p^ do begin
      if job > 2 then begin
         write(log,' buf[');
-        if p^.prevb<>nil then write(log,ordp(p^.prevb):1);
-        write(log,'<'); write(log,ordp(p):1,'>');
-        if p^.nextb<>nil then write(log,ordp(p^.nextb):1);
+        if p^.prevb<>nil then write(log,odp(p^.prevb):1);
+        write(log,'<'); write(log,odp(p):1,'>');
+        if p^.nextb<>nil then write(log,odp(p^.nextb):1);
         write(log,']')
         end;
      if job > 1 then
@@ -15502,18 +15508,12 @@ begin
      else begin
         i := j;
         while i <= savedlen do begin
-           case ord(carray^[i]) of
-              ordETX: write(log,'^C');
-              ordNL: writeln(log);
-              ordCR: write(log,'\r');
-              ordTAB: write(log,'\t');
-              0: begin
-                 m := i; k := savedlen+1;
-                 while i < k do if ord(carray^[i])=0 then i:=i+1 else k:=i;
-                 write(log,'(',(i-m):1,')x\^');
-                 i := i-1
-                 end;
-              otherwise write(log,carray^[i])
+           if ord(carray^[i])<>0 then wchar(log,carray^[i])
+           else begin
+              m := i; k := savedlen+1;
+              while i < k do if ord(carray^[i])=0 then i:=i+1 else k:=i;
+              write(log,'(',(i-m):1,')x'); wchar(log,chr(0));
+              i := i-1
               end;
            i := i+1
            end
@@ -15526,78 +15526,87 @@ begin
    and symbol expected if possible */
 void markerror(int emi)
 { /*F(emi: integer)F*/
-  int inx = 1;
-  int j, k;
-  fbuffer *thisbuf;
-  fbuffer *lastbuf = NULL;
-  fbuffer *With;
+  int inx, j, k;
+  fbuffer *thisbuf, *lastbuf, *With;
 
   if (emi < 900) {                                   /* Do not count warnings */
       errcount++;
   }
   /*D if debuglevel > 0 then begin
       write(log,'*** Markerror[');
-      if inbuf=nil then write(log,'nil') else write(log,ordp(inbuf):1);
-      writeln(log,'] emi=', emi:1, ', lexsymb=', lexsymb:1,':');
-      wrbuf(inbuf,3,0) end; D*/
+      if inbuf=nil then write(log,'nil') else write(log,odp(inbuf):1);
+      writeln(log,'] emi=', emi:1, ', lexsymb=', lexsymb:1,':') end; D*/
   /* Write out the current and prev line */
-  thisbuf = inbuf;
-  while (thisbuf != NULL) {
-      With = thisbuf;
-      lastbuf = thisbuf;
-      j = 0;
-      if (With->readx - 1 < With->savedlen) {
-	  inx = With->readx - 1;
-      }
-      else {
-	  inx = With->savedlen;
-      }
-      while (inx > j) {
-	  if (With->carray[inx] == etxch || With->carray[inx] == tabch ||
-	       With->carray[inx] == ' ' || With->carray[inx] == crch ||
-	       With->carray[inx] == nlch) {
-	      inx--;
+  if (emi < 903) {
+      thisbuf = inbuf;
+      lastbuf = NULL;
+      inx = 1;
+      while (thisbuf != NULL) {
+	  With = thisbuf;
+	  lastbuf = thisbuf;
+	  j = 0;
+	  if (With->readx > With->savedlen) {
+	      inx = With->savedlen;
 	  }
 	  else {
-	      j = inx;
+	      inx = With->readx - 1;
 	  }
-      }
-      j = 0;
-      while (inx > j) {
-	  if (With->carray[inx] != nlch) {
-	      inx--;
+	  if (With->readx - 1 < With->savedlen) {
+	      j = With->readx - 1;
 	  }
 	  else {
-	      j = inx;
+	      j = With->savedlen;
+	  }
+	  while (inx > j) {
+	      if (With->carray[inx] == etxch || With->carray[inx] == tabch ||
+		   With->carray[inx] == ' ' || With->carray[inx] == crch ||
+		   With->carray[inx] == nlch) {
+		  inx--;
+	      }
+	      else {
+		  j = inx;
+	      }
+	  }
+	  j = 0;
+	  while (inx > j) {
+	      if (isprint_(With->carray[inx]) || With->carray[inx] == tabch) {
+		  inx--;
+	      }
+	      else {
+		  j = inx;
+	      }
+	  }
+	  if (inx == 0) {
+	      thisbuf = With->prevb;
+	  }
+	  else {
+	      thisbuf = NULL;
 	  }
       }
-      if (inx == 0) {
-	  thisbuf = With->prevb;
-      }
-      else {
-	  thisbuf = NULL;
-      }
-  }
-  while (lastbuf != NULL) {
-      if (lastbuf == inbuf) {
-	  k = lastbuf->readx - 1;
-      }
-      else {
-	  k = lastbuf->savedlen;
-      }
-      for (j = inx; j <= k; j++) {
-	  if (lastbuf->carray[j] != etxch) {
-	      putc(lastbuf->carray[j], errout);
+      while (lastbuf != NULL) {
+	  /*D if debuglevel > 0 then wrbuf(lastbuf,3,0); D*/
+	  if (lastbuf == inbuf) {
+	      k = lastbuf->readx - 1;
 	  }
-      }
-      if (lastbuf != inbuf) {
-	  lastbuf = lastbuf->nextb;
-      }
-      else {
-	  lastbuf = NULL;
-      }
-      if (lastbuf != NULL) {
-	  inx = lastbuf->readx;
+	  else {
+	      k = lastbuf->savedlen;
+	  }
+	  /*D if debuglevel > 0 then writeln(log,'inx=',inx:1,' k=',k:1); D*/
+	  if (inx < 1) {
+	      inx = 1;
+	  }
+	  for (j = inx; j <= k; j++) {
+	      wchar(&errout, lastbuf->carray[j]);
+	  }
+	  if (lastbuf != inbuf) {
+	      lastbuf = lastbuf->nextb;
+	  }
+	  else {
+	      lastbuf = NULL;
+	  }
+	  if (lastbuf != NULL) {
+	      inx = lastbuf->readx;
+	  }
       }
   }
   fprintf(errout, "\n*** dpic: line %d ", lineno);
@@ -16518,17 +16527,8 @@ void markerror(int emi)
     fprintf(errout, "Character not recognized: ignored\n");
     break;
 
-  case 801:
-    fprintf(errout, "Null string not allowed\n");
-    break;
-
   case 802:
     fprintf(errout, "Invalid exponent character after e in a number\n");
-    break;
-
-  case 803:
-    fprintf(errout,
-	    "Fill value must be non-negative and not greater than 1\n");
     break;
 
   case 804:
@@ -16637,7 +16637,7 @@ void markerror(int emi)
     break;
 
   case 868:
-    fprintf(errout, "Function argument out of bounds\n");
+    fprintf(errout, "Function argument out of range\n");
     break;
 
   case 869:
@@ -16656,9 +16656,9 @@ void markerror(int emi)
     fprintf(errout, "Buffer overflow while defining macro argument\n");
     break;
 
-  /* lexical warning messages */
+  /* warning messages */
   case 901:
-    fprintf(errout, "String character generated at end of line\n");
+    fprintf(errout, "Safe mode: sh, copy, and print to file disallowed\n");
     break;
 
   case 903:
@@ -16669,9 +16669,8 @@ void markerror(int emi)
     fprintf(errout, "Picture size adjusted to maxpsht value\n");
     break;
 
-  /*905: writeln(errout,'Operating system command returns nonzero value'); */
-  case 906:
-    fprintf(errout, "Safe mode: sh, copy, and print to file disallowed\n");
+  default:
+    fprintf(errout, "Unknown error\n");
     break;
   }
   /* writeln(errout); */
@@ -16777,11 +16776,14 @@ void nextline(Char lastchar)
   fbuffer *With;
   int FORLIM;
 
+  /*D if debuglevel > 0 then begin writeln(log);
+     write(log,'nextline('); wchar(log,lastchar);
+     write(log,') ')
+     end; D*/
   With = inbuf;
   With->readx = 1;
   With->savedlen = 0;
   do {
-      lineno++;
       if (savebuf != NULL) {
 	  readline(&copyin);
 	  if (inputeof) {
@@ -16795,15 +16797,35 @@ void nextline(Char lastchar)
 	  }
       }
       else {
+	  if (!inputeof) {
+	      lineno++;
+	  }
 	  readline(&input);
       }
       /* Check for .PS, .PE, and zero length */
       With = inbuf;
-      if (With->carray[1] == '.') {
-	  if (lexstate != 2) {
-	      if (With->savedlen >= 4 && With->carray[2] == 'P') {
-		  if (savebuf != NULL) {
-		      With->savedlen = 0;                   /* skip .P* lines */
+      if (With->savedlen >= 1) {
+	  if (With->carray[1] == '.') {
+	      if (lexstate != 2) {
+		  if (With->savedlen >= 4 && With->carray[2] == 'P') {
+		      if (savebuf != NULL) {
+			  With->savedlen = 0;               /* skip .P* lines */
+		      }
+		      else if (With->carray[3] == 'F' ||
+			       With->carray[3] == 'S') {
+			  lexstate = 1;
+			  With->readx = 4;
+		      }
+		      else if (With->carray[3] == 'E') {
+			  lexstate = 3;
+			  With->readx = 4;
+		      }
+		  }
+	      }
+	      else if (lastchar != bslch) {
+		  if (With->savedlen < 4 || With->carray[2] != 'P' ||
+		       savebuf != NULL) {
+		      With->savedlen = 0;                     /* skip . lines */
 		  }
 		  else if (With->carray[3] == 'F' || With->carray[3] == 'S') {
 		      lexstate = 1;
@@ -16813,23 +16835,9 @@ void nextline(Char lastchar)
 		      lexstate = 3;
 		      With->readx = 4;
 		  }
-	      }
-	  }
-	  else if (lastchar != bslch) {
-	      if (With->savedlen < 4 || With->carray[2] != 'P' ||
-		   savebuf != NULL) {
-		  With->savedlen = 0;                         /* skip . lines */
-	      }
-	      else if (With->carray[3] == 'F' || With->carray[3] == 'S') {
-		  lexstate = 1;
-		  With->readx = 4;
-	      }
-	      else if (With->carray[3] == 'E') {
-		  lexstate = 3;
-		  With->readx = 4;
-	      }
-	      else {
-		  With->savedlen = 0;
+		  else {
+		      With->savedlen = 0;
+		  }
 	      }
 	  }
       }
@@ -16851,17 +16859,11 @@ void nextline(Char lastchar)
 	  }
 	  With->savedlen = 0;
       }
-      /* D;
-      if debuglevel > 0 then begin
-         write(log,'nextline:');
-         with inbuf^ do for i:=1 to savedlen do case ord(carray^[i]) of
-            ordETX: write(log,'^C');
-            ordNL: writeln(log);
-            ordCR: write(log,'\r');
-            ordTAB: write(log,'\t');
-            otherwise write(log,carray^[i])
-            end;
-         end D */
+      /*D; if debuglevel > 0 then begin
+         writeln(log); write(log,'nextline |');
+         with inbuf^ do for i:=1 to savedlen do wchar(log,carray^[i]);
+         writeln(log,'| lexstate=',lexstate:1)
+         end D*/
   } while (!(inbuf->savedlen > 0 || inputeof));
 }
 
@@ -16876,13 +16878,15 @@ void inchar(void)
   if (inbuf == NULL) {
       newbuf(&inbuf);
       inbuf->attrib = -1;
+      topbuf = inbuf;
   }
   /*D if debuglevel = 2 then with inbuf^ do begin
      writeln(log);
-     write(log,' inchar['); if prevb<>nil then write(log,ordp(prevb):1);
-     write(log,'<',ordp(inbuf):1,'>');
-     if nextb<>nil then write(log,ordp(nextb):1);
-     write(log,']: instr=',instr) end; D*/
+     write(log,' inchar['); if prevb<>nil then
+       write(log,odp(prevb):1);
+     write(log,'<',odp(inbuf):1,'>');
+     if nextb<>nil then write(log,odp(nextb):1);
+     write(log,']: instr=',instr,' rx=',readx:1) end; D*/
   endofbuf = (inbuf->readx >= inbuf->savedlen);
   while (endofbuf) {
       With = inbuf;
@@ -16923,7 +16927,7 @@ void inchar(void)
       }
       if (inbuf->attrib > 0) {  /* for buf */
 	  /*D if debuglevel = 2 then begin
-	    write(log,' For detected, '); wrchar(ch); write(log,' ')
+	    write(log,' For detected, '); logchar(ch); write(log,' ')
 	    end; D*/
 	  inbuf->readx = 1;
 	  while (inbuf->prevb != NULL) {
@@ -16940,12 +16944,21 @@ void inchar(void)
 	  disposebufs(&inbuf->nextb);
       }
       if (inbuf->higherb != NULL) {
-	  tp = inbuf;
-	  inbuf = inbuf->higherb;                                       /*D,3D*/
-	  disposebufs(&tp);
+	  tp = inbuf->higherb;                                          /*D,3D*/
+	  disposebufs(&inbuf);
+	  inbuf = tp;
+	  /* tp := inbuf; inbuf := inbuf^.higherb;
+	  disposebufs(tp ( *D,3D* )) */
+	  continue;
       }
-      else if (!inputeof) {
-	  nextline(inbuf->carray[inbuf->savedlen]);
+      if (!inputeof) {
+	  With = inbuf;
+	  if (With->savedlen < 1 || inbuf != topbuf) {
+	      nextline(' ');
+	  }
+	  else {
+	      nextline(With->carray[With->savedlen]);
+	  }
       }
   }
   /* This is not a loop */
@@ -16955,10 +16968,9 @@ void inchar(void)
   }
   With = inbuf;
   /*D; if debuglevel = 2 then with inbuf^ do begin
-     write(log,' savedlen=',savedlen:1);
-     if inputeof then write(log,' inputeof');
-     write(log,' '); wrchar(ch);
-     write(log,' readx=',readx:1)
+     write(log,' savedlen=',savedlen:1,' ');
+     if inputeof then write(log,'inputeof ');
+     logchar(ch); write(log,' readx=',readx:1)
      end D*/
   ch = With->carray[With->readx];
   With->readx++;
@@ -16970,8 +16982,8 @@ void skiptoend(void)
 { boolean skip = true;
   fbuffer *With;
 
-  /*D if debuglevel>1 then
-      writeln(log,'skiptoend: inbuf[',ordp(inbuf):1,']'); D*/
+  /*D if debuglevel>1 then begin writeln(log);
+      writeln(log,'skiptoend:'); winbuf end; D*/
   while (skip) {
       if (inbuf == NULL) {
 	  skip = false;
@@ -17038,11 +17050,6 @@ void readlatex(void)
 
 
 /* Pascal C-equivalents */
-boolean isprint_(Char ch)
-{ return (ch >= 32 && ch <= 126);
-}
-
-
 int argcount(arg *a)
 { int i = 0;
 
@@ -17065,9 +17072,9 @@ arg *findarg(arg *arlst, int k)
   int i = 1;
   int j;
 
-  /*D if debuglevel > 0 then begin
+  /*D if debuglevel > 0 then begin writeln(log);
       write(log, 'findarg(');
-      if arlst = nil then write(log,'nil') else write(log,ordp(arlst):1);
+      if arlst = nil then write(log,'nil') else write(log,odp(arlst):1);
       write(log,',',k:0,'):') end; D*/
   if (k > 0) {
       ar = arlst;
@@ -17167,7 +17174,7 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
   for (i = 0; i < FORLIM; i++) {
       outfnam[i] = txt->segmnt[txt->seginx + i];
       if (*ier == 1) {
-	  if (outfnam[i] > 32 && outfnam[i] <= 126) {
+	  if (isprint_(outfnam[i]) && outfnam[i] != ' ') {
 	      *ier = 0;
 	  }
       }
@@ -17212,44 +17219,37 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
 
 
 #endif
-/* Put string terminal into chbuf */
-void readstring(Char stringch)
-{ int j = -1, n = 0;
-  boolean pushfl = true;
+/* Read string terminal into chbuf */
+void readstring(void)
+{ /*D,jD*/
+  int n;
   arg *ar;
-  fbuffer *abuf, *With;
+  fbuffer *abuf;
+  Char c;
+  fbuffer *With;
   int FORLIM;
 
-  /*D if debuglevel > 0 then writeln(log,'readstring(',stringch,')'); D*/
+  /*D if debuglevel > 0 then begin
+     writeln(log); write(log,'readstring '); j := chbufi end; D*/
   instr = true;
-  while (instr) {
-      if (inputeof) {
-	  instr = false;
-      }
-      else if (ch == bslch) {
-	  /*D if debuglevel > 0 then begin
-	      write(log,' readstring3, instr=',instr,' ');
-	      wrchar(ch); writeln(log) end; D*/
+  do {
+      c = ch;
+      pushch();
+      if (c == bslch && ch == '"') {
+	  chbufi--;
 	  pushch();
-	  if (ch == stringch) {
-	      chbufi--;
-	  }
-	  else {
-	      pushfl = false;
-	  }
       }
-      else if (ch == '$' && j < 0) {
-	  j = chbufi;
-      }
-      else if (j >= 0 && isdigit(ch) != 0) {
-	  n = n * 10 + ch - '0';
-      }
-      else if (j >= 0) {
-	  if (n > 0 && args != NULL) {                          /* delete $nn */
-	      chbufi = j;
+      else if (c == '$') {
+	  n = 0;
+	  if (args != NULL) {
+	      while (isdigit(ch) != 0) {
+		  n = n * 10 + ch - '0';
+		  inchar();
+	      }
 	  }
 	  if (n > 0) {
 	      ar = findarg(args, n);
+	      chbufi--;
 	      if (ar != NULL) {
 		  abuf = ar->argbody;
 		  while (abuf != NULL) {
@@ -17267,34 +17267,19 @@ void readstring(Char stringch)
 		      abuf = abuf->nextb;
 		  }
 	      }
-	      /*D if debuglevel > 0 then begin write(log,'arg(',n:1,')|');
-	         for n := j to chbufi-1 do write(log,chbuf^[n]);
-	         write(log,'| ') end; D*/
 	  }
-	  j = -1;
-	  n = 0;
-	  pushfl = false;
       }
-      else if (ch == stringch) {
-	  instr = false;
-      }
-      /*D if debuglevel > 0 then begin
-          write(log,' readstring2, instr=',instr,' j=',j:0,' pushfl=',pushfl);
-          wrchar(ch); writeln(log) end;D*/
-      if (instr && pushfl) {
-	  pushch();
-      }
-      else {
-	  pushfl = true;
-      }
+  } while (!(c == '"' || inputeof));
+  if (!inputeof) {
+      chbufi--;
   }
-  if (ch != nlch) {
-      inchar();
-  }
-  else {
-      /*D; if debuglevel > 0 then writeln(log,' readstring done') D*/
-      markerror(901);
-  }
+  instr = false;
+  /*D; if debuglevel > 0 then begin
+     write(log,'done, chbufi=',chbufi:1,' |');
+     while j < chbufi do begin write(log,chbuf^[j]); j := j+1 end;
+     write(log,'| ');
+     if inputeof then write(log,'inputeof ');
+     wchar(log,ch); writeln(log) end D*/
 }
 
 
@@ -17343,9 +17328,9 @@ void readfraction(void)
 
 
 void readconst(Char initch)
-{ /*D if debuglevel=2 then begin
-     write(log,'readconst(',initch,') readx=',inbuf^.readx:1,' ');
-       wrchar(ch); writeln(log) end; D*/
+{ /*D if debuglevel=2 then begin writeln(log);
+     write(log,' readconst(',initch,') readx=',inbuf^.readx:1,' ');
+       logchar(ch); writeln(log) end; D*/
   if (initch == '.') {
       readfraction();
   }
@@ -17382,7 +17367,7 @@ begin
          write(log,'"') end
       else write(log,'=<LaTeX>');
       if newsymb = XLfloat then wlogfl('value',floatvalue,0);
-      write(log,' '); wrchar(ch);
+      write(log,' '); logchar(ch);
       if not acc then write( log,' not accepted');
       writeln( log );
       consoleflush
@@ -17530,12 +17515,12 @@ void copyright(fbuffer *mac, fbuffer **buf)
 
 /* Check the current char for line
    continuation */
-void skipcontinue(void)
+void skipcontinue(boolean instrg)
 { Char c;
   fbuffer *With;
 
-  /*D if debuglevel=2 then
-     write(log,' skipcontinue readx=',inbuf^.readx:1,' '); D*/
+  /*D if debuglevel=2 then begin writeln(log);
+     write(log,' skipcontinue readx=',inbuf^.readx:1,' ') end; D*/
   c = ch;
   while (c == bslch) {
       With = inbuf;
@@ -17555,7 +17540,8 @@ void skipcontinue(void)
 	  c = ch;
 	  continue;
       }
-      if (c != '#') {
+      /* else if c = '#' then begin */
+      if (c != '#' || instrg) {
 	  c = ' ';
 	  break;
       }
@@ -17575,7 +17561,7 @@ void skipwhite(void)
       }
       inchar();
       if (ch == bslch) {
-	  skipcontinue();
+	  skipcontinue(false);
       }
   }
 }
@@ -17592,8 +17578,8 @@ void defineargbody(int *parenlevel, fbuffer **p2)
   Char prevch;
   fbuffer *With;
 
-  /*D if debuglevel > 0 then
-      writeln(log, 'defineargbody: parenlevel=',parenlevel:1); D*/
+  /*D if debuglevel > 0 then begin writeln(log);
+      write(log, 'defineargbody: parenlevel=',parenlevel:1) end; D*/
   skipwhite();
   if (*parenlevel >= 0) {
       inarg = true;
@@ -17646,7 +17632,7 @@ void defineargbody(int *parenlevel, fbuffer **p2)
 	      With->carray[With->savedlen] = ch;
 	      /*D if debuglevel = 2 then begin
 	         write(log,'defineargbody2: savedlen=',savedlen:1,' ');
-	         wrchar(ch); writeln(log,' parenlevel=',parenlevel:1)
+	         logchar(ch); writeln(log,' parenlevel=',parenlevel:1)
 	         end; D*/
 	      inchar();
 	  }
@@ -17675,7 +17661,7 @@ void defineargbody(int *parenlevel, fbuffer **p2)
 		  With->carray[With->savedlen] = prevch;
 		  /*D if debuglevel = 2 then begin
 		      write(log,'defineargbody2: savedlen=',savedlen:1,' ');
-		      wrchar(ch); writeln(log) end; D*/
+		      logchar(ch); writeln(log) end; D*/
 	      }
 	  }
 	  /* $ found in a macro arg */
@@ -17747,7 +17733,8 @@ boolean ismacro(Char *chb, chbufinx obi, chbufinx chbi)
   } while (level >= 0);
   args = firstarg;
   copyleft(mac->argbody, &inbuf);
-  /*D if debuglevel > 0 then writeln(log,'ismacro returning:',ism); D*/
+  /*D if debuglevel > 0 then begin
+      writeln(log); writeln(log,'ismacro returning:',ism) end; D*/
   return ism;
 }
 
@@ -17968,7 +17955,7 @@ void lexical(void)
 	      }
 	      else if (newsymb == XLstring) {
 		  chbufi--;
-		  readstring(chbuf[chbufi]);
+		  readstring();
 	      }
 	      else if (newsymb == XCOMMENT) {
 		  skiptoend();
@@ -18105,9 +18092,9 @@ void lexical(void)
 		       'Marking 800:ord(firstch)=',ord(firstch),
 		       ' ord(ch)=',ord(ch)); D*/
 		  fprintf(errout, "Char chr(%d)", firstch);
-		  if (firstch > 32 && (firstch & 255) < 127) {
-		      fprintf(errout, "\"%c\"", firstch);
-		  }
+		  putc('"', errout);
+		  wchar(&errout, firstch);
+		  putc('"', errout);
 		  fprintf(errout, " unknown\n");
 		  markerror(800);
 		  terminalaccepted = false;
@@ -18136,10 +18123,11 @@ void skiptobrace(void)
   boolean instring = false;
   Char prevch = ' ';
 
-  /*D if debuglevel = 2 then writeln(log, 'skiptobrace: ' ); D*/
+  /*D if debuglevel = 2 then begin writeln(log);
+     writeln(log, 'skiptobrace: ' ) end; D*/
   while (bracelevel > 0) {
       if (ch == bslch) {
-	  skipcontinue();
+	  skipcontinue(instring);
       }
       if (ch == etxch) {
 	  exitmacro();
@@ -18193,7 +18181,9 @@ void readfor(fbuffer *p0, int attx, fbuffer **p2)
   Char prevch = ' ';
 
   /*D if debuglevel > 0 then begin
-      write(log,'readfor: attx(');
+      write(log,'readfor: p0');
+      if p0=nil then write(log,'=') else write(log,'<>');
+      write(log,'nil attx(');
       if attx<0 then write(log,'-length)=') else write(log,'attstack idx)=');
       writeln(log,attx:5)
       end; D*/
@@ -18215,10 +18205,10 @@ void readfor(fbuffer *p0, int attx, fbuffer **p2)
       j = CHBUFSIZ;
       do {
 	  if (ch == bslch) {
-	      skipcontinue();
+	      skipcontinue(instring);
 	  }
 	  /* D if debuglevel = 2 then begin write(log, 'readfor1: ');
-	      wrchar(ch); write(log,' ') end; D */
+	      logchar(ch); write(log,' instring=',instring,' ') end; D */
 	  if (instring) {  /* do not check braces in strings */
 	      if (ch == '"' && prevch != bslch) {
 		  instring = false;
@@ -18246,7 +18236,7 @@ void readfor(fbuffer *p0, int attx, fbuffer **p2)
 	  prevch = ch;
 	  /* D if debuglevel = 2 then begin
 	      write(log,' savedlen=',savedlen:1,' carray(',savedlen:1,')=');
-	      wrchar(ch); writeln(log) end; D */
+	      logchar(ch); write(log,' instring=',instring); writeln(log)end;D */
 	  if (bracelevel > 0) {
 	      inchar();
 	  }
@@ -18564,7 +18554,7 @@ void syntaxerror(void)
 void parse(void)
 { initrandom();
   chbuf = Malloc(sizeof(chbufarray));
-  /*D if debuglevel > 0 then writeln(log,'new(chbuf)[',ordp(chbuf):1,']'); D*/
+  /*D if debuglevel > 0 then writeln(log,'new(chbuf)[',odp(chbuf):1,']'); D*/
   entrytv[ordNL] = XNL;
   entrytv[ordCR] = XNL;                               /* treat ^M as line end */
   errcount = 0;
@@ -18649,7 +18639,7 @@ void getoptions(void)
   istop = P_argc;                                      /*GHF ParamCount+1; FHG*/
   while (argct < istop) {
       P_sun_argv(infname, sizeof(mstring), argct);
-	  /*GHF infname := ParamStr(argct); FHG*/
+      /*GHF infname := ParamStr(argct); FHG*/
       cht = optionchar(infname);
       if (cht == 0) {
 	  istop = argct;
@@ -18696,8 +18686,8 @@ void getoptions(void)
 	  FMHGD*/
       }
       else if (cht == 'h' || cht == '-') {
-	  fprintf(errout, " *** dpic version 2018.03.06\n");
-	  fprintf(errout, " options:\n");
+	  fprintf(errout, " *** dpic version 2017.01.01\n");
+	  fprintf(errout, " Options:\n");
 	  fprintf(errout, "     (none) LaTeX picture output\n");
 	  fprintf(errout, "     -d PDF output\n");
 	  fprintf(errout, "     -e Pict2e output\n");
@@ -18712,7 +18702,7 @@ void getoptions(void)
 	  fprintf(errout, "     -v SVG output\n");
 	  fprintf(errout, "     -x xfig output\n");
 	  fprintf(errout,
-	    "     -z safe mode (sh, copy, and print to file disabled)\n");
+		  "     -z safe mode (disable sh, copy, and print to file)\n");
 	  fatal(0);
       }
       else {
@@ -18730,7 +18720,7 @@ void getoptions(void)
 }  /* getoptions */
 
 
-main(int argc, Char *argv[])
+void main(int argc, Char *argv[])
 { P_argc = argc; P_argv = argv; __top_jb = NULL;
   redirect = NULL;
   copyin = NULL;

@@ -3,7 +3,7 @@
 # or the pic statement copy "HOMELIB_/dpictools.pic" when HOMELIB_ is defined
 # or, generically, copy "<path>dpictools.pic"
 
-# Circuit_macros Version 8.7.1, copyright (c) 2018 J. D. Aplevich under     #
+# Circuit_macros Version 8.4.3, copyright (c) 2017 J. D. Aplevich under     #
 # the LaTeX Project Public License. The files of this distribution may    #
 # be redistributed or modified provided that this copyright notice is     #
 # included and provided that modifications are clearly marked to          #
@@ -39,8 +39,8 @@ define case { exec sprintf("$%g",floor($1+0.5)+1); }
 #                               testexpr(i, expr1, expr2, ... )
 #                               Set i to index of the first true alternative
 #                               in a sequence of logical expressions, e.g.,
-#                               testexpr(i, 1>2, 1<2 ) sets i to 2; to 0
-#                               if no test is true.
+#                               testexpr(i, 1>2, 1<2 ) returns 2; returns 0
+#                               if no test is true. 
 define testexpr { $1 = 0; [for i_testexpr=2 to $+ do {
   exec sprintf("if $%g then {$1 := i_testexpr-1; i_testexpr=$+}",i_testexpr)
   }] ; }
@@ -66,7 +66,7 @@ define array {
 define posarray {
  for i_array=2 to $+ do { exec sprintf("$1[%g] : $%g",i_array-1,i_array); }}
 
-#                               slantbox(wid,ht,xslant,yslant,attributes)
+#                               slantbox(wid,ht,xslant,yslant,lineattribs)
 define slantbox { [
   if "$1"=="" then { w = boxwid } else { w = $1 }
   if "$2"=="" then { h = boxht } else { h = $2 }
@@ -100,7 +100,7 @@ define arraymin { { $3 = -1; if "$4" != "" then { $4 = 0 }; m_arrm = 1e25
 
 #                               copythru(macro_name,"datafile")
 #                               See the GNU pic manual
-#                               Implements "copy datafile thru macro_name"
+#                               Implements copy datafile thru macro_name
 #                               for data separated by comma, spaces, or tabs
 define copythru {
  sh "sed -e 's/^[ 	]*/$1(/' -e 's/[ 	]*$/)/' -e 's/[, 	][ 	]*/,/g' $2 \
@@ -108,9 +108,9 @@ define copythru {
  copy "copy_tmp__"
  sh "rm -f copy_tmp__";}
 
-#                               randn(array_name,n,mean,stddev)
+#                               randn(array name,n,mean,stddev)
 #                               Assign n Gaussian random numbers
-#                               in array_name[1] ... array_name[n]
+#                               in array[1] ... array[n]
 define randn {
   if "$2"=="" then { n_randn = 1 } else { n_randn = $2 }
   if "$3"=="" then { m_randn = 0 } else { m_randn = $3 }
@@ -125,45 +125,10 @@ define randn {
     }
   }
 
-#                               dfitcurve(V,n,linetype,m (default 0))
-#                               Draw a spline through V[m],...V[n]
-#                               linetype=eg dotted.  Works only with dpic.
-#                               The calculated control points P[i] satisfy
-#                               approximately:
-#                               P[0] = V[0]
-#                               P[i-1]/8 + P[i]*3/4 + P[i+1]/8 = V[i]
-#                               P[n] = V[n]
-#                               Like m4 macro fitcurve
-define dfitcurve { if "$4"=="" then { m_dfit=0 } else { m_dfit=$4 }
- n_dfit = $2; np_dfit = n_dfit-m_dfit
- M4P_[0]: $1[m_dfit]
- case( min(max(np_dfit,-1),3)+1,
-   spline 0.551784 $3 from M4P_[0] to M4P_[0],
-   spline 0.551784 $3 from M4P_[0] to $1[n_dfit],
-   M4P_[3]: $1[n_dfit]; Q_dfit: (M4P_[3]-M4P_[0])/4
-   M4P_[1]: $1[m_dfit+1]-Q_dfit; M4P_[2]: $1[m_dfit+1]+Q_dfit
-   spline 0.551784 $3 from M4P_[0] to M4P_[1] then to M4P_[2] then to M4P_[3],
-   for i_dfit=m_dfit+1 to n_dfit-1 do { M4P_[i_dfit-m_dfit]: $1[i_dfit]*(4/3) }
-   M4P_[np_dfit]: $1[n_dfit]
-   M4P_[1]: M4P_[1]-M4P_[0]/6    # forward substitution
-   d[1] = 1
-   for i_dfit = 2 to np_dfit-1 do {
-     M4P_[i_dfit]: M4P_[i_dfit]-M4P_[i_dfit-1]/(d[i_dfit-1]*6)
-     d[i_dfit] = 1-1/d[i_dfit-1]/36 }
-   for i_dfit= np_dfit-1 to 1 by -1 do {    # backward substitution
-     M4P_[i_dfit]: (M4P_[i_dfit]-M4P_[i_dfit+1]/6)/d[i_dfit] }
-                                 # draw using computed control points
-     spline 0.551784 $3 from M4P_[0] to 11/32 between M4P_[0] and M4P_[1] \
-        then to 5/32 between M4P_[1] and M4P_[2]
-     for i_dfit=2 to np_dfit-2 do { continue to M4P_[i_dfit] }
-     continue to 27/32 between M4P_[np_dfit-2] and M4P_[np_dfit-1] \
-       then to 21/32 between M4P_[np_dfit-1] and M4P_[np_dfit] \
-       then to M4P_[np_dfit]) }
-
 #                               histbins { data array name, n, [min], [max],
 #                                          nbins, bin array name )
 #                               Generate the distribution of n values in
-#                               dataarray. If given, arg3 and arg4 specify
+#                               dataarray. If given, arg2 and arg3 specify
 #                               maximum and minimum data values, otherwise they
 #                               are calculated. Bins have index 0 to arg5-1
 define histbins { # dataarray, n, [min], [max], nbins, binarray
@@ -171,15 +136,13 @@ define histbins { # dataarray, n, [min], [max], nbins, binarray
   if "$4" == "" then { arraymax($1,$2,mx_histb,m_histb)} else { m_histb = $4 }
   f_histb = ($5-0.001)/(m_histb-n_histb)
   for i_histb=0 to $5-1 do { $6[i_histb] = 0 }
-  for i_histb=1 to $2 do {
-   x_histb = floor(($1[i_histb]-n_histb)*f_histb)
-   if (x_histb >= 0) && (x_histb < $5) then { $6[x_histb] += 1 } }
+  for i_histb=1 to $2 do { $6[floor(($1[i_histb]-n_histb)*f_histb)] += 1 }
 } }
 
-#                               dpquicksort(a,lo,hi,ix)
+#                               dpquicksort(a,lo,hi,ix)     
 #                               Given array a[lo:hi] and index
 #                               array ix[lo:hi] = lo,lo+1,lo+2,...hi,
-#                               sort a[lo:hi] and do identical exchanges on ix
+#                               sort a[lo:hi] and do identical exchanges on ix 
 define dpquicksort { [ if $3 > $2 then {
   pivot = $1[($2+($3))/2]
   loop(lo = $2; hi = $3, lo <= hi,
@@ -247,55 +210,42 @@ define rgbtocmyk {
   $5 = (1-$7-$2)/(1-$7)*100
   $6 = (1-$7-$3)/(1-$7)*100 }
 
-#                               DefineRGBColor(colorname,r,g,b)
-#                               Arguments are in the range 0 to 1
-#                               Define dpic macro colorname according to the
-#                               postprocessor specified by dpic command-line
-#                               option; colorname then evaluates to a string
+#                               DefineRGBColor(name,r,g,b)
+#                               Define dpic macro "name" according to the
+#                               postprocessor specified by the dpic option
 define DefineRGBColor {
 case(dpicopt,  # The order of the following is defined in dpic source:
-# MFpic:
+    # MFpic:
   command sprintf("\mfpdefinecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
-  define $1 {"_$1__"} ,
-# Mpost:
-  define $1 {sprintf("(%g,%g,%g)",$2,$3,$4)} ,
-# PDF:
-  define $1 {sprintf("%g %g %g",$2,$3,$4)} ,
-# PGF:
+  define $1 {"_$1__"}
+  , # Mpost:
+  define $1 {sprintf("(%g,%g,%g)",$2,$3,$4)}
+  , # PDF:
+  define $1 {sprintf("%g %g %g",$2,$3,$4)}
+  , # PGF:
   command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
-  define $1 {"_$1__"} ,
-# Pict2e:
+  define $1 {"_$1__"}
+  , # Pict2e:
   command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
-  define $1 {"_$1__"} ,
-# PS:
-  define $1 {sprintf("%g %g %g",$2,$3,$4)} ,
-# PSfrag:
-  define $1 {sprintf("%g %g %g",$2,$3,$4)} ,
-# PSTricks:
+  define $1 {"_$1__"}
+  , # PS:
+  define $1 {sprintf("%g %g %g",$2,$3,$4)}
+  , # PSfrag:
+  define $1 {sprintf("%g %g %g",$2,$3,$4)}
+  , # PSTricks:
   command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
-  define $1 {"_$1__"} ,
-# SVG:
-  define $1 {sprintf("rgb(%g,%g,%g)",int($2*255),int($3*255),int($4*255))} ,
-# TeX:
+  define $1 {"_$1__"}
+  , # SVG:
+  define $1 {sprintf("rgb(%g,%g,%g)",int($2*255),int($3*255),int($4*255))}
+  , # TeX:
   command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
-  define $1 {"_$1__"} ,
-# tTeX:
+  define $1 {"_$1__"}
+  , # tTeX:
   command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
-  define $1 {"_$1__"} ,
-# xfig:
+  define $1 {"_$1__"}
+  , # xfig:
   define $1 {"black"}
   ) }
-
-#                               DefineHSVColor(colorname,h,s,v)
-#                               Like DefineRGBColor but takes arguments
-#                               h in [0,360], s in [0,1], and v in [0,1]
-define DefineHSVColor { hsvtorgb($2,$3,$4,r_HSVRGB,g_HSVRGB,b_HSVRGB)
-  DefineRGBColor($1,r_HSVRGB,g_HSVRGB,b_HSVRGB) }
-
-#                               DefineCMYKColor(colorname,c,m,y,k)
-#                               Like DefineRGBColor but arguments in percent
-define DefineCMYKColor { cmyktorgb($2,$3,$4,r_CMYKRGB,g_CMYKRGB,b_CMYKRGB)
-  DefineRGBColor($1,r_CMYKRGB,g_CMYKRGB,b_CMYKRGB) }
 
 #                               ShadeObject(DrawRoutineName, n, colorseq)
 #                               colorseq = 0,r0,g0,b0,
@@ -307,20 +257,19 @@ define DefineCMYKColor { cmyktorgb($2,$3,$4,r_CMYKRGB,g_CMYKRGB,b_CMYKRGB)
 #
 #                               calls DrawRoutineName(frac,r,g,b)
 #                                 n+1 times for frac = 0, 1/n, 2/n, ... 1
-#                                 with rgb args interpolated (in hsv space)
+#                                 with rgb args interpolated (in hsv space) 
 #                                 between colorseq points
 #
 # eg B: box; define HorizShade { line right B.wid thick B.ht/100/(1bp__) \
 #         from (0,-($1)*B.ht) outlined rgbstring($2,$3,$4) }
 # ShadeObject(HorizShade, 100, 0,1,0,0, 1,0,0,1) at B
 #
-define ShadeObject { [ Origin: Here; nSteps = abs($2)
+define ShadeObject { [ Origin: Here; nSteps = $2
   nextP = $3; nextR = $4; nextG = $5; nextB = $6
   nextarg = 7
   thisP = nextP
 #                               Creates [] wid 0 ht 0 at (0,0):
-  if $2 < 0 then { rgbtohsv(nextR,nextG,nextB,nextH,nextS,nextV) } \
-  else { rgbtohsv(nextR^2,nextG^2,nextB^2,nextH,nextS,nextV) }
+  rgbtohsv(nextR^2,nextG^2,nextB^2,nextH,nextS,nextV)
   if nextP*nSteps >= 1 then { nextP = 0 }
   $1(nextP,nextR,nextG,nextB)
   for stepnum = 1 to nSteps do {
@@ -342,11 +291,8 @@ define ShadeObject { [ Origin: Here; nSteps = abs($2)
       currS = thisS*(1-x) + nextS*x
       currV = thisV*(1-x) + nextV*x
       hsvtorgb(currH,currS,currV,cRsq,cGsq,cBsq)
-      if $2 < 0 then { $1(currP,cRsq,cGsq,cBsq) } \
-      else { $1(currP,sqrt(cRsq),sqrt(cGsq),sqrt(cBsq)) } }
-    }
-  exec sprintf("$%g",nextarg)
-  ] }
+      $1(currP,sqrt(cRsq),sqrt(cGsq),sqrt(cBsq)) }
+    } ] }
 
 #                               Useful for debugging:
 #                               Print Pos:(Pos.x,Pos.y)

@@ -1,9 +1,12 @@
 # Installation shortcuts: change the following and type "make install"
 
 # For Linux (expects "make DESTDIR=xxx PREFIX=yyy install"):
-DESTDIR = $${HOME}
+DESTDIR = /usr
 PREFIX = .
 DEST = ${DESTDIR}/${PREFIX}/bin
+
+MANDIR = /usr/share/man/man1
+DOCDIR = /usr/share/doc/dpic
 
 # For manual installation (uncomment and change as necessary):
 # DEST = $${HOME}/bin
@@ -12,12 +15,13 @@ DEST = ${DESTDIR}/${PREFIX}/bin
 
 # System-dependent parameters.  These may need tweaking:
 
-# Uncomment this to force the use of rand() and srand() respectively instead of
-# random() and srandom(). This is necessary for some Linux systems.
+# If loading fails because random() and srandom() are not available,
+# force the use of rand() and srand() respectively instead by uncommenting
+# the following, typing `make clean' and then `make'.
 # DEFINEA=-DRAND
 
-# If snprintf is unavailable then uncomment the following, type "make clean",
-# and try again:
+# If loading fails because snprintf() is not available, uncomment the
+# following, type "make clean", and try again:
 # DEFINEB=-DNO_SNPRINTF
 
 # Server operation: Use the -z option or uncomment the following to compile
@@ -38,7 +42,7 @@ DEST = ${DESTDIR}/${PREFIX}/bin
 # CC=xlc
 
 # other.  cc usually works too.
-CFLAGS += $(DEFINEA) $(DEFINEB) $(SAFEMODE) -O
+CFLAGS += $(DEFINEA) $(DEFINEB) $(SAFEMODE) -O -ansi
 CC=gcc
 
 OBJECTS = dpic.o p2clib.o
@@ -47,6 +51,8 @@ OBJECTS = dpic.o p2clib.o
 # DEBUG = -e 's/(\*D\([A-Z]\)/(*\1/g' -e 's/\([A-Z]\)D\*)/\1*)/g' \
 #    | sed -e 's/(\*D//g' -e 's/D\*)//g'
 # OBJECTS = dpic.o p2clib.o sysdep.o
+
+DATE = `date +%Y.%m.%d`
 
 #-----------------------------------------------------------------------
 
@@ -60,32 +66,48 @@ dpic: dpic.c $(OBJECTS)
 	$(CC) -o dpic $(OBJECTS) -lm $(LIBS)
 
 LEXCINCLUDES = entryhp.h lxhp.h lxnp.h lxtv.h entrytv.h lxch.h
-CMPRT = awk '{b=b$$0; if(length(b) > 75){print b; b=""}}; END{print b}'
+CMPR = awk '{b=b$$0; if(length(b) > 75){print b; b=""}}; END{print b}'
 dpic.c: $(SOURCES)
-	(cd src; make DEBUG="$(DEBUG)" )
+	(cd src; make DEBUG="$(DEBUG)" DATE=$(DATE) )
 	cp src/dpic.c src/parstab.i .
 	for name in $(LEXCINCLUDES) ; do \
-       $(CMPRT) src/$$name > $$name ; done;
+       $(CMPR) src/$$name > $$name ; done;
 	chmod 644 *.c *.i *.h
 	if test -n "$(DEBUG)" ; \
       then $(CC) -c src/sysdep.c; fi
 
-install: dpic
+install: dpic doc/dpicdoc.pdf
 	mkdir -p $(DEST)
 	if test -x dpic.exe ; then \
       strip dpic.exe; install dpic.exe $(DEST) ; \
     else \
       strip dpic; install -m 755 dpic $(DEST) ; \
     fi
+	mkdir -p $(DOCDIR)
+	cp -p doc/dpicdoc.pdf $(DOCDIR)
+	mkdir -p $(MANDIR)
+	cat doc/dpic.1 | gzip > $(MANDIR)/dpic.1.gz
+
+uninstall:
+	rm -f $(DEST)/dpic* $(MANDIR)/dpic.1.gz
+	if test `basename $(DOCDIR)` = dpic ; then \
+      rm -r $(DOCDIR) ; \
+    else rm -f $(DOCDIR)/dpicdoc.pdf ; \
+    fi
+
+doc/dpicdoc.pdf:
+	(cd doc; make)
+
 #                               Delete compiled files
 clean:
 	-rm -f *.o dpic dpic.exe *.LOG
 	(cd src; make clean )
+	(cd doc; if test -f Makefile ; then make clean; fi )
 
 distclean:
 	-rm -f *.o dpic dpic.exe *.LOG
 	(cd src; make veryclean)
-	(cd doc; make clean)
+	(cd doc; if test -f Makefile ; then make clean ; fi)
 	find . -name \*stackdump -exec rm {} \;
 
 #                               Delete computed files in this and lower folders
@@ -93,4 +115,5 @@ veryclean: clean
 	find . -name \*stackdump -exec rm {} \;
 	rm -f dpic.c lx*.h ent*.h *.i sysdep.c
 	(cd src; make veryclean)
-	(cd doc; make clean)
+	(cd doc; if test -f Makefile ; then make clean ; fi)
+	rm -f config.log config.status

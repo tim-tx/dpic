@@ -11,14 +11,18 @@ DPIC = dpic
 	$(DPIC) -d $*.pic > $*.pdf
 
 PICS = spline.tex arrow.tex circles.tex Spiral.tex
+PDFLATEX = pdflatex --quiet
 
 Dpicdoc.pdf: dpicdoc.aux
-	pdflatex dpicdoc
-	pdflatex dpicdoc
+	$(PDFLATEX) dpicdoc
+	$(PDFLATEX) dpicdoc
 
-dpicdoc.aux: dpicdoc.tex dpicdoc.bib $(PICS) dpic_man.tex
-	pdflatex dpicdoc
+dpicdoc.aux: dpicdoc.tex dpicdoc.bib $(PICS) dpic_man.tex VERSION.tex
+	$(PDFLATEX) dpicdoc
 	bibtex dpicdoc
+
+VERSION.tex: VERSION
+	cp VERSION VERSION.tex
 
 dpic.man: dpic.1
 	nroff -man dpic.1 | sed -e 's%.%%g' -e '/SunOS/d' > dpic.man
@@ -39,9 +43,11 @@ dpic_man.tex: dpic.1
       > dpic_man.tex
 	rm -f xx
 
-clobber: clean
-	rm -f *.pdf dpic_man.tex
+dpic.1: dpic.1.src
+	sed -e "/^\.TH/s/\".*$$/\"`cat VERSION`\"/" dpic.1.src > dpic.1
 
 clean:
-	rm -f *.ps *.dvi *.aux *.log *.blg *.ilg *.toc core *.bbl *.pdf *.upa *.upb
-	rm -f $(PICS) Spiral.pic dpictools.pic
+	rm -f *.ps *.dvi *.aux *.log *.blg *.ilg *.toc core *.bbl *.upa *.upb
+
+clobber: clean
+	rm -f *.pdf VERSION.tex $(PICS) Spiral.pic dpic_man.tex dpic.1

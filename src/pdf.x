@@ -23,7 +23,7 @@ begin
 procedure pdfwln(s: string; ln: integer; var strm: strptr);
 begin
    pdfstream(s,ln,strm);
-   pdfstream(nlch,1,strm)
+   pdfstream(chr(10),1,strm)
    end;
 
 procedure addbytes(n: integer);
@@ -111,7 +111,7 @@ begin
    ln := 0;
    repeat
       j := j+1;
-      k := ix mod 10;
+      k := ix-(ix div 10)*10;
       if (j=7) and nz then begin ln := ln+1; ts[ln] := '.' end
       else if j=7 then nz := true
       else if not nz then nz := k<>0;
@@ -139,17 +139,18 @@ var x: real;
 procedure pdfwlz( n: integer );
 var
   s: array[1..10] of char;
-  i,j: integer;
+  i,j,k: integer;
 begin
    j := 10;
    while n > 0 do begin
-      s[j] := chr(ord('0')+(n mod 10));
+      k := n div 10;
+      s[j] := chr(ord('0')+(n-k*10));
       j := j-1;
-      n := n div 10
+      n := k
       end;
    for i:= 1 to j do write('0');
    for i:= j+1 to 10 do write(s[i]);
-   writeln(' 00000 n ');
+   writeln(' 00000 n ')
    end;
 
 procedure pdfpostlude;

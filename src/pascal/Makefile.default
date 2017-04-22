@@ -1,0 +1,157 @@
+#-----------------------------------------------------------
+# Type   make DEBUG=   to turn off debug.
+#
+# Installation on another computer: "make; make clean" preserves tables
+#
+# Directories ...
+
+# Directory for test installation obtained by typing `make'.
+DDIR = test
+
+# DATE = 2014.01.01
+DATE = `date +%Y.%m.%d`
+
+#-----------------------------------------------------------
+# Operating system and compiler flags ...
+# INC flags commented source lines to be activated for the compilation
+# and may not be one of P,C,I unless P2C directives are changed
+
+# Must handle multiline macros:
+CPP= cpp -E -P
+
+OPTIONS = -O
+
+# GPC compiler version 20050331 or later -----------------------------
+INC=H
+PC = gpc
+OBJECTS = dpic.o
+SED1= -e "s/VERSIONDATE/dpic version $(DATE)/" \
+      -e 's/^\(.include\) *[^ ]\([^ ]*\)[^ ] */\1 \"\2\"/'
+MAKETARGET = $(PC) -o $(DDIR)/dpic $(OBJECTS) $(LIBS)
+
+## Uncomment for Free pascal compiler (tested on Ubuntu): ------------
+#INC=F
+#PC = fpc
+#OBJECTS = dpic
+#SED1= -e "s/VERSIONDATE/dpic version $(DATE)/" \
+#   -e '/^. [0-9][0-9]* "/d' \
+#   -e 's/^\(.include\) *[^ ]\([^ ]*\)[^ ] */\1 \"\2\"/' \
+#   -e '/^function/s/(\*\*/( /'  -e '/^function/s/\*\*)/ )/' \
+#   -e '/^procedure/s/(\*\*/( /' -e '/^procedure/s/\*\*)/ )/'
+#MAKETARGET = mv dpic $(DDIR)
+
+# --------------------------------------------------------------------
+
+# The tables must be in the same directory as the executable, and have
+# the suffix .tab
+DPICTABL = $(DDIR)/dpic.tab
+
+DEBUG = -e 's/(\*D\([A-Z]\)/(*\1/g' -e 's/\([A-Z]\)D\*)/\1*)/g' \
+   | sed -e 's/(\*D//g' -e 's/D\*)//g'
+# Uncomment to turn off debug:
+# DEBUG =
+
+COMINC = -e 's/(\*[A-CE-Z]*'$(INC)'[A-CE-Z]*//g' \
+         -e 's/[A-CE-Z]*'$(INC)'[A-CE-Z]*\*)//g'
+SED0=sed $(COMPTABLES) $(DEBUG) $(COMINC) -e 's/@/^/g' \
+   -e "s/|startangle|/endpos.xpos/g" -e "s/|arcangle|/endpos.ypos/g"
+
+SED= $(SED0) $(SED1)
+
+# --------------------------------------------------------------------
+
+.SUFFIXES:	.h .x
+.x.h:
+	cat $*.x | $(SED) > $*.h
+
+# --------------------------------------------------------------------
+
+begin:
+	rm -f *.p
+	make $(DDIR)/dpic
+
+$(DDIR)/dpic: $(OBJECTS)
+	$(MAKETARGET)
+
+PRELIM = parserr.i lxcst.h dp0.h controlerr.i sysdep.h \
+   mfp.h mpo.h svg.h pgf.h pst.h pdf.h ps.h tex.h xfig.h \
+   $(DPICTABL)
+
+CMPRS = awk '{ b=b" "$$0; if(length(b) > 60){print b; b=""}}; END{print b}'
+lxcst.h: ../lxcst.v lexedit1 lexedit2
+	cat ../lxcst.v | sed -e '/^(\* /d' \
+    | $(SED) | sed -f lexedit1 | sed -f lexedit2 | $(CMPRS) > lxcst.h
+
+$(DPICTABL): parstabl lextable
+	cat lextable parstabl > $(DPICTABL)
+
+TABLES = parstab lextable
+PARSCONSTS = parscst.i parscdc.i
+LEXERRORS = parserr.i
+LEXEDIT = lexedit lexedit1 lexedit2
+
+$(TABLES) $(PARSCONSTS) $(LEXERRORS) $(LEXEDIT): ../dpic.bnf \
+      ../lexremoves ../nullprods ../lxcst.v
+	(cd ../tables; make )
+	for name in $(TABLES) $(PARSCONSTS) $(LEXERRORS) $(LEXEDIT) PG.out ; do \
+      cp ../tables/$$name . ; done
+	sed -e 's%^.*\*/ *%%' -e 's%, *% %g' parstab > parstabl
+	awk -f ../mkerrs.awk PG.out \
+      | sed -e 's/<END>/.PE/' -e 's/<START>/.PS/' -e 's/<endfor>/}/' \
+            -e 's/ <ERROR>//' -e 's/rand <func1> <func2>/function/' \
+            -e 's/<envvar> <name> <float>/constant variable/' \
+            -e 's/<Label> <corner> Here last ` {/location/' \
+            -e 's/last <float> ` {/enumerated obj/' \
+            -e 's/last ` {/enumerated obj/' \
+            -e 's/<name> <envvar>/variable/' \
+            -e 's/<compare>/logic opr/' \
+            -e 's/<\([a-zA-Z][a-zA-Z]*\)>/\1/g' \
+      > parserr.i
+	rm -f parserr
+
+controlerr.i: lexedit parserr.i
+	sed -e "s%^%/%" -e "s% *$$%/d%" ../lexremoves > xxx
+	sed -e "/METAGOAL/d" -e "/<EOF>/d" -f xxx \
+        -e "s%^s/\(.*\)/\([0-9][0-9]*\)/g$$%\2: write(errout,'\1');%" \
+        -e "s/'</'/" -e "s/>'/'/" -e "s%'\\\\%'%" -e "s%'''%''''%" \
+      lexedit | sort -n \
+     | awk '$$1==last {printf(" %s",$$0); next}; \
+        {printf("\n%s",$$0); last=$$1}; END {printf("\n")}' \
+     | sed -e "s%'); [0-9][0-9]*: write(errout,'% or %g" \
+     | sed -e "s%')'%'Possibly unbalanced parentheses: )'%" \
+     | sed -e "s%']'%'Possibly unbalanced brackets: ]'%" \
+     | sed -e "s%'}'%'Possibly unbalanced braces: }'%" \
+     | sed -e "s%';'%'; or end of line'%" \
+     | sed -e "s%'\"'%'\" or string'%" \
+     | sed -e "s%'\\$$'%'\\$$ or argument reference'%" \
+    > controlerr.i
+	rm -f xxx
+
+xfiles:
+	for file in `(cd .. ; ls *.x)` ; do cat ../$$file | $(SED) > $$file ; done
+
+dpic.p: xfiles
+	make $(PRELIM)
+	cat dpic.x | $(SED) \
+        -e '/include/s/dpic1.p/dpic1.x/' \
+    | $(CPP) > dpic.p
+#	cat dpic.x | $(SED) -e 's/\([^-]\)integer/\1longint/g' \
+#        -e 's/\([^a-z]\)real\([^a-z]\)/\1double\2/' \
+#        -e '/include/s/dpic1.p/dpic1.x/' \
+#    | $(CPP) > dpic.p
+
+dpic.o:	dpic.p
+	${PC} $(OPTIONS) -c $*.p
+
+dpic:	dpic.p
+	${PC} $(OPTIONS) dpic.p
+
+dp0.h:
+	cat ../dp0.x | $(SED) > dp0.h
+
+clean:
+	rm -f *.h *.i *.o *.p *.z *.x xfiles core *stackdump
+	rm -rf lex* lx* lr* pars* *list tmp PG.out
+	rm -f $(DDIR)/dpic $(DDIR)/dpic.tab
+
+clobber: clean

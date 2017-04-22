@@ -1397,7 +1397,9 @@ Strlist *cmt;
 	    while (*cp++ == ' ')
 		theindent++;
 	} else {
-	    strcpy(cmt->s, cmt->s + strlen(embedcomment) + 1);
+	    /* strcpy(cmt->s, cmt->s + strlen(embedcomment) + 1); */
+	    memmove(cmt->s, cmt->s + strlen(embedcomment) + 1,
+          strlen(cmt->s + strlen(embedcomment) + 1) + 1); /* (DA) */
 	    moreindent(deltaindent);
 	    theindent = outindent;
 	    deltaindent = 0;

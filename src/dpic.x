@@ -2,7 +2,7 @@
 
 (* BSD Licence:
 
-    Copyright (c) 2015, J. D. Aplevich
+    Copyright (c) 2016, J. D. Aplevich
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -94,6 +94,11 @@ procedure pointoutput(nw: boolean; txt: strptr; var ier: integer ); forward;
       end; GD*)
 (*P2CP*)
 
+(*DFGHM function odp(p:pointer): integer; MHGFD*)
+(*D begin
+      odp := ordp(p) mod 10000
+      end; D*)
+
                                 (* Numerical utilities: *)
 function principal( x,r: real): real;
 begin
@@ -137,7 +142,6 @@ begin
 function datan( y,x: real ): real;
 var r: real;
 begin
-   (*D if debuglevel=2 then write(log,'datan(',y:8:4,',',x:8:4,')='); D*)
 (*P2CIP*)
    if x > 0.0 then r := arctan(y/x)
    else if x < 0.0 then begin
@@ -150,7 +154,6 @@ begin
       else begin (* markerror(907); *) r := 0.0 end
       end; (*P2CP*)
 (*P2CC r = atan2(y , x); *)
-   (*D if debuglevel=2 then writeln(log,r:8:4); D*)
    datan := r
    end;
 
@@ -187,8 +190,8 @@ begin
 procedure disposebufs( var buf: fbufferp (*D; loc: integer D*));
 var bu: fbufferp;
 begin
-   (*D if debuglevel > 0 then
-       write(log,'disposebufs(',loc:1,')[',ordp(buf):1,']'); D*)
+   (*D if debuglevel > 0 then begin writeln(log);
+       write(log,'disposebufs(',loc:1,')[',odp(buf):1,']') end; D*)
    if buf <> nil then begin
       bu := buf;
       while bu@.nextb <> nil do bu := bu@.nextb;
@@ -207,13 +210,13 @@ begin
       argbody := nil; highera := nil; nexta := nil
       end
    (*D; if debuglevel > 0 then
-      writeln(log,' newarg[',ordp(ar):1,']') D*)
+      writeln(log,' newarg[',odp(ar):1,']') D*)
    end;
                                 (* Put arg structs onto top of old-arg stack *)
 procedure disposeargs( var ar: argp );
 var a: argp;
 begin
-   (*D if debuglevel > 0 then writeln(log,'disposeargs[',ordp(ar):1,']'); D*)
+   (*D if debuglevel > 0 then writeln(log,'disposeargs[',odp(ar):1,']'); D*)
    if ar <> nil then begin
       a := ar; disposebufs(a@.argbody (*D,0D*));
       while a@.nexta <> nil do begin
@@ -256,7 +259,7 @@ procedure epilog;
 begin
    deletebufs(inbuf,true);
    (*D if debuglevel > 0 then
-      writeln(log,'dispose(chbuf)[',ordp(chbuf):1,']'); D*)
+      writeln(log,'dispose(chbuf)[',odp(chbuf):1,']'); D*)
    dispose(chbuf);
    (*D if debuglevel > 0 then begin
          writeln(log,'stackhigh=',stackhigh:1);
@@ -709,7 +712,7 @@ begin
             end
          end
       (*D;if debuglevel > 0 then with ptmp@ do begin
-         write(log, 'nesw(',ordp(ptmp):1,') ptype=',ptype:1);
+         write(log, 'nesw(',odp(ptmp):1,') ptype=',ptype:1);
          wlogfl('W',west,0); wlogfl('S',south,0);
          wlogfl('E',east,0); wlogfl('N',north,1)
          end D*)
@@ -774,21 +777,22 @@ begin
    end;
 
 function hcf(x,y: integer): integer;
-var i,small,large: integer;
+var i: integer;
 begin
    if x < 0 then x := -x;
    if y < 0 then y := -y;
-   if y < x then begin small := y; large := x end
-   else begin small := x; large := y end;
-   while small > 0 do begin
-      i := small; small := large mod small; large := i end;
-   if large = 0 then hcf := 1 else hcf := large
+   if y > x then begin i := y; y := x; x := i end;
+   while y > 0 do begin
+      i := y; y := x-(x div y)*y; x := i end;
+   if x = 0 then hcf := 1 else hcf := x
    end;
 
+(*
 function iabs(i: integer): integer;
 begin
   if i < 0 then iabs := -i else iabs := i
   end;
+*)
 
 procedure wrslope( xp,yp: real; arrow: boolean );
 var i,ix,iy: integer;
@@ -866,10 +870,10 @@ begin
       logpos('point',point);
       logpos('shaft',shaft);
       writeln(log) end; D*)
-   C := affang(shaft,point);       (* shaft direction cosines *)
+   C := affang(shaft,point);          (* shaft direction cosines *)
    po := ahoffset(ht,wid,ltu);
    if po > ht then po := ht;
-   P := affine(po,0.0,point,C);    (* point adjusted by line thickness *)
+   P := affine(po,0.0,point,C);       (* point adjusted by line thickness *)
    h := ht-ltu/2;
    x := h - po;
    if ht = 0.0 then v := 0.0 else v := (wid/2)*x/ht;
@@ -880,7 +884,7 @@ begin
    Rx.ypos := point.ypos + (R.ypos-P.ypos)*t;
    Lx.xpos := point.xpos + (L.xpos-P.xpos)*t;  (* left corner  *)
    Lx.ypos := point.ypos + (L.ypos-P.ypos)*t;
-   Px.xpos := (point.xpos+Lx.xpos+Rx.xpos)/3;    (* type 3 center pt *)
+   Px.xpos := (point.xpos+Lx.xpos+Rx.xpos)/3;  (* type 3 center pt *)
    Px.ypos := (point.ypos+Lx.ypos+Rx.ypos)/3;
    if ht = 0.0 then y := 0 else y := ht-po+ltu*wid/ht/4
    (*D; if debuglevel > 0 then begin
@@ -1343,19 +1347,32 @@ begin F*)
    end;
 F*)
 
+function isprint(ch: char): boolean;
+begin
+   isprint := (ord(ch) >= 32) and (ord(ch) <= 126)
+   end;
+
+procedure wchar( var iou: text; c: char );
+begin
+   if isprint(c) then write(iou,c)
+   else if c=nlch then writeln(iou)
+   else if c=crch then write(iou,'\r')
+   else if c=tabch then write(iou,'\t')
+   else if ord(c)<32 then write(iou,'^',chr(ord(c)+64))
+   else write(iou,chr(92),
+      ((ord(c) div 64) mod 8):1,((ord(c) div 8) mod 8):1,(ord(c) mod 8):1)
+   end;
 (*------------------------------ For debug: -------------------------*)
-(*D procedure wrchar( c: char );
+(*D procedure logchar( c: char );
 begin
    write(log,'ch(',ord(c):1,')="');
-   case ord(c) of
-      ordETX: write(log,'^C');
-      ordNL: writeln(log);
-      ordCR: write(log,'\r');
-      ordTAB: write(log,'\t');
-      0: write(log,'\@');
-      otherwise write(log,c)
-      end;
+   wchar(log,c);
    write(log,'"')
+   end;
+
+procedure winbuf;
+begin
+   write(log,' inbuf=[',odp(inbuf):1,'] ')
    end;
 
 procedure wlogfl D*)(*DF(nm: string; v: real; cr: integer)FD*)(*D;
@@ -1370,7 +1387,7 @@ begin
 procedure logaddr D*)(*DF(b: fbufferp)FD*)(*D;
 begin
    write(log,'[');
-   if b <> nil then write(log,ordp(b):1) else write(log,'nil');
+   if b <> nil then write(log,odp(b):1) else write(log,'nil');
    writeln(log,']')
    end;
 
@@ -1381,9 +1398,9 @@ begin
   else with p@ do begin
      if job > 2 then begin
         write(log,' buf[');
-        if p@.prevb<>nil then write(log,ordp(p@.prevb):1);
-        write(log,'<'); write(log,ordp(p):1,'>');
-        if p@.nextb<>nil then write(log,ordp(p@.nextb):1);
+        if p@.prevb<>nil then write(log,odp(p@.prevb):1);
+        write(log,'<'); write(log,odp(p):1,'>');
+        if p@.nextb<>nil then write(log,odp(p@.nextb):1);
         write(log,']')
         end;
      if job > 1 then
@@ -1395,18 +1412,12 @@ begin
      else begin
         i := j;
         while i <= savedlen do begin
-           case ord(carray@[i]) of
-              ordETX: write(log,'^C');
-              ordNL: writeln(log);
-              ordCR: write(log,'\r');
-              ordTAB: write(log,'\t');
-              0: begin
-                 m := i; k := savedlen+1;
-                 while i < k do if ord(carray@[i])=0 then i:=i+1 else k:=i;
-                 write(log,'(',(i-m):1,')x\@');
-                 i := i-1
-                 end;
-              otherwise write(log,carray@[i])
+           if ord(carray@[i])<>0 then wchar(log,carray@[i])
+           else begin
+              m := i; k := savedlen+1;
+              while i < k do if ord(carray@[i])=0 then i:=i+1 else k:=i;
+              write(log,'(',(i-m):1,')x'); wchar(log,chr(0));
+              i := i-1
               end;
            i := i+1
            end
@@ -1425,43 +1436,48 @@ begin
     if emi < 900 then errcount := errcount + 1; (* Do not count warnings *)
     (*D if debuglevel > 0 then begin
         write(log,'*** Markerror[');
-        if inbuf=nil then write(log,'nil') else write(log,ordp(inbuf):1);
-        writeln(log,'] emi=', emi:1, ', lexsymb=', lexsymb:1,':');
-        wrbuf(inbuf,3,0) end; D*)
+        if inbuf=nil then write(log,'nil') else write(log,odp(inbuf):1);
+        writeln(log,'] emi=', emi:1, ', lexsymb=', lexsymb:1,':') end; D*)
                                     (* Write out the current and prev line *)
-    thisbuf := inbuf; lastbuf := nil; inx := 1;
-    while thisbuf<>nil do with thisbuf@ do begin
-      lastbuf := thisbuf; j := 0;
-      if (readx-1) < savedlen then inx:=readx-1 else inx:=savedlen;
-      while inx > j do if carray@[inx] in [nlch,crch,' ',tabch,etxch] then
-        inx := inx-1 else j := inx;
-      j := 0;
-      while inx > j do if carray@[inx]<>nlch then inx := inx-1 else j := inx;
-      if inx = 0 then thisbuf := prevb else thisbuf := nil
-      end;
-    while lastbuf<>nil do begin
-      if lastbuf = inbuf then k := lastbuf@.readx-1
-      else k := lastbuf@.savedlen; 
-      with lastbuf@ do for j := inx to k do
-         if carray@[j]<>etxch then write(errout,carray@[j]);
-      if lastbuf<>inbuf then lastbuf := lastbuf@.nextb else lastbuf := nil;
-      if lastbuf<> nil then inx := lastbuf@.readx
+    if emi < 903 then begin
+      thisbuf := inbuf; lastbuf := nil; inx := 1;
+      while thisbuf<>nil do with thisbuf@ do begin
+        lastbuf := thisbuf; j := 0;
+        if readx > savedlen then inx := savedlen else inx := readx-1;
+        if (readx-1) < savedlen then j := readx-1 else j := savedlen;
+        while inx > j do if carray@[inx] in [nlch,crch,' ',tabch,etxch] then
+          inx := inx-1 else j := inx;
+        j := 0;
+        while inx > j do if isprint(carray@[inx]) or (carray@[inx]=tabch)
+           then inx := inx-1 else j := inx;
+        if inx = 0 then thisbuf := prevb else thisbuf := nil
+        end;
+      while lastbuf<>nil do begin
+        (*D if debuglevel > 0 then wrbuf(lastbuf,3,0); D*)
+        if lastbuf = inbuf then k := lastbuf@.readx-1
+        else k := lastbuf@.savedlen; 
+        (*D if debuglevel > 0 then writeln(log,'inx=',inx:1,' k=',k:1); D*)
+        if inx < 1 then inx := 1;
+        with lastbuf@ do for j := inx to k do wchar(errout,carray@[j]);
+        if lastbuf<>inbuf then lastbuf := lastbuf@.nextb else lastbuf := nil;
+        if lastbuf<> nil then inx := lastbuf@.readx
+        end
       end;
     writeln(errout);
     write(errout,'*** dpic: line ',lineno:1,' ' );
     if emi < 900 then write(errout,'ERROR: ') else write(errout,'WARNING: ');
     if emi < 800 then begin
       case lexsymb of
-      XLname: write(errout,'Name');
-      XLabel: write(errout,'Label');
-      XLaTeX: write(errout,
-        'Backslash not followed by line end (LaTeX macro?)');
-      XLfloat: write(errout,'Float');
-      XERROR: write(errout,'Error');
+        XLname: write(errout,'Name');
+        XLabel: write(errout,'Label');
+        XLaTeX: write(errout,
+          'Backslash not followed by line end (LaTeX macro?)');
+        XLfloat: write(errout,'Float');
+        XERROR: write(errout,'Error');
 (* include controlerr.i *)
 (*GHMF#include 'controlerr.i'FMHG*)
-         otherwise write(errout,'Punctuation characters')
-         end;
+        otherwise write(errout,'Punctuation characters')
+        end;
       writeln(errout,' found.');
       writeln(errout,' The following were expected:')
       end;
@@ -1472,10 +1488,7 @@ begin
 (*GHMF#include 'parserr.i'FMHG*)
                                 (* lexical error messages *)
       800: writeln(errout,'Character not recognized: ignored');
-      801: writeln(errout,'Null string not allowed');
       802: writeln(errout,'Invalid exponent character after e in a number');
-      803: writeln(errout,
-        'Fill value must be non-negative and not greater than 1');
       804,807: begin
          write(errout,'End of file while reading ');
          if emi=807 then write(errout,'string in ');
@@ -1508,18 +1521,16 @@ begin
       865: writeln(errout,'Bad sprintf format');
       866: writeln(errout,'String exceeds max length of 4095 characters');
       867: writeln(errout,'Invalid log or sqrt argument');
-      868: writeln(errout,'Function argument out of bounds');
+      868: writeln(errout,'Function argument out of range');
       869: writeln(errout,'Improper use of logical operator');
       870: writeln(errout,'Zero value of scale not allowed');
       871: writeln(errout,'Zero second argument of pmod not allowed');
       872: writeln(errout,'Buffer overflow while defining macro argument');
-                                (* lexical warning messages *)
-      901: writeln(errout,'String character generated at end of line');
+                                (* warning messages *)
+      901: writeln(errout,'Safe mode: sh, copy, and print to file disallowed');
       903: writeln(errout,'Picture size adjusted to maxpswid value');
       904: writeln(errout,'Picture size adjusted to maxpsht value');
-    (*905: writeln(errout,'Operating system command returns nonzero value'); *)
-      906: writeln(errout,
-            'Safe mode: sh, copy, and print to file disallowed')
+      otherwise writeln(errout,'Unknown error')
     end; (* case *)
 
     (* writeln(errout); *) consoleflush;
@@ -1635,20 +1646,27 @@ begin
 procedure nextline(lastchar: char);
 var i: integer;
 begin
+   (*D if debuglevel > 0 then begin writeln(log);
+      write(log,'nextline('); wchar(log,lastchar);
+      write(log,') ')
+      end; D*)
    with inbuf@ do begin readx := 1; savedlen := 0 end;
    repeat
-      lineno := lineno+1;
       if savebuf<>nil then begin
          readline(copyin);
          if inputeof then begin
             inputeof := false;
             while inbuf@.prevb<>nil do inbuf := inbuf@.prevb;
-            disposebufs(inbuf (*D,11D*) ); inbuf := savebuf; savebuf := nil
+            disposebufs(inbuf (*D,11D*) );
+            inbuf := savebuf; savebuf := nil
             end
          end
-      else readline(input);
+      else begin
+         if not inputeof then lineno := lineno+1;
+         readline(input) end;
                                 (* Check for .PS, .PE, and zero length *)
-      with inbuf@ do if carray@[1] <> '.' then begin end
+      with inbuf@ do if savedlen < 1 then begin end
+      else if carray@[1] <> '.' then begin end
       else if lexstate<>2 then begin
          if (savedlen < 4) or (carray@[2] <> 'P') then begin end
          else if savebuf<>nil then savedlen := 0  (* skip .P* lines *)
@@ -1675,17 +1693,11 @@ begin
          savedlen := 0
          end
    until (inbuf@.savedlen > 0) or inputeof
-   (* D;
-   if debuglevel > 0 then begin
-      write(log,'nextline:');
-      with inbuf@ do for i:=1 to savedlen do case ord(carray@[i]) of
-         ordETX: write(log,'^C');
-         ordNL: writeln(log);
-         ordCR: write(log,'\r');
-         ordTAB: write(log,'\t');
-         otherwise write(log,carray@[i])
-         end;
-      end D *)
+   (*D; if debuglevel > 0 then begin
+      writeln(log); write(log,'nextline |');
+      with inbuf@ do for i:=1 to savedlen do wchar(log,carray@[i]);
+      writeln(log,'| lexstate=',lexstate:1)
+      end D*)
    end;
                                 (* Read the next char into ch, accounting for
                                    strings and end of buffer *)
@@ -1693,13 +1705,15 @@ procedure inchar;
 var tp: fbufferp;
    endofbuf: boolean;
 begin
-   if inbuf=nil then begin newbuf(inbuf); inbuf@.attrib := -1 end;
+   if inbuf=nil then begin newbuf(inbuf); inbuf@.attrib := -1;
+      topbuf := inbuf end;
    (*D if debuglevel = 2 then with inbuf@ do begin
       writeln(log);
-      write(log,' inchar['); if prevb<>nil then write(log,ordp(prevb):1);
-      write(log,'<',ordp(inbuf):1,'>');
-      if nextb<>nil then write(log,ordp(nextb):1);
-      write(log,']: instr=',instr) end; D*)
+      write(log,' inchar['); if prevb<>nil then
+        write(log,odp(prevb):1);
+      write(log,'<',odp(inbuf):1,'>');
+      if nextb<>nil then write(log,odp(nextb):1);
+      write(log,']: instr=',instr,' rx=',readx:1) end; D*)
 
    endofbuf := inbuf@.readx >= inbuf@.savedlen;
    while endofbuf do begin
@@ -1720,10 +1734,12 @@ begin
          endofbuf := false
          end;
       if endofbuf then begin
-         if inbuf@.nextb <> nil then inbuf := inbuf@.nextb
+         if inbuf@.nextb <> nil then begin
+            inbuf := inbuf@.nextb
+            end
          else if inbuf@.attrib > 0 then begin   (* for buf *)
             (*D if debuglevel = 2 then begin
-              write(log,' For detected, '); wrchar(ch); write(log,' ')
+              write(log,' For detected, '); logchar(ch); write(log,' ')
               end; D*)
             inbuf@.readx := 1;
             while inbuf@.prevb <> nil do begin
@@ -1735,11 +1751,14 @@ begin
             while inbuf@.prevb <> nil do inbuf := inbuf@.prevb;
             if inbuf@.nextb<>nil then disposebufs(inbuf@.nextb (*D,10D*) );
             if inbuf@.higherb<>nil then begin
-               tp := inbuf; inbuf := inbuf@.higherb;
-               disposebufs(tp (*D,3D*))
+               tp := inbuf@.higherb; disposebufs(inbuf (*D,3D*)); inbuf := tp
+               (* tp := inbuf; inbuf := inbuf@.higherb;
+               disposebufs(tp ( *D,3D* )) *)
                end
-            else if not inputeof then
-               nextline( inbuf@.carray@[inbuf@.savedlen] )
+            else if not inputeof then with inbuf@ do begin
+               if (savedlen < 1) or (inbuf <> topbuf) then nextline(' ')
+               else nextline( carray@[savedlen] )
+               end
             end
          end
       end;
@@ -1748,10 +1767,9 @@ begin
    else with inbuf@ do begin ch := carray@[readx]; readx := readx + 1 end
 
    (*D; if debuglevel = 2 then with inbuf@ do begin
-      write(log,' savedlen=',savedlen:1);
-      if inputeof then write(log,' inputeof');
-      write(log,' '); wrchar(ch);
-      write(log,' readx=',readx:1)
+      write(log,' savedlen=',savedlen:1,' ');
+      if inputeof then write(log,'inputeof ');
+      logchar(ch); write(log,' readx=',readx:1)
       end D*)
    end; (* inchar *)
 
@@ -1759,8 +1777,8 @@ begin
 procedure skiptoend;
 var skip: boolean;
 begin
-   (*D if debuglevel>1 then
-       writeln(log,'skiptoend: inbuf[',ordp(inbuf):1,']'); D*)
+   (*D if debuglevel>1 then begin writeln(log);
+       writeln(log,'skiptoend:'); winbuf end; D*)
    skip := true;
    while skip do if inbuf = nil then skip := false else with inbuf@ do begin
       (*D if (debuglevel>1) and (carray@[readx]=nlch) then
@@ -1770,7 +1788,9 @@ begin
       else if carray@[readx] = etxch then exitmacro;
       readx := readx+1;
       if readx <= savedlen then begin end
-      else if inbuf@.nextb<>nil then inbuf := inbuf@.nextb
+      else if inbuf@.nextb<>nil then begin
+         inbuf := inbuf@.nextb
+         end
       else skip := false
       end
    (*D; if (debuglevel>1) then writeln(log,' readx=',inbuf@.readx:1) D*)
@@ -1861,10 +1881,6 @@ begin
    isupper := ch in uppercase
    end;
 (*P2CP*)
-function isprint(ch: char): boolean;
-begin
-   isprint := (ord(ch) >= 32) and (ord(ch) <= 126)
-   end;
 
 function argcount(a: argp): integer;
 var i: integer;
@@ -1882,9 +1898,9 @@ function findarg( arlst: argp; k: integer): argp;
 var ar: argp;
    i,j: integer;
 begin
-   (*D if debuglevel > 0 then begin
+   (*D if debuglevel > 0 then begin writeln(log);
        write(log, 'findarg(');
-       if arlst = nil then write(log,'nil') else write(log,ordp(arlst):1);
+       if arlst = nil then write(log,'nil') else write(log,odp(arlst):1);
        write(log,',',k:0,'):') end; D*)
    if k > 0 then ar := arlst else ar := nil;
    i := 1; j := k;
@@ -1938,7 +1954,7 @@ begin
       for i := 1 to len do begin
          outfnam[i] := segmnt@[seginx-1+i];
          if ier=1 then begin
-            if (ord(outfnam[i]) > 32) and (ord(outfnam[i]) <= 126) then ier := 0
+            if isprint(outfnam[i]) and (outfnam[i]<>' ') then ier := 0
             end
          end;
       outfnam[len+1] := chr(0); FMHG*)
@@ -1957,32 +1973,29 @@ begin
       (*GHMF end
    end; FMHG*)
 (*P2CC #endif *)
-                                (* Put string terminal into chbuf *)
-procedure readstring(stringch: char);
-var j,n: integer;
-   pushfl: boolean;
+                                (* Read string terminal into chbuf *)
+procedure readstring;
+var n (*D,jD*) : integer;
    ar: argp;
    abuf: fbufferp;
+   c: char;
 begin
-   (*D if debuglevel > 0 then writeln(log,'readstring(',stringch,')'); D*)
-   j := -1; n := 0;
-   instr := true; pushfl := true;
-   while instr do begin
-      if inputeof then instr := false
-      else if ch=bslch then begin
-         (*D if debuglevel > 0 then begin
-             write(log,' readstring3, instr=',instr,' ');
-             wrchar(ch); writeln(log) end; D*)
-         pushch;
-         if ch=stringch then chbufi := chbufi-1 else pushfl := false
-         end
-      else if (ch = '$') and (j < 0) then j := chbufi
-      else if (j >= 0) and isdigit(ch) then n :=10*n+ord(ch)-ord('0')
-      else if j >= 0 then begin
-         if (n > 0) and (args <> nil) then chbufi := j; (* delete $nn *)
+   (*D if debuglevel > 0 then begin
+      writeln(log); write(log,'readstring '); j := chbufi end; D*)
+   instr := true;
+   repeat
+      c := ch; pushch;
+      if (c=bslch) and (ch='"') then begin chbufi := chbufi-1; pushch end
+      else if c = '$' then begin
+         n := 0;
+         if args<> nil then while isdigit(ch) do begin
+            n :=10*n+ord(ch)-ord('0');
+            inchar
+            end;
          if n > 0 then begin
             ar := findarg(args,n);
-            if ar<>nil then begin 
+            chbufi := chbufi-1;
+            if ar<>nil then begin
                abuf := ar@.argbody;
                while abuf <> nil do with abuf@ do begin
                   for n:=readx to savedlen do begin
@@ -1991,22 +2004,18 @@ begin
                      end;
                   abuf := abuf@.nextb
                   end
-               end;
-            (*D if debuglevel > 0 then begin write(log,'arg(',n:1,')|'); 
-               for n := j to chbufi-1 do write(log,chbuf@[n]);
-               write(log,'| ') end; D*)
-            end;
-         j := -1; n := 0;
-         pushfl := false
+               end
+            end
          end
-      else if ch=stringch then instr := false;
-      (*D if debuglevel > 0 then begin
-          write(log,' readstring2, instr=',instr,' j=',j:0,' pushfl=',pushfl);
-          wrchar(ch); writeln(log) end;D*)
-      if instr and pushfl then pushch else pushfl := true
-      end;
-   if ch<>nlch then inchar else markerror(901)
-      (*D; if debuglevel > 0 then writeln(log,' readstring done') D*)
+   until (c='"') or inputeof;
+   if not inputeof then chbufi := chbufi-1;
+   instr := false
+   (*D; if debuglevel > 0 then begin
+      write(log,'done, chbufi=',chbufi:1,' |');
+      while j < chbufi do begin write(log,chbuf@[j]); j := j+1 end;
+      write(log,'| ');
+      if inputeof then write(log,'inputeof ');
+      wchar(log,ch); writeln(log) end D*)
    end;
 
 procedure readexponent;
@@ -2042,9 +2051,9 @@ begin
 
 procedure readconst( initch: char);
 begin
-   (*D if debuglevel=2 then begin
-      write(log,'readconst(',initch,') readx=',inbuf@.readx:1,' ');
-        wrchar(ch); writeln(log) end; D*)
+   (*D if debuglevel=2 then begin writeln(log);
+      write(log,' readconst(',initch,') readx=',inbuf@.readx:1,' ');
+        logchar(ch); writeln(log) end; D*)
    if( initch = '.' ) then readfraction
    else begin
       while isdigit(ch) do begin
@@ -2074,7 +2083,7 @@ begin
          write(log,'"') end
       else write(log,'=<LaTeX>');
       if newsymb = XLfloat then wlogfl('value',floatvalue,0);
-      write(log,' '); wrchar(ch);
+      write(log,' '); logchar(ch);
       if not acc then write( log,' not accepted');
       writeln( log );
       consoleflush
@@ -2172,18 +2181,20 @@ begin
    end;
                                 (* Check the current char for line
                                    continuation *)
-procedure skipcontinue;
+procedure skipcontinue(instrg: boolean);
 var c: char;
 begin
-   (*D if debuglevel=2 then
-      write(log,' skipcontinue readx=',inbuf@.readx:1,' '); D*)
+   (*D if debuglevel=2 then begin writeln(log);
+      write(log,' skipcontinue readx=',inbuf@.readx:1,' ') end; D*)
    c := ch;
    while c = bslch do with inbuf@ do begin
       if readx <= savedlen then c := carray@[readx]
       else if nextb = nil then begin inchar; c := ch end
       else c := nextb@.carray@[nextb@.readx];
       if c = nlch then begin inchar; inchar; c := ch end
-      else if c = '#' then begin skiptoend; inchar; c := ch end
+      (* else if c = '#' then begin *)
+      else if (c = '#') and (not instrg) then begin
+         skiptoend; inchar; c := ch end
       else c := ' '
       end
    end;
@@ -2194,7 +2205,7 @@ begin
    while ch in [' ', tabch, nlch,etxch] do begin
       if ch=etxch then exitmacro;
       inchar;
-      if ch = bslch then skipcontinue
+      if ch = bslch then skipcontinue(false)
       end
    end;
                                 (* Stash the current argument into the arg
@@ -2206,8 +2217,8 @@ var j,n: integer;
    inarg,instring: boolean;
    prevch: char;
 begin
-   (*D if debuglevel > 0 then
-       writeln(log, 'defineargbody: parenlevel=',parenlevel:1); D*)
+   (*D if debuglevel > 0 then begin writeln(log);
+       write(log, 'defineargbody: parenlevel=',parenlevel:1) end; D*)
    skipwhite;
    p1 := nil;
    if parenlevel >= 0 then inarg := true else inarg := false;
@@ -2235,7 +2246,7 @@ begin
             carray@[savedlen] := ch;
             (*D if debuglevel = 2 then begin
                write(log,'defineargbody2: savedlen=',savedlen:1,' ');
-               wrchar(ch); writeln(log,' parenlevel=',parenlevel:1)
+               logchar(ch); writeln(log,' parenlevel=',parenlevel:1)
                end; D*)
             inchar
             end
@@ -2254,7 +2265,7 @@ begin
                carray@[savedlen] := prevch;
                (*D if debuglevel = 2 then begin
                    write(log,'defineargbody2: savedlen=',savedlen:1,' ');
-                   wrchar(ch); writeln(log) end; D*)
+                   logchar(ch); writeln(log) end; D*)
                end
             end;
          if inputeof then begin
@@ -2301,7 +2312,8 @@ begin
          copyleft(mac@.argbody,inbuf)
          end
       end;
-   (*D if debuglevel > 0 then writeln(log,'ismacro returning:',ism); D*)
+   (*D if debuglevel > 0 then begin
+       writeln(log); writeln(log,'ismacro returning:',ism) end; D*)
    ismacro := ism
    end;
 
@@ -2456,7 +2468,7 @@ begin (*lexical*)
                end
             else if newsymb=XLstring then begin
                chbufi := chbufi-1;
-               readstring(chbuf@[chbufi])
+               readstring
                end
             else if newsymb=XCOMMENT then begin
                skiptoend;
@@ -2545,8 +2557,7 @@ begin (*lexical*)
                     'Marking 800:ord(firstch)=',ord(firstch),
                     ' ord(ch)=',ord(ch)); D*)
                write(errout,'Char chr(',ord(firstch):1,')');
-               if (ord(firstch) > 32) and (ord(firstch) < 127) then
-                  write(errout,'"',firstch,'"');
+               write(errout,'"'); wchar(errout,firstch); write(errout,'"');
                writeln(errout,' unknown');
                markerror(800);
                terminalaccepted := false
@@ -2571,10 +2582,11 @@ var bracelevel: integer;
    instring: boolean;
    prevch: char;
 begin
-   (*D if debuglevel = 2 then writeln(log, 'skiptobrace: ' ); D*)
+   (*D if debuglevel = 2 then begin writeln(log);
+      writeln(log, 'skiptobrace: ' ) end; D*)
    bracelevel := 1; prevch := ' '; instring := false;
    while bracelevel > 0 do begin
-      if ch = bslch then skipcontinue;
+      if ch = bslch then skipcontinue(instring);
       if ch=etxch then exitmacro;
       if instring then begin
          if (ch='"') and (prevch<>bslch) then instring := false end
@@ -2601,7 +2613,9 @@ var j,bracelevel: integer;
    prevch: char;
 begin
    (*D if debuglevel > 0 then begin
-       write(log,'readfor: attx(');
+       write(log,'readfor: p0');
+       if p0=nil then write(log,'=') else write(log,'<>');
+       write(log,'nil attx(');
        if attx<0 then write(log,'-length)=') else write(log,'attstack idx)=');
        writeln(log,attx:5)
        end; D*)
@@ -2617,11 +2631,12 @@ begin
       p1 := p;
       j := CHBUFSIZ;
       repeat with p1@ do begin
-         if ch = bslch then skipcontinue;
+         if ch = bslch then skipcontinue(instring);
          (* D if debuglevel = 2 then begin write(log, 'readfor1: ');
-             wrchar(ch); write(log,' ') end; D *)
+             logchar(ch); write(log,' instring=',instring,' ') end; D *)
          if instring then begin  (* do not check braces in strings *)
-            if (ch='"') and (prevch<>bslch) then instring := false end
+            if (ch='"') and (prevch<>bslch) then instring := false
+            end
          else if ch = '#' then begin skiptoend; ch := nlch end
          else if ch = '{' then bracelevel := bracelevel+1
          else if ch = '}' then bracelevel := bracelevel-1
@@ -2631,7 +2646,7 @@ begin
          prevch := ch;
          (* D if debuglevel = 2 then begin
              write(log,' savedlen=',savedlen:1,' carray(',savedlen:1,')=');
-             wrchar(ch); writeln(log) end; D *)
+             logchar(ch); write(log,' instring=',instring); writeln(log)end;D *)
          if bracelevel > 0 then inchar;
          if inputeof then begin
             if instring then markerror(807) else markerror(804);
@@ -2907,7 +2922,7 @@ begin (* parse *)
    initrandom;
 
    new(chbuf);
-   (*D if debuglevel > 0 then writeln(log,'new(chbuf)[',ordp(chbuf):1,']'); D*)
+   (*D if debuglevel > 0 then writeln(log,'new(chbuf)[',odp(chbuf):1,']'); D*)
    (*P2 IP*) inittables; (*P2 P*)
    (*P2CIP*) initchars; (*P2CP*)
    entrytv[ordNL] := XNL;
@@ -2985,9 +3000,10 @@ var cht: char;
 begin
    FMHG*)(*DGHMF oflag := 0; linesignal := 0; FMHGD*)(*GHMF
    argct := 1;
-   istop := FMHG*)(*M argc; M*)(*GHF ParamCount+1; FHG*)
+   istop := FMHG*)(*M argc; M*)(*GHF ParamCount+1; FHG*)(*GHMF
    while argct < istop do begin
-      (*M argv(argct,infname); M*)(*GHF infname := ParamStr(argct); FHG*)
+      FMHG*)(*M argv(argct,infname); M*)
+            (*GHF infname := ParamStr(argct); FHG*)(*GHMF
       cht := optionchar(infname);
       if ord(cht) = 0 then istop := argct
       else begin
@@ -3009,7 +3025,7 @@ begin
          FMHGD*)(*GHMF
          else if (cht = 'h') or (cht = '-') then begin
             writeln(errout,' *** VERSIONDATE');
-            writeln(errout,' options:');
+            writeln(errout,' Options:');
             writeln(errout,'     (none) LaTeX picture output');
             writeln(errout,'     -d PDF output');
             writeln(errout,'     -e Pict2e output');
@@ -3024,7 +3040,7 @@ begin
             writeln(errout,'     -v SVG output');
             writeln(errout,'     -x xfig output');
             writeln(errout,
-        '     -z safe mode (sh, copy, and print to file disabled)');
+        '     -z safe mode (disable sh, copy, and print to file)');
             fatal(0)
             end
          else begin

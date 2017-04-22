@@ -793,7 +793,9 @@ int all;
 	    if (mp->kind == MK_CONST)
 		free_value(&mp->val);
 #endif
-	    freeexpr(mp->constdefn);
+#if 0
+	    freeexpr(mp->constdefn); /* (DA) */
+#endif
 	    if (mp->cbase)
 		forget_ctx(mp, 1);
 	    if (mp->kind == MK_FUNCTION && mp->val.i)

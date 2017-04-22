@@ -10,7 +10,7 @@ DEBUG=
 
 # Gcc:
 OPTS= -O
-CC= gcc
+CC=gcc
 
 DATE = `date +%Y.%m.%d`
 # DATE = 2014.01.01
@@ -79,6 +79,7 @@ dpic.c: dpic.b
 #                               C code tweaks and readable struct names
 dpic.b: dpic.a U1.sed U2.sed
 	sed -f sysdep.sed \
+        -e 's/^main/void main/' \
         -e '1,4d' -e 's/UEMPTY6/Ublock/g' -e 's/UU/Upr/g' -e 's/WITH/With/g' \
         -e 's/Static //' \
         -e '/random()  *\//s/SHORT_MAX/LONG_MAX/' \
@@ -90,7 +91,7 @@ dpic.b: dpic.a U1.sed U2.sed
 
 #                               Convert pascal to C
 dpic.a: dpic.p $(P2C)
-	$(P2C) -o dpic.a dpic.p
+	$(P2C) -M0 -o dpic.a dpic.p
 
 CTABLES = parstab.i lextable.i
 PARSCONSTS = parscst.i parscdc.i
@@ -108,7 +109,8 @@ $(P2C):
 	if test $(P2C) != p2c ; then (cd p2c; mkdir -p home; cd src ; \
      dir=`pwd`; \
      make HOMEDIR=$$dir/../home INCDIR=$$dir/../home/p2c BINDIR=$$dir/.. \
-          LIBDIR=$$dir/../home MANDIR=$$dir/../home MANFILE=p2c.cat install ; \
+          LIBDIR=$$dir/../home MANDIR=$$dir/../home MANFILE=p2c.cat \
+          DATE=$(DATE) CC=$(CC) install ; \
      mv p2c .. ; make clean) ; fi
 
 #                               sed code for readable struct names
@@ -151,7 +153,7 @@ $(LEXCINCLUDES): lextable.i
 
 $(CTABLES) $(PARSCONSTS) $(LEXERRORS) $(LEXEDIT): dpic.bnf \
       lexremoves nullprods lxcst.v
-	(cd tables; make )
+	(cd tables; make CC=$(CC) )
 	for name in $(CTABLES) $(PARSCONSTS) $(LEXERRORS) $(LEXEDIT) ; do \
       cp tables/$$name . ; done;
 
@@ -160,12 +162,12 @@ clean:
 	rm -f *.h *.p *.i removedata zzz
 	rm -f U.sed U1.sed U2.sed lexedit* lextable* parst*
 	rm -rf tmp
-	(cd p2c/src; make clean )
-	(cd Pgen/src; make clean )
-	(cd pascal; make clean )
+	(cd p2c/src && make -f Makefile.default clean )
+	(cd Pgen/src && make -f Makefile.default clean )
+	(cd pascal && make -f Makefile.default clean )
 
 veryclean: clean
 	rm -f *.h *.i *.p
-	(cd tables; make veryclean)
-	(cd p2c; rm -rf home p2c* ; cd src; make clean)
-	(cd Pgen; rm -f Pgen* PG* pg* ; cd src; make veryclean )
+	(cd tables && make veryclean)
+	(cd p2c && rm -rf home p2c* )
+	(cd Pgen && rm -f Pgen* PG* pg* )

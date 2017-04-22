@@ -236,7 +236,7 @@ type
     lexsymb: integer;
     inlogic: boolean;           (* set < to <compare> in context      *)
     instr: boolean;             (* set while reading a string         *)
-    inbuf,savebuf,freeinbuf: fbufferp;
+    inbuf,savebuf,freeinbuf,topbuf: fbufferp;
 
                                 (* Error handling                     *)
     errcount: integer;          (* becomes nonzero when errors found  *)

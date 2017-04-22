@@ -5,6 +5,8 @@ installs it, together with the table file, in the test directory.
 Two pascal compilers are currently supported, GNU pascal and Free Pascal,
 but the corresponding lines in the Makefile must be uncommented as necessary.
 
+If the make process fails, use Makefile.default as the Makefile.
+
 Debug has been enabled in the pascal source.  Invoking dpic as, for example,
 dpic -1 -p file.pic > file.tex
 produces (rather cryptic) debug information in the file "dpic.log", and changing

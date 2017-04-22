@@ -31,7 +31,7 @@
 .\" Use \(ts instead of ".
 .tr \(ts"
 .\"
-.TH DPIC 1 "2017.01.01"
+.TH DPIC 1 "2016 Jan 08"
 .SH NAME
 dpic \(hy convert pic\(hylanguage input to LaTeX\(hycompatible and other formats
 .SH SYNOPSIS

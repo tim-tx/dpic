@@ -2,7 +2,7 @@
 
 Language	BERK	# Berkeley Pascal
 
-UseEnum		0	# Not necessary except to keep Sun's pitpicking
+UseEnum		0	# Not necessary except to keep Sun's nitpicking
 			# compiler happy.
 UnsignedTrick		0	# Because we test reals as well as integers
 BitwiseMod		1	# x mod 16 becomes x&15

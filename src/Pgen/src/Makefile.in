@@ -1,6 +1,7 @@
 NAME = PG
 INSTALLDIR = ..
-CC = gcc
+CC = @CC@
+CFLAGS = -ansi -O -Wno-unused-result
 PROGS = $(NAME) $(NAME)c $(NAME)p $(NAME)f
 
 install: $(PROGS)
@@ -18,11 +19,11 @@ $(NAME)p: p2c.h pgp.o p2clib.o
 $(NAME)f: p2c.h pgf.o p2clib.o
 	$(CC) -o $(NAME)f pgf.o p2clib.o
 	
-p2clib.o: ../../../p2clib.c
-	$(CC) -c ../../../p2clib.c
+p2clib.o: ../../p2c/src/p2clib.c
+	$(CC) -c ../../p2c/src/p2clib.c
 
-p2c.h: ../../../p2c.h
-	cp -p ../../../p2c.h .
+p2c.h: ../../p2c/src/p2c.h
+	cp -p ../../p2c/src/p2c.h .
 
 clean:
 	rm -f p2c.h *.o

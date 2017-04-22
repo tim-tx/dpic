@@ -1,12 +1,12 @@
 
 This directory contains the source and supporting files for dpic.
-Selected lines in the pascal are uncommented by the Makefiles for
-translation to C or for Pascal compilation.  GNU pascal and Free
-Pascal are supported currently.  The context-free grammar for dpic is in
-dpic.bnf.  A parser generator such as the ubiquitous yacc was not readily
-available when dpic was first written so a different tool was employed.
-If any source file is changed, the Makefile compiles, as necessary, the
-pascal to C translator and the parser generator with its output filters
-and runs them to produce new files in the formats requred.  Typing "make
-clean" in the directory containing this one and then "make veryclean"
-here restores the files of the distribution.
+Selected lines in the pascal are automatically uncommented by the
+Makefiles for translation to C or for Pascal compilation.  GNU pascal (gpc)
+and Free Pascal (fpc) are supported currently.  The context-free grammar for
+dpic is in dpic.bnf.  A parser generator such as the ubiquitous yacc was
+not readily available when dpic was first written so a different tool
+was employed.  If any source file is changed, the Makefile compiles, as
+necessary, the pascal to C translator and the parser generator with its
+output filters and runs them to produce new files in the formats requred.
+Typing "make clean" in the directory containing this one and then "make
+veryclean" here restores the files of the distribution.

@@ -22,7 +22,7 @@ terminals:
 (* To add a general repeat { ...
                              if expr then {...; break}
                              ...}
-   remove the comments labelled repeat here and in the code *)
+   remove the comments labelled repeat here and modify the code *)
 
 (* Allowed terminals: *)
 

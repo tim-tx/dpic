@@ -85,12 +85,14 @@ char *malloc(), *realloc();
 
 
 #ifdef __GNUC__      /* Fast, in-line version of strcmp */
+/* (DA)
 # define strcmp(a,b) ({ char *_aa = (a), *_bb = (b); int _diff;  \
 			for (;;) {    \
 			    if (!*_aa && !*_bb) { _diff = 0; break; }   \
                             if (*_aa++ != *_bb++)    \
 				{ _diff = _aa[-1] - _bb[-1]; break; }   \
 			} _diff; })
+*/
 #endif
 
 

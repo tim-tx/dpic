@@ -40,10 +40,11 @@ MANFILE = p2c.cat          # human-readable manual (for cat.1)
 CC = cc                    # you may wish to use gcc here instead
 CC = gcc                    # NOTE: logf changed to logfile and
 							# getline changed to getaline for gcc (DA)
+CC = @CC@
 OPT = -O		   # uncomment this for optimization
 DEB = # -g		   # uncomment this for debugging
 DEFS =			   # place other -D types of things here
-CFLAGS = $(OPT) $(DEB) $(DEFS)
+CFLAGS = $(OPT) $(DEB) $(DEFS) -ansi  # -ansi added (DA)
 LFLAGS =
 
 
@@ -88,7 +89,10 @@ dir.o: dir.c trans.h
 	$(CC) -c $(CFLAGS) $(CUSTDEFS) dir.c
 
 trans.o: trans.c trans.h
-	$(CC) -c $(CFLAGS) -DHASDUMPS -DP2C_HOME=\"$(ABSHOMEDIR)\" trans.c
+	sed -e '/(long)sbrk/d' trans.c > xrans.c
+	$(CC) -c $(CFLAGS) -DHASDUMPS -DP2C_HOME=\"$(ABSHOMEDIR)\" xrans.c \
+      -o trans.o
+	rm -f xrans.c
 
 
 # Making and using makeproto

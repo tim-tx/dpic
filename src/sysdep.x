@@ -7,8 +7,8 @@ function  isatty( n:integer ): integer; (*F cdecl; F*)
    external (*HF name FH*)(*G; asmname G*)(*GHF 'isatty' FHG*);
 function time( var t: integer ): integer; (*F cdecl; F*)
    external (*HF name FH*)(*G; asmname G*)(*GHF 'time' FHG*);
-procedure sprintf( var s,f:char;
-            e: (*M double M*)(*GHF real FHG*) ); (*F cdecl; F*)
+function sprintf( var s,f:char;
+            e: (*M double M*)(*GHF real FHG*) ): integer; (*F cdecl; F*)
    external (*HF name FH*)(*G; asmname G*)(*GHF 'sprintf' FHG*);
 function  snprintf( var s:char; n:integer; var f:char;
             e: (*M double M*)(*GHF real FHG*) ): integer; (*F cdecl; F*)

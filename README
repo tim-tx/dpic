@@ -3,50 +3,38 @@ Dpic is an implementation of the pic "little language" for creating line
 drawings and illustrations for documents, web pages, and other uses.
 
 Copying: 
-The files in this distribution are copyright (c) 2015, J. D. Aplevich,
+The files in this distribution are copyright (c) 2016, J. D. Aplevich,
 and are distributed under the licence at the end of this file, except for
 the file dpicdoc.pdf, which is subject to the Creative Commons attribution
-licence version 3.0 http://creativecommons.org/licenses/by/3.0/,
-and the file gpic.pdf by Eric Raymond, which is subject to the GNU general
-public license available at http://www.gnu.org/licenses/gpl.html.
-
-Downloading:
-   Download and unpack either dpic.tar.gz or dpic.zip.
+licence version 3.0 http://creativecommons.org/licenses/by/3.0/.
 
 Unix installation:
-   Check the definitions in the Makefile, especially the following two items.
-   Then type `make'.
+   Type `./configure' to generate a Makefile, then `make' to compile the
+   sources.  Type `make install' or, if necessary, `sudo make install' to
+   install the executable in /usr/bin, a man page in /usr/share/man/man1,
+   and dpicdoc.pdf in /usr/share/dpic.  To install the executable only,
+   type `make installdpic' and to install the documents only, type
+   `make installdocs'.
 
-   (1) If loading fails because snprintf() is not available, uncomment the line
-   # DEFINEB=-DNO_SNPRINTF
-   in the Makefile, type `make clean' then `make'.
-
-   (2) If loading fails because random and srandom are not available, uncomment
-   the line 
-   # DEFINEA=-DRAND
-   and again type `make clean' and then `make'.
-
-   Install the executable file in the appropriate bin directory.
-   The file dpic.1 in the doc directory is a Unix-compatible man file.
+   If the installation fails, look at the file Makefile.default, and use
+   it instead.
 
 Web-server installation:
-   You probably should disable the sh and copy commands in dpic for safety
-   reasons.  Uncomment the SAFEMODE definition in Makefile or add -DSAFE_MODE
-   to your compiler command.  If you do not do this, the -z command-line
-   option has the same effect (see below).
+   You probably should disable the sh and copy commands in dpic for security
+   reasons.  Uncomment the SAFEMODE definition in Makefile or invoke
+   ./configure above as ./configure --enable-safemode.
+   If you do not do this, the -z command-line option has the same effect
+   (see below).
 
 Installation on a non-unix PC:
    If you do not wish to compile the program, copy dpic.exe from the
    distribution Windows directory into your folder of executable files.
    You can also compile as above using make and your favourite compiler.
-   A Cygwin installation should require no changes.  For MinGW, see the
-   switch in the Makefile.
 
-   Otherwise, commands equivalent to the following should do the trick,
-   but see (1) and (2) above:
+   Otherwise, commands equivalent to the following should do the trick:
       gcc   -O  -c  dpic.c
       gcc   -O  -c  p2clib.c
-      gcc -o dpic dpic.o dpic2.o p2clib.o -lm
+      gcc -o dpic dpic.o p2clib.o -lm
 
 
 Dpic usage:
@@ -112,8 +100,6 @@ Typing "make" in the pascal directory converts the proto-pascal in
 the src directory to pascal that is compatible either with GNU pascal
 (gpc) or with Free Pascal (fpc) and compiles the source, placing the
 executable and the required tables in the pascal/test directory.
-GNU pascal is the default; to compile using fpc, uncomment the required
-lines in the Makefile in the pascal directory. 
 
 Bugs:
    If you discover a bug, please check that your version is the
@@ -145,11 +131,13 @@ Source:
    the src directory are changed, the Makefile compiles, as necessary,
    the pascal to C translator and the parser generator with its output
    filters and runs them to produce new files in the formats requred.
+   These tools are included here for the sole purpose of generating
+   dpic C source.
 
 -------------------------------------------------------------------
 BSD Licence:
  
-    Copyright (c) 2015, J. D. Aplevich
+    Copyright (c) 2016, J. D. Aplevich
     All rights reserved.
  
     Redistribution and use in source and binary forms, with or without

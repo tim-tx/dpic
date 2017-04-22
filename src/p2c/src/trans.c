@@ -606,6 +606,7 @@ Static void openlogfile()
 }
 
 
+
 void closelogfile()
 {
     long ending_time;
@@ -779,7 +780,7 @@ char **argv;
 #endif
 		ch = (char)0xffff;
 		signedchars = (ch < 0);
-		bft.f1 = 0xffff;
+		bft.f1 = (short)0xffff; /* (short) (DA) */
 		signedfield = (bft.f1 < 0);
 		i = -1;
 		i >>= 1;

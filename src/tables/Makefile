@@ -15,6 +15,7 @@ PGF= ../Pgen/PGf
 #PGC= PGc
 #PGF= PGf
 
+CC=gcc
 CTABLES = parstab.i lextable.i
 TABLECODE = parscst.i parscdc.i parserr.i
 LEXEDIT = lexedit1 lexedit2
@@ -55,7 +56,7 @@ PG.out: $(BNF) $(PG) $(PGP) $(PGC)
 
 $(PG) $(PGC) $(PGP):
 	if test $(PG) != PG ; then (cd ../Pgen/src ; \
-      make NAME=PG install ; make NAME=PG clean ) ; fi
+      make NAME=PG CC=$(CC) install ; make NAME=PG clean ) ; fi
 
 clean:
 	rm -f lrmax lex* pars* PG.list

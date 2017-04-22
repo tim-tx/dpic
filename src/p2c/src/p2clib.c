@@ -961,10 +961,12 @@ register int len, n;
 
 
 
-int _OutMem()
-{
-    return _Escape(-2);
-}
+/* if defined(__GNUC__) || defined(HAVE_INTTYPES_H) */
+#ifndef NO_INTTYPES_H
+uintptr_t _OutMem() { return (uintptr_t) _Escape(-2); } /* (DA) */
+#else
+int _OutMem() { return _Escape(-2); }
+#endif
 
 int _CaseCheck()
 {
@@ -1034,7 +1036,7 @@ int code, ior;
 		break;
         }
     } else {
-        sprintf(bufp, "System error %d", code);
+        sprintf(bufp, "Pascal system error %d", code);
         switch (code) {
             case -2:
                 strcat(buf, " (out of memory)");

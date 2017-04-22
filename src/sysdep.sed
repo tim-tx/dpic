@@ -12,13 +12,10 @@ s/sprintf_/sprintf/g
 /extern .* sprintf(/d
 
 /p2c.h/a\
-#include <time.h>\
-#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__)\
-#define __CYGMIN\
-#endif
+#include <time.h>
 
 /extern long random/c\
-#if defined(__MSDOS__) || defined(__CYGMIN) || defined(RAND) \
+#if defined(__MSDOS__) || defined(RAND) \
 #undef random\
 #define random() rand()\
 #else\
@@ -29,7 +26,7 @@ extern long random(void);\
 #endif\
 #endif
 /extern int random/c\
-#if defined(__MSDOS__) || defined(__CYGMIN) || defined(RAND) \
+#if defined(__MSDOS__) || defined(RAND) \
 #undef random\
 #define random() rand()\
 #else\
@@ -43,7 +40,7 @@ extern long random(void);\
 /extern.*srandom/c\
 #if defined(_POSIX_SOURCE) || defined(__sun)\
 extern void srandom(unsigned s);\
-#elif defined(__MSDOS__) || defined(__CYGMIN) || defined(RAND) \
+#elif defined(__MSDOS__) || defined(RAND) \
 extern void srand(unsigned s);\
 #define srandom(x) srand((unsigned)(x))\
 #elif defined(mips)\

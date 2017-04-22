@@ -148,8 +148,7 @@
 
 
 /* finalparser types                        ----------------------*/
-typedef short symbol;
-
+/* symbol = -1..maxSYMBS; */
 typedef short errnum;
 
 typedef schar rslength;
@@ -161,19 +160,10 @@ typedef short lrinx;
 typedef struct lrelm {
   unsigned chain : 11;   /*next item in this state*/
   unsigned next : 11;   /*next state*/
-  /*type of state*/
-  signed int kind : 5;
-  union {
-    struct {
-      signed int symb : 10;
-      unsigned err : 9;
-    } U1;
-    struct {
-      signed int rs : 5;
-      unsigned prodn : 9;
-    } U0;
-    unsigned lb;
-  } UU;
+  signed int kind : 5, symb : 16;
+  unsigned err : 9;
+  signed int rs : 5;
+  unsigned prodn : 9, lb : 11;
 } lrelm;
 
 typedef short lxinx;
@@ -228,39 +218,16 @@ typedef char modetype;
 
 typedef struct configtype {
   struct configtype *derivp, *nextp;
-  unsigned mode : 4;
-  union {
-    struct {
-      unsigned inf : 9, prodnr : 9;
-    } U1;
-    struct configtype *lookbp;
-  } UU;
+  unsigned mode : 4, inf : 9, prodnr : 9;
+  struct configtype *lookbp;
 } configtype;
-
-typedef struct configtypeone {
-  configtype *derivp, *nextp;
-  unsigned mode : 4;
-  union {
-    struct {
-      unsigned inf : 9, prodnr : 9;
-    } U1;
-  } UU;
-} configtypeone;
-
-typedef struct configtypefive {
-  configtype *derivp, *nextp;
-  unsigned mode : 4;
-  union {
-    configtype *lookbp;
-  } UU;
-} configtypefive;
 
 typedef Char dayfilemsg[DAYMSGlen];
 typedef Char mstring[MSTRINGlen];
 
 
 typedef struct _REC_rhs {
-  unsigned symbol_ : 9;
+  unsigned symbol : 9;
   configtype *parserp;
   unsigned link : 14, basisl : 6, basis : 1;
 } _REC_rhs;
@@ -429,7 +396,7 @@ prodtabx lefthelp[maxSYMBS + 1];
 prodtype prod[maxPRODS + 1];
 _REC_help help[maxSYMBS + 1];
 _REC_state state[Nparstb + 1];
-stringaddress internrep[maxSYMBS + 2];
+stringaddress stringarray[maxSYMBS + 2];
 int symbols[maxSYMBS];
 _REC_nonterms nonterms[maxSYMBS + 1];
 int emptyvalue;
@@ -645,9 +612,9 @@ void listgrammar(void)
 	      for (l = 1; l <= t + 7; l++)
 		putc(' ', list);
 	    }
-	    symb = rhs[p].symbol_;
+	    symb = rhs[p].symbol;
 	    if (symb <= termg)
-	      writeterm(internrep[symb+1], &tt);
+	      writeterm(stringarray[symb+1], &tt);
 	    else
 	      writenont(symb, &tt);
 	    putc(' ', list);
@@ -750,7 +717,6 @@ begin
 void headline(void)
 {
   int i = MSTRINGlen, j = 0;
-  uchar dt[2][11];
 
   /*H t: TimeStamp; H*/
   /*F YY,MM,DD: word; F*/
@@ -763,11 +729,11 @@ void headline(void)
   }
   for (i = 0; i < j; i++)
     putc(infilename[i], list);
-  fprintf(list, "\" ");
+  fprintf(list, "\" \n");
   /*H GetTimeStamp(t); dt[1] := Date(t); dt[2] := Time(t); H*/
-  VAXdate(dt[0]);
-  VAXtime(dt[1]);
-  fprintf(list, "%.11s %.11s\n", dt[0], dt[1]);
+  /* U date(dt[1]); time(dt[2]); U */
+  /* UH write(list, dt[1]:11,' ',dt[2]:11); HU */
+  /*H write(list, dt[1]:11,' ',dt[2]:11); H*/
   /*F DeCodeDate(Date,YY,MM,DD); write(list,' ',YY,':',MM:1,':',DD); F*/
 }
 
@@ -892,7 +858,7 @@ void listtab(int l, int i)
   int hop;
 
   hop = i - (i + l - 1) % i - 1;
-/* p2c: pg.p, line 550:
+/* p2c: pg.p, line 536:
  * Note: Using % for possibly-negative arguments [317] */
   if (hop > 0)
     fprintf(list, "%*c", hop, ' ');
@@ -921,8 +887,8 @@ void termination(void)
 	  for (j = 1; j <= k; j++) {
 	    incrtabx(&p);
 	    WITH = &rhs[p];
-	    if (WITH->symbol_ > termg) {
-	      tb1 = help[WITH->symbol_].term;
+	    if (WITH->symbol > termg) {
+	      tb1 = help[WITH->symbol].term;
 	      termboo = (termboo && tb1);
 	    }
 	  }
@@ -968,14 +934,14 @@ void allocp(configtype **p, int m)
     case 2:
     case 3:
     case 4:
-      *p = Malloc(sizeof(configtypeone));
-      (*p)->UU.U1.inf = 0;
-      (*p)->UU.U1.prodnr = 0;
+      *p = Malloc(sizeof(configtype));
+      (*p)->inf = 0;
+      (*p)->prodnr = 0;
       break;
 
     case 5:
-      *p = Malloc(sizeof(configtypefive));
-      (*p)->UU.lookbp = NULL;
+      *p = Malloc(sizeof(configtype));
+      (*p)->lookbp = NULL;
       break;
     }
   }
@@ -1031,7 +997,7 @@ void optimize(configtype **maxnextp, int *md)
     p = beginstate;
     while (p->nextp != *maxnextp)
       p = p->derivp;
-    v = p->UU.U1.prodnr;
+    v = p->prodnr;
   }
   while (beginstate->nextp == *maxnextp && beginstate->mode == *md)
     beginstate = beginstate->derivp;
@@ -1070,22 +1036,17 @@ void emitconstants(void)
     else
       ix += 5;
   }
-  fprintf(output, "%5d ", lastnont);
-  fprintf(output, "symbmax \n");
-  fprintf(output, "%5d ", prodcount);
-  fprintf(output, "prodmax \n");
-  fprintf(output, "%5d ", smax);
-  fprintf(output, "lrmax   \n");
-  fprintf(output, "%5d ", ix);
-  fprintf(output, "lrlin   \n");
-  fprintf(output, "%5d ", lextabcount);
-  fprintf(output, "lxmax   \n");
+  fprintf(output, "%5d symbmax \n", lastnont);
+  fprintf(output, "%5d prodmax \n", prodcount);
+  fprintf(output, "%5d lrmax   \n", smax);
+  fprintf(output, "%5d lrlin   \n", ix);
+  fprintf(output, "%5d lxmax   \n", lextabcount);
   newline(2);
   fprintf(list, " Number of terminal symbols      = %5d\n", lastnont);
   fprintf(list, " Number of productions           = %5d\n", prodcount);
   fprintf(list, " Number of LALR table entries    = %5d\n", ix);
-  fprintf(list, " Number of lexical table entries = %5d", lextabcount);
-  newline(3);
+  fprintf(list, " Number of lexical table entries = %5d\n", lextabcount);
+  newline(2);
 }
 
 
@@ -1101,7 +1062,7 @@ lxinx incrtinx(lxinx *ttmp)
 
 typedef struct lxelm {
   unsigned np : 11, hp : 11;
-  signed int tv : 10;
+  short tv;
   uchar ch;
 } lxelm;
 
@@ -1220,16 +1181,16 @@ void writlr(lrinx si)
   case 2:
   case 4:
   case 6:
-    fprintf(list, "%5d%5d     ", WITH->UU.U1.symb, WITH->UU.U1.err);
+    fprintf(list, "%5d%5d     ", WITH->symb, WITH->err);
     break;
 
   case 0:
   case 3:
-    fprintf(list, "%5d%5d     ", WITH->UU.U0.rs, WITH->UU.U0.prodn);
+    fprintf(list, "%5d%5d     ", WITH->rs, WITH->prodn);
     break;
 
   case 5:
-    fprintf(list, "%5d          ", WITH->UU.lb);
+    fprintf(list, "%5d          ", WITH->lb);
     break;
   }
 }
@@ -1261,16 +1222,16 @@ void emitpars(void)
     case 2:
     case 4:
     case 6:
-      fprintf(output, "%d %d\n", WITH->UU.U1.symb, WITH->UU.U1.err);
+      fprintf(output, "%d %d\n", WITH->symb, WITH->err);
       break;
 
     case 0:
     case 3:
-      fprintf(output, "%d %d\n", WITH->UU.U0.rs, WITH->UU.U0.prodn);
+      fprintf(output, "%d %d\n", WITH->rs, WITH->prodn);
       break;
 
     case 5:
-      fprintf(output, "%d\n", WITH->UU.lb);
+      fprintf(output, "%d\n", WITH->lb);
       break;
     }
   }
@@ -1296,8 +1257,8 @@ void lapres(configtype **start)
   allocp(&classtop, 1);
   oldp->derivp = classtop;   /*oldp is set in optimize*/
   WITH = classtop;
-  WITH->UU.U1.inf = 0;
-  WITH->UU.U1.prodnr = m;
+  WITH->inf = 0;
+  WITH->prodnr = m;
   WITH->mode = 4;
   WITH->nextp = sp;
   WITH->derivp = NULL;
@@ -1341,7 +1302,7 @@ void deletetail(int s, lrinx xstart, lrinx *xsi)
       tptr = state[t].oldstart;
       v = 0;
       while (tinx > v) {
-	if (lr[sinx].UU.U1.symb == lr[tinx].UU.U1.symb) {
+	if (lr[sinx].symb == lr[tinx].symb) {
 	  sx = sinx;
 	  tx = tinx;
 	  sp = sptr;
@@ -1350,8 +1311,8 @@ void deletetail(int s, lrinx xstart, lrinx *xsi)
 	  while (sx > u && tx > 0) {
 	    WITH = &lr[sx];
 	    WITH1 = sp;
-	    if (WITH->UU.U1.symb == lr[tx].UU.U1.symb &&
-		WITH->kind == lr[tx].kind && WITH1->nextp == tp->nextp) {
+	    if (WITH->symb == lr[tx].symb && WITH->kind == lr[tx].kind &&
+		WITH1->nextp == tp->nextp) {
 	      sx = WITH->chain;
 	      sp = WITH1->derivp;
 	      tx = lr[tx].chain;
@@ -1409,8 +1370,8 @@ void compress(void)
       WITH->derivp = statep->derivp;
       WITH->nextp = statep->nextp;
       WITH->mode = statep->mode;
-      WITH->UU.U1.inf = statep->UU.U1.inf;
-      WITH->UU.U1.prodnr = statep->UU.U1.prodnr;
+      WITH->inf = statep->inf;
+      WITH->prodnr = statep->prodnr;
     }
     while (statep != NULL) {
       WITH1 = &lr[si];
@@ -1420,7 +1381,7 @@ void compress(void)
       else
 	WITH1->chain = si + 1;
       if (((1L << WITH->mode) & 0x18) != 0) {   /*prodnr is undef if mode=5*/
-	if (prod[WITH->UU.U1.prodnr].laend == 0)
+	if (prod[WITH->prodnr].laend == 0)
 	  WITH->mode = 6;
       }
       WITH1->kind = WITH->mode;
@@ -1430,14 +1391,14 @@ void compress(void)
       case 2:
       case 4:
       case 6:
-	WITH1->UU.U1.symb = WITH->UU.U1.inf;
-	WITH1->UU.U1.err = WITH->UU.U1.prodnr;
+	WITH1->symb = WITH->inf;
+	WITH1->err = WITH->prodnr;
 	break;
 
       case 3:
-	WITH1->UU.U0.rs = WITH->UU.U1.inf;
-	WITH1->UU.U0.prodn = WITH->UU.U1.prodnr;
-	if (WITH1->UU.U0.prodn == 0)
+	WITH1->rs = WITH->inf;
+	WITH1->prodn = WITH->prodnr;
+	if (WITH1->prodn == 0)
 	  WITH1->kind = 0;
 	break;
 
@@ -1465,7 +1426,7 @@ void compress(void)
       WITH = statep;
       WITH1->next = stateno(WITH->nextp);
       if (WITH->mode == 5)
-	WITH1->UU.lb = stateno(WITH->UU.lookbp);
+	WITH1->lb = stateno(WITH->lookbp);
       si = WITH1->chain;
       if (si < sstart)
 	statep = NULL;
@@ -1504,7 +1465,7 @@ void errortable(void)
       else
 	consterror("errortable          ", "maxprods            ", maxPRODS);
       WITH->errorno = no;
-      lr[WITH->newstart].UU.U1.err = no;
+      lr[WITH->newstart].err = no;
       newline(2);
       fprintf(list, "%10d :        ", no);
       kz = 1;
@@ -1518,10 +1479,10 @@ void errortable(void)
       lqbep = WITH->newstart;
       while (lqbep != 0) {
 	WITH1 = &lr[lqbep];
-	listterm(internrep[WITH1->UU.U1.symb + 1], &j);
+	listterm(stringarray[WITH1->symb + 1], &j);
 	listtab(j, 10);
 	putc(' ', list);
-	WITH2 = &internrep[WITH1->UU.U1.symb + 1];
+	WITH2 = &stringarray[WITH1->symb + 1];
 	FORLIM1 = WITH2->seg[WITH2->loc - 1];
 	for (j = 0; j < FORLIM1; j++)
 	  putc(WITH2->seg[WITH2->loc + j], output);
@@ -1546,7 +1507,7 @@ void errortable(void)
 	    WITH1 = &lr[lqbep];
 	    testp = gemp;
 	    ct = 2;
-	    while (lqbep != i5 && WITH1->UU.U1.symb != lr[testp].UU.U1.symb) {
+	    while (lqbep != i5 && WITH1->symb != lr[testp].symb) {
 	      testp = lr[testp].chain;
 	      ct++;
 	      if (testp == 0)
@@ -1561,7 +1522,7 @@ void errortable(void)
 	  if (i5 == 0 && kz == ctmax) {
 	    WITH3 = &state[j];
 	    WITH3->errorno = no;
-	    lr[WITH3->newstart].UU.U1.err = no;
+	    lr[WITH3->newstart].err = no;
 	  }
 	}
       }
@@ -1638,8 +1599,8 @@ Local void lalr1(configtype *statep, configtype *testp, int prodno_,
     loopp = runp;
     LINK->r = rightp;
     for (hinx = 1; hinx <= plngd; hinx++) {
-      LINK->info = rhs[LINK->r].symbol_;
-      while (loopp->UU.U1.inf != LINK->info)
+      LINK->info = rhs[LINK->r].symbol;
+      while (loopp->inf != LINK->info)
 	loopp = loopp->derivp;
       loopp = loopp->nextp;
       LINK->r++;
@@ -1674,16 +1635,16 @@ Local void lalr1(configtype *statep, configtype *testp, int prodno_,
 	WITH1->hidep = runp;
 	WITH1->lnk = 0;
 	transp = runp;
-	while (transp->UU.U1.inf != leftinf)
+	while (transp->inf != leftinf)
 	  transp = transp->derivp;
 	transp = transp->nextp;
 	loopp = transp;
 	while (loopp != NULL) {
 	  WITH2 = loopp;
 	  if (WITH2->mode == 0)
-	    lalr1(transp, runp, WITH2->UU.U1.prodnr, LINK);
+	    lalr1(transp, runp, WITH2->prodnr, LINK);
 	  else
-	    LINK->ll[WITH2->UU.U1.inf].lamrk = true;
+	    LINK->ll[WITH2->inf].lamrk = true;
 	  loopp = WITH2->derivp;
 	}
       }
@@ -1732,7 +1693,7 @@ Local void lookahead(int *a, struct LOC_verify *LINK)
   int j = 0;
   int k, pnr, cnt, prodnr;
   int lax = 0;
-  int symbol_;
+  int symbol;
   int llimit = 1;
   int stack[maxLAS + 1], buffer[maxLAS + 1];
   boolean laloop, repeatla, exitla;
@@ -1766,7 +1727,7 @@ Local void lookahead(int *a, struct LOC_verify *LINK)
 	}
       }
       if (!exitla) {
-	while (rhs[p1].symbol_ != *a && p1 < top) {
+	while (rhs[p1].symbol != *a && p1 < top) {
 	  incrtabx(&p1);
 	  i++;
 	  if (i <= prod[prodnr].laend)
@@ -1784,7 +1745,7 @@ Local void lookahead(int *a, struct LOC_verify *LINK)
 	  if (p1 < top) {
 	    if (i < prod[prodnr].laend) {
 	      incrtabx(&p1);
-	      symbol_ = rhs[p1].symbol_;
+	      symbol = rhs[p1].symbol;
 	      symbp = p1;
 	      i++;
 	    } else {
@@ -1806,12 +1767,12 @@ Local void lookahead(int *a, struct LOC_verify *LINK)
 	  } else
 	    exitla = true;
 	  if (!exitla && !repeatla) {
-	    if (symbol_ > termg) {
+	    if (symbol > termg) {
 	      FORLIM = firstnont;
 	      for (k = 0; k < FORLIM; k++) {
 		if (P_inset(k % (setmax + 1),
-			    ph1s[symbol_].r[k / (setmax + 1)])) {
-/* p2c: pg.p, line 1236:
+			    ph1s[symbol].r[k / (setmax + 1)])) {
+/* p2c: pg.p, line 1219:
  * Note: Using % for possibly-negative arguments [317] */
 		  buffer[lax] = k;
 		  lax++;
@@ -1822,7 +1783,7 @@ Local void lookahead(int *a, struct LOC_verify *LINK)
 		}
 	      }
 	    } else {
-	      buffer[lax] = symbol_;
+	      buffer[lax] = symbol;
 	      lalrend++;
 	      lax++;
 	      if (lax > maxLAS)
@@ -1869,10 +1830,10 @@ Local void voptimize(char x, struct LOC_verify *LINK)
     LINK->lastok->nextp = LINK->helpp->nextp;
     LINK->lastok->mode = LINK->helpp->mode;
     if (LINK->helpp->mode == 5)
-      LINK->lastok->UU.lookbp = LINK->helpp->UU.lookbp;
+      LINK->lastok->lookbp = LINK->helpp->lookbp;
     else if (LINK->helpp->mode > 0 && LINK->helpp->mode < 5) {
-      LINK->lastok->UU.U1.inf = LINK->helpp->UU.U1.inf;
-      LINK->lastok->UU.U1.prodnr = LINK->helpp->UU.U1.prodnr;
+      LINK->lastok->inf = LINK->helpp->inf;
+      LINK->lastok->prodnr = LINK->helpp->prodnr;
     }
     break;
 
@@ -1950,7 +1911,7 @@ Local void adeqwrite(int x, struct LOC_verify *LINK)
 	l = LINK->stack[j].token;
 	k = LINK->stack[j].symb;
 	fprintf(list, "                       ");
-	listterm(internrep[k+1], &i);
+	listterm(stringarray[k+1], &i);
 	fprintf(list, "%12d", kk);
 	fprintf(list, "%12d\n", l);
       }
@@ -1962,7 +1923,7 @@ Local void adeqwrite(int x, struct LOC_verify *LINK)
       helpp = LINK->lookant[j].point;
       fprintf(list, "           ");
       fprintf(list, "Reduction  no.");
-      m = helpp->UU.U1.prodnr;
+      m = helpp->prodnr;
       fprintf(list, "%4d", m);
       fprintf(list, " is performed if the next input symbol\n");
       fprintf(list, "                      ");
@@ -1971,8 +1932,8 @@ Local void adeqwrite(int x, struct LOC_verify *LINK)
       do {
 	kk++;
 	fprintf(list, "                      ");
-	k = helpp->UU.U1.inf;
-	listterm(internrep[k+1], &i);
+	k = helpp->inf;
+	listterm(stringarray[k+1], &i);
 	putc('\n', list);
 	helpp = helpp->derivp;
       } while (kk != l);
@@ -2017,7 +1978,7 @@ Local int mendcheck(struct LOC_verify *LINK)
 	l = 0;
 	do {
 	  l++;
-	  if (LINK->lqbep1->UU.U1.inf == checksymb) {
+	  if (LINK->lqbep1->inf == checksymb) {
 	    iboo = 1;
 	    l = k;
 	    j = LINK->prodcnt;
@@ -2048,7 +2009,7 @@ Local int mendcheck(struct LOC_verify *LINK)
 	stepp2 = step2p;
 	do {
 	  l2++;
-	  if (stepp1->UU.U1.inf == stepp2->UU.U1.inf) {
+	  if (stepp1->inf == stepp2->inf) {
 	    l2 = step2;
 	    l1 = step1;
 	    j = LINK->prodcnt;
@@ -2082,8 +2043,8 @@ Local configtype *findreduce(int pnr, struct LOC_verify *LINK)
 	continue;
       allocp(&pt, 1);
       pt->mode = 3;
-      pt->UU.U1.inf = WITH->laend - 1;
-      pt->UU.U1.prodnr = pnr;
+      pt->inf = WITH->laend - 1;
+      pt->prodnr = pnr;
       pt->nextp = WITH->lookbackp;
       pt->derivp = NULL;
       statecount++;
@@ -2122,7 +2083,7 @@ void verify(void)
       k = V.helpp->mode;
       if (k == 0)
 	V.prodcnt++;
-      else if (V.helpp->UU.U1.inf <= termg && V.helpp->nextp != NULL)
+      else if (V.helpp->inf <= termg && V.helpp->nextp != NULL)
 	V.termcnt++;
       V.helpp = V.helpp->derivp;
     } while (V.helpp != NULL);
@@ -2135,7 +2096,7 @@ void verify(void)
       do {
 	k = V.helpp->mode;
 	if (k == 0) {
-	  pnr = V.helpp->UU.U1.prodnr;
+	  pnr = V.helpp->prodnr;
 	  lalrlookahead(V.start, pnr, &V);
 	  l = lalrend - 1;
 	  allocp(&V.lqbep1, 1);
@@ -2147,8 +2108,8 @@ void verify(void)
 	  for (j = 0; j <= l; j++) {
 	    lqbep2 = V.lqbep1;
 	    lqbep2->nextp = lqbep3;
-	    lqbep2->UU.U1.inf = V.la[j];
-	    lqbep2->UU.U1.prodnr = pnr;
+	    lqbep2->inf = V.la[j];
+	    lqbep2->prodnr = pnr;
 	    lqbep2->mode = 4;
 	    if (j == l)
 	      lqbep2->derivp = V.helpp->derivp;
@@ -2159,14 +2120,14 @@ void verify(void)
 	  }
 	} else {
 	  WITH = V.helpp;
-	  if (WITH->UU.U1.inf <= termg && WITH->nextp != NULL) {
+	  if (WITH->inf <= termg && WITH->nextp != NULL) {
 	    V.termcnt++;
 	    if (V.termcnt > maxSYMBS)
 	      consterror("verify              ", "maxsymbs            ",
 			 maxSYMBS);
 	    else {
-	      V.stack[V.termcnt-1].symb = WITH->UU.U1.inf;
-	      V.stack[V.termcnt-1].pnr = WITH->UU.U1.prodnr;
+	      V.stack[V.termcnt-1].symb = WITH->inf;
+	      V.stack[V.termcnt-1].pnr = WITH->prodnr;
 	      V.stack[V.termcnt-1].token = WITH->mode;
 	    }
 	  }
@@ -2227,17 +2188,17 @@ void verify(void)
 	    V.lastok = lqbep3;
 	} while (lqbep3 != stopp);
       } else if (WITH->mode == 0) {
-	WITH1 = &prod[WITH->UU.U1.prodnr];
+	WITH1 = &prod[WITH->prodnr];
 	WITH->mode = 3;
 	WITH->nextp = WITH1->lookbackp;
 	V.prodcnt++;
 	if (WITH1->laend == 0)
-	  WITH->UU.U1.inf = 0;
+	  WITH->inf = 0;
 	else
-	  WITH->UU.U1.inf = WITH1->laend - 1;
+	  WITH->inf = WITH1->laend - 1;
 	if (count > 1)
 	  voptimize(newentry, &V);
-      } else if (WITH->UU.U1.inf <= termg) {
+      } else if (WITH->inf <= termg) {
 	if (count > 1) {
 	  if (WITH->nextp != NULL) {
 	    V.helpp = V.lqbep1;
@@ -2307,7 +2268,7 @@ Local void align(configtype *startp, boolean boo, struct LOC_lr0 *LINK)
   lqbep = startp;
   while (lqbep != NULL) {
     WITH = lqbep;
-    LINK->lqbep2 = prod[WITH->UU.U1.prodnr].start;
+    LINK->lqbep2 = prod[WITH->prodnr].start;
     for (i = WITH->mode; i >= 1; i--)
       incrtabx(&LINK->lqbep2);
     if (rhs[LINK->lqbep2].parserp != NULL) {
@@ -2315,7 +2276,7 @@ Local void align(configtype *startp, boolean boo, struct LOC_lr0 *LINK)
 	LINK->lqbep2 = rhs[LINK->lqbep2].link;
       rhs[LINK->lqbep2].link = top;
       LINK->lqbep2 = top;
-      newelm(&top, "lr0                 ");
+      newelm(&top, "align               ");
     }
     WITH1 = &rhs[LINK->lqbep2];
     WITH1->basis = boo;
@@ -2334,7 +2295,7 @@ Local void stackellerej(struct LOC_lr0 *LINK)
   _REC_stack_ *WITH2;
 
   WITH = classtop;
-  WITH1 = &help[WITH->UU.U1.inf];
+  WITH1 = &help[WITH->inf];
   if (WITH1->overgang)
     return;
   LINK->stacktael++;
@@ -2343,7 +2304,7 @@ Local void stackellerej(struct LOC_lr0 *LINK)
   LINK->stacktop++;
   WITH1->overgang = true;
   WITH2 = &LINK->stack[LINK->stacktop-1];
-  WITH2->symbovg = WITH->UU.U1.inf;
+  WITH2->symbovg = WITH->inf;
   WITH2->stp = beginstate;
 }
 
@@ -2364,22 +2325,21 @@ void lr0(void)
 
   top = point;
   newelm(&top, "lr0                 ");
-  /* freeptr := nil; */
   statecount = 0;
   allocp(&rodp, 1);
   classtop = rodp;
   WITH = rodp;
-  WITH->UU.U1.prodnr = goalprod;
+  WITH->prodnr = goalprod;
   WITH->mode = 1;
   V.lqbep2 = prod[goalprod].start;
   incrtabx(&V.lqbep2);
-  WITH->UU.U1.inf = rhs[V.lqbep2].symbol_;
+  WITH->inf = rhs[V.lqbep2].symbol;
   WITH->derivp = NULL;
   V.baslae = 1;
   V.stacktop = 1;
   WITH1 = V.stack;
   WITH1->stp = rodp;
-  WITH1->symbovg = rodp->UU.U1.inf;
+  WITH1->symbovg = rodp->inf;
   statenum = 0;
   state[statenum].oldstart = rodp;
   align(rodp, true, &V);
@@ -2398,7 +2358,7 @@ void lr0(void)
       WITH2->afledt = false;
       WITH2->overgang = false;
     }
-    while (lqbep->UU.U1.inf != symb)
+    while (lqbep->inf != symb)
       lqbep = lqbep->derivp;
     closp = lqbep;
     loopx = true;
@@ -2408,17 +2368,17 @@ void lr0(void)
       V.baslae++;
       WITH = classtop;
       WITH->nextp = NULL;
-      WITH->UU.U1.prodnr = lqbep->UU.U1.prodnr;
+      WITH->prodnr = lqbep->prodnr;
       modeh = lqbep->mode + 1;
-      if (prod[WITH->UU.U1.prodnr].laend < modeh) {
+      if (prod[WITH->prodnr].laend < modeh) {
 	WITH->mode = 0;
-	WITH->UU.U1.inf = 0;
+	WITH->inf = 0;
       } else {
 	WITH->mode = modeh;
-	V.lqbep2 = prod[WITH->UU.U1.prodnr].start;
+	V.lqbep2 = prod[WITH->prodnr].start;
 	for (i = WITH->mode; i >= 1; i--)
 	  incrtabx(&V.lqbep2);
-	WITH->UU.U1.inf = rhs[V.lqbep2].symbol_;
+	WITH->inf = rhs[V.lqbep2].symbol;
 	stackellerej(&V);
       }
       do {
@@ -2427,7 +2387,7 @@ void lr0(void)
 	  loopx = false;
 	  finlq = true;
 	} else
-	  finlq = (lqbep->UU.U1.inf == symb);
+	  finlq = (lqbep->inf == symb);
       } while (!finlq);
       if (!loopx)
 	break;
@@ -2437,7 +2397,7 @@ void lr0(void)
     }
     classtop->derivp = NULL;
     copy = false;
-    V.lqbep2 = prod[beginstate->UU.U1.prodnr].start;
+    V.lqbep2 = prod[beginstate->prodnr].start;
     for (i = beginstate->mode; i >= 1; i--)
       incrtabx(&V.lqbep2);
     if (rhs[V.lqbep2].parserp != NULL) {
@@ -2452,7 +2412,7 @@ void lr0(void)
 	      copy = false;
 	      helpp = WITH3->parserp;
 	      while (helpp != NULL) {
-		copy = ((WITH->UU.U1.prodnr == helpp->UU.U1.prodnr &&
+		copy = ((WITH->prodnr == helpp->prodnr &&
 			 WITH->mode == helpp->mode) || copy);
 		helpp = helpp->derivp;
 	      }
@@ -2482,13 +2442,13 @@ void lr0(void)
     lqbep = beginstate;
     while (lqbep != NULL) {
       WITH = lqbep;
-      WITH2 = &help[WITH->UU.U1.inf];
+      WITH2 = &help[WITH->inf];
       if (WITH->mode > 0) {
-	if (WITH->UU.U1.inf > termg) {
+	if (WITH->inf > termg) {
 	  if (!WITH2->afledt) {
 	    WITH2->afledt = true;
 	    prodno_ = WITH2->prodindex;
-	    while (prod[prodno_].leftside == WITH->UU.U1.inf) {
+	    while (prod[prodno_].leftside == WITH->inf) {
 	      WITH4 = &prod[prodno_];
 	      helpp = classtop;
 	      allocp(&classtop, 1);
@@ -2496,12 +2456,12 @@ void lr0(void)
 	      WITH5 = classtop;
 	      V.lqbep2 = WITH4->start;
 	      incrtabx(&V.lqbep2);
-	      WITH5->UU.U1.inf = rhs[V.lqbep2].symbol_;
+	      WITH5->inf = rhs[V.lqbep2].symbol;
 	      if (prod[prodno_].laend == 0)
 		WITH5->mode = 0;
 	      else
 		WITH5->mode = 1;
-	      WITH5->UU.U1.prodnr = prodno_;
+	      WITH5->prodnr = prodno_;
 	      WITH5->derivp = NULL;
 	      WITH5->nextp = NULL;
 	      if (classtop->mode > 0)
@@ -2557,8 +2517,8 @@ void lookb(void)
 	newline(2);
 	stop(0);
       }
-      WITH1->UU.lookbp = stp;
-      while (stp->UU.U1.inf != symb)
+      WITH1->lookbp = stp;
+      while (stp->inf != symb)
 	stp = stp->derivp;
       stp = stp->nextp;
       countnextp(stp);
@@ -2579,7 +2539,7 @@ void lookb(void)
       WITH1 = classtop;
       WITH1->derivp = NULL;
       WITH1->nextp = stp;
-      WITH1->UU.lookbp = NULL;
+      WITH1->lookbp = NULL;
       WITH1->mode = 5;
       statecount++;
       if (statecount > Nparstb)
@@ -2618,7 +2578,7 @@ void initprod(void)
       FORLIM1 = WITH->laend;
       for (l = 1; l <= FORLIM1; l++)
 	incrtabx(&p);
-      if (WITH->laend == 1 && rhs[WITH->start + 1].symbol_ == emptyvalue)
+      if (WITH->laend == 1 && rhs[WITH->start + 1].symbol == emptyvalue)
 	WITH->laend = 0;
       p = rhs[p].link;
     }
@@ -2731,15 +2691,15 @@ void vhrecurs(void)
     p = help[i].rightp;
     while (p != rhsnil) {
       l = rhs[p].basisl;
-      ll = rhs[p+1].symbol_;
+      ll = rhs[p+1].symbol;
       ii = ll / (setmax + 1);
       P_addset(ph1s[i].r[ii], ll % (setmax + 1));
-/* p2c: pg.p, line 2030:
+/* p2c: pg.p, line 2012:
  * Note: Using % for possibly-negative arguments [317] */
-      ll = rhs[p + l].symbol_;
+      ll = rhs[p + l].symbol;
       ii = ll / (setmax + 1);
       P_addset(pt1s[i].r[ii], ll % (setmax + 1));
-/* p2c: pg.p, line 2033:
+/* p2c: pg.p, line 2015:
  * Note: Using % for possibly-negative arguments [317] */
       p = rhs[p + l].link;
     }
@@ -2753,7 +2713,7 @@ void vhrecurs(void)
     i = ii / (setmax + 1);
     if (*P_setint(SET2, P_setint(SET1, ph1s[ii].r[i], pt1s[ii].r[i]),
 		  P_addset(P_expset(SET, 0), ii % (setmax + 1))) != 0) {
-/* p2c: pg.p, line 2044:
+/* p2c: pg.p, line 2026:
  * Note: Using % for possibly-negative arguments [317] */
       boo = true;
       fprintf(list, "\n ");
@@ -2796,8 +2756,8 @@ boolean removechain(boolean t, boolean *modb)
     j = help[i].rightp;
     if (j != rhsnil && rhs[j].basisl == 1) {
       incrtabx(&j);
-      if (rhs[j].link == rhsnil && rhs[j].symbol_ > termg) {
-	indsat = rhs[j].symbol_;
+      if (rhs[j].link == rhsnil && rhs[j].symbol > termg) {
+	indsat = rhs[j].symbol;
 	remove = i;
 	help[i].rightp = rhsnil;
 	Result = true;
@@ -2814,8 +2774,8 @@ boolean removechain(boolean t, boolean *modb)
 	    do {
 	      for (n = 1; n <= l; n++) {
 		incrtabx(&j);
-		if (rhs[j].symbol_ == remove)
-		  rhs[j].symbol_ = indsat;
+		if (rhs[j].symbol == remove)
+		  rhs[j].symbol = indsat;
 	      }
 	      if (rhs[j].link == rhsnil)
 		m = 1;
@@ -2851,9 +2811,9 @@ void writeip(int *x, int ju, int lae, prodtabx stp2)
   fprintf(list, " ::= ");
   for (l = 1; l <= lae; l++) {
     incrtabx(&stepp3);
-    ll = rhs[stepp3].symbol_;
+    ll = rhs[stepp3].symbol;
     if (ll <= termg)
-      writeterm(internrep[ll+1], &jj);
+      writeterm(stringarray[ll+1], &jj);
     else
       writenont(ll, &jj);
     putc(' ', list);
@@ -2893,7 +2853,7 @@ boolean identprod(boolean *t)
 	      for (i = 1; i <= laend1; i++) {
 		incrtabx(&stepp1);
 		incrtabx(&stepp2);
-		if (rhs[stepp1].symbol_ != rhs[stepp2].symbol_)
+		if (rhs[stepp1].symbol != rhs[stepp2].symbol)
 		  ens = false;
 	      }
 	      if (ens) {
@@ -3287,11 +3247,11 @@ Local void listterminals(struct LOC_produce *LINK)
   middle = LINK->LINK->numberoftermsymbs >> 1;
   for (i = 0; i <= middle; i++) {
     fprintf(list, " %5d       ", i);
-    listterm(internrep[i+1], &j);
+    listterm(stringarray[i+1], &j);
     listtab(j, 10);
     if (middle + i < LINK->LINK->numberoftermsymbs) {
       fprintf(list, "      %5d       ", middle + i + 1);
-      listterm(internrep[middle + i + 2], &j);
+      listterm(stringarray[middle + i + 2], &j);
     }
     putc('\n', list);
   }
@@ -3387,7 +3347,7 @@ Local void inputerror(int nr, struct LOC_produce *LINK)
 
   case 2:
     fprintf(console, "   ***  Terminal \"");
-    k = internrep[lasttermval+1].loc;
+    k = stringarray[lasttermval+1].loc;
     FORLIM = symbtab[k-1];
     for (j = 0; j < FORLIM; j++) {
       kch = symbtab[k + j];
@@ -3429,13 +3389,13 @@ Local void inputerror(int nr, struct LOC_produce *LINK)
     LINK->LINK->stoperror = true;
     putc('\n', list);
     fprintf(console, "   ***  Terminal \"");
-    k = internrep[lasttermval+1].loc;
+    k = stringarray[lasttermval+1].loc;
     FORLIM = symbtab[k-1];
     for (j = 0; j < FORLIM; j++)
       putc(symbtab[k + j], console);
     fprintf(console, "\" more than %2ld characters.\n", (long)ordmaxch);
     fprintf(list, "   ***  Terminal \"");
-    k = internrep[lasttermval+1].loc;
+    k = stringarray[lasttermval+1].loc;
     FORLIM = symbtab[k-1];
     for (j = 0; j < FORLIM; j++)
       putc(symbtab[k + j], list);
@@ -3631,11 +3591,11 @@ Local void initialprod(struct LOC_produce *LINK)
   memcpy(LINK->LINK->chbuf,
     "METAGOAL                                                                                                                                                                                                                                                        ",
     sizeof(chbuftype));
-  putsym(0, 7, &internrep[1], LINK);
+  putsym(0, 7, &stringarray[1], LINK);
   memcpy(LINK->LINK->chbuf,
     "<EOF>                                                                                                                                                                                                                                                           ",
     sizeof(chbuftype));
-  putsym(0, 4, &internrep[2], LINK);
+  putsym(0, 4, &stringarray[2], LINK);
 }
 
 Local void newnode(int leftattr, int rightattr, int localprod,
@@ -3778,16 +3738,16 @@ Local void terminal(stringaddress addr, struct LOC_produce *LINK)
   }
   if (termrep == 0)
     return;
-  if (length == 1) {
-    WITH = &entry_[addr.seg[addr.loc]];
-    if (WITH->defined_)
-      termrep = WITH->internv;
+  if (length != 1) {
+    if (currentp->defined_)
+      termrep = currentp->internv;
     else
       termerror(addr, 0, LINK);
     return;
   }
-  if (currentp->defined_)
-    termrep = currentp->internv;
+  WITH = &entry_[addr.seg[addr.loc]];
+  if (WITH->defined_)
+    termrep = WITH->internv;
   else
     termerror(addr, 0, LINK);
 }
@@ -3805,7 +3765,7 @@ Local void workon(treenode *node, struct LOC_produce *LINK)
     nonterms[ntcount].isonright = true;
     rhs[point].parserp = NULL;
     rhs[point].link = rhsnil;
-    rhs[point].symbol_ = ntcount;
+    rhs[point].symbol = ntcount;
     symbp = point;
     newelm(&point, "inputgrammar        ");
     isfirst = false;
@@ -3821,7 +3781,7 @@ Local void workon(treenode *node, struct LOC_produce *LINK)
     gramerror(19);
     return;
   }
-  rhs[point].symbol_ = termrep;
+  rhs[point].symbol = termrep;
   symbp = point;
   newelm(&point, "inputgrammar        ");
   isfirst = false;
@@ -3873,15 +3833,15 @@ Local void outputleftside(treenode *node, struct LOC_produce *LINK)
     WITH->basisl = 3;
     symbp = point;
     newelm(&point, "Goalprod            ");
-    rhs[point].symbol_ = 0;
+    rhs[point].symbol = 0;
     newelm(&point, "Goalprod            ");
     WITH = &rhs[point];
     if (goalknown)
-      WITH->symbol_ = goalsymbol;
+      WITH->symbol = goalsymbol;
     else
-      WITH->symbol_ = ntcount;
+      WITH->symbol = ntcount;
     newelm(&point, "Goalprod            ");
-    rhs[point].symbol_ = 1;
+    rhs[point].symbol = 1;
     for (i = 1; i <= 4; i++) {
       WITH = &rhs[symbp];
       incrtabx(&symbp);
@@ -3934,7 +3894,7 @@ Local void purgetree(treenode **node, struct LOC_produce *LINK)
   Free(*node);
 }
 
-Local void checkthegrammar(struct LOC_produce *LINK)
+Local void checkbothsides(struct LOC_produce *LINK)
 {
   int i, k, m;
   _REC_nonterms *WITH;
@@ -4025,9 +3985,9 @@ Local void readterminal(chbufinx stringptr, chbufinx endmarker,
   entrytyp *WITH;
   termelm *WITH1;
 
-  /*    It is a good question why one should complicate things by
-        building a tree of terminals here instead of just listing
-        them separately and checking for equality by other means */
+  /*                    It is a good question why one should complicate things by
+                        building a tree of terminals here instead of just listing
+                        them separately and checking for equality by other means*/
   if (LINK->prod != termdeflist4) {
     if (lasttermval < maxSYMBS)
       lasttermval++;
@@ -4037,7 +3997,7 @@ Local void readterminal(chbufinx stringptr, chbufinx endmarker,
   m = endmarker - stringptr + 1;
   if (m > ordmaxch)
     m = ordmaxch;
-  putsym(stringptr, stringptr + m - 1, &internrep[lasttermval+1], LINK);
+  putsym(stringptr, stringptr + m - 1, &stringarray[lasttermval+1], LINK);
   if (endmarker - stringptr + 1 > ordmaxch)
     inputerror(6, LINK);
 
@@ -4247,7 +4207,7 @@ Local void produce(stackinx oldtop_, stackinx newtop_, int prod_,
       newline(2);
       V.wrj = 0;
       writenonterms(first, &V);
-      checkthegrammar(&V);
+      checkbothsides(&V);
     }
     break;
 
@@ -4350,7 +4310,7 @@ Local void produce(stackinx oldtop_, stackinx newtop_, int prod_,
   case emptydef1:
     readterminal(startofsymbol(3, &V) + 1, endofsymbol(3, &V), &V);
     emptyvalue = lasttermval;
-    LINK->emptyaddress = internrep[emptyvalue+1];
+    LINK->emptyaddress = stringarray[emptyvalue+1];
     break;
 
   /*17 goalsymboldef = "GOALSYMBOL" colon "<NAME>"       */
@@ -5216,7 +5176,7 @@ _L10:
 }
 
 
-main(int argc, Char *argv[])
+void main(int argc, Char *argv[])
 {
   P_argc = argc; P_argv = argv; __top_jb = NULL;
   if (setjmp(_JL999))

@@ -6,7 +6,7 @@
 \usepackage{multicol}
 \usepackage{xspace}
 \usepackage{wrapfig}
-\usepackage{datetime}
+%\usepackage{datetime}
 \usepackage{troffman}
 \usepackage{tikz}
 %                               Fix the table of contents:
@@ -82,18 +82,35 @@
  citecolor=purple}
 
 \begin{document}
-\title{Drawing with dpic}
-\author{Dwight Aplevich%
-\date{\the\day\ \monthname[\the\month]\ \the\year}
+%\title{Drawing with dpic}
+%\author{Dwight Aplevich%
+%\date{\the\day\ \monthname[\the\month]\ \the\year}
+%\footnote{Copyright \textcopyright\ \the\year\ J.\ D.\ Aplevich,
+%all rights reserved.  This document version is made available
+%under the Creative Commons attribution licence version 3.0
+%(\protect{\tt http://creativecommons.org/licenses/by/3.0/});
+%you are free to copy
+%and distribute this document provided proper attribution is given by
+%identifying the author.
+%}}
+%\maketitle%
+%
+\begin{centering}
+{\LARGE Drawing with dpic}\\
+{\large
+Dwight Aplevich%
 \footnote{Copyright \textcopyright\ \the\year\ J.\ D.\ Aplevich,
-all rights reserved.  This document version is made available
-under the Creative Commons attribution licence version 3.0
-(\protect{\tt http://creativecommons.org/licenses/by/3.0/});
-you are free to copy
-and distribute this document provided proper attribution is given by
-identifying the author.
-}}
-\maketitle%
+  all rights reserved.  This document version is made available
+  under the Creative Commons attribution licence version 3.0
+  (\protect{\tt http://creativecommons.org/licenses/by/3.0/});
+  you are free to copy
+  and distribute this document provided proper attribution is given by
+  identifying the author.
+  }\\
+%\the\day\ \monthname[\the\month]\ \the\year}\\
+\input{VERSION.tex}}\\
+\end{centering}
+
 %
 \pdfbookmark[section]{\contentsname}{toc}
 \begin{multicols}{2}
@@ -164,7 +181,8 @@ To produce other formats:
 \Dpic\ accepts the following options:
 \begin{tabbing}
 \quad\=\hbox{(none)\ }\= \kill
-\> (none) \> Latex picture output (very limited font-based drawing commands)\\
+\> (none) \> Latex picture-environment output (very limited font-based
+ drawing commands)\\
 \> {\tt -d} \> PDF output \\
 \> {\tt -e} \> pict2e output \\
 \> {\tt -f} \> Postscript output with psfrag strings \\
@@ -177,7 +195,7 @@ To produce other formats:
 \> {\tt -t} \> eepicemu output \\
 \> {\tt -v} \> SVG output \\
 \> {\tt -x} \> xfig 3.2 output \\
-\> {\tt -z} \> safe mode ({\tt sh}, {\tt copy}, and print to file disabled)
+\> {\tt -z} \> safe mode (disabled {\tt sh}, {\tt copy}, and print to file)
 \end{tabbing}
 
 The {\tt -p} option produces output for postprocessing by the
@@ -427,7 +445,7 @@ has one argument.
   the macro on invocation.  Thus if {\sl x} is a macro name, the values of
   {\tt\$+}
   when the macro is invoked as {\sl x}, {\sl x}{\tt()}, {\sl x}{\tt(8)},
-  {\sl x}{\tt(8,9)}, and {\sl x}{\tt(,,)} are
+  {\sl x}{\tt(8,9)}, and {\sl x}{\tt(,{},)} are
   respectively 0, 1, 1, 2, and 3.
 
 To check whether an argument is null, put it in a string; for example,
@@ -479,7 +497,7 @@ define bisect {
 \end{verbatim}
 %\iffalse
 \begin{wrapfigure}[12]{r}{0.4\textwidth}%
-  \vspace*{-4\baselineskip}%
+  \vspace*{-\baselineskip}%
   \hspace*{1em}%
 % \parbox{0.4\textwidth}{\includegraphics{Spiral.pdf}}%
   \parbox{0.4\textwidth}{\input{Spiral.tex}}%
@@ -641,8 +659,6 @@ write
 
 Then the following defines a suitable mechanism with a loop depth index to
 allow nesting:
-% (As usual, commas within the arguments must be in strings or
-% protected by~{\tt(~)} parentheses.):
 \ntt{ld\_\_ = 0}
 \ntt{define loop \{ld\_\_+=1; \$1}
 \ntt{\ for lx\_\_[ld\_\_]=0 to 1 do \{}
@@ -783,7 +799,7 @@ define(`lbox',
 \end{verbatim}
 The macro is invoked as {\tt lbox({\sl width}, {\sl height}, {\sl type})};
 for example,
-\ntt{Point\_(20); lbox(,,fill 0.9)}\\
+\ntt{Point\_(20); lbox(,{},fill 0.9)}\\
 draws a light gray-filled box of default size at an angle of 20 degrees from
 the horizontal. 
 In the macro, the width and height of the box are first defined,
@@ -1264,9 +1280,10 @@ to older versions.
   Dpic and gpic give slightly different default precedences to the logical
   operators {\tt !}, {\tt \&\&}, {\tt ||}, {\tt ==}, {\tt !=}, {\tt >=},
   {\tt <=}, {\tt <}, and {\tt >}, so judicious use of
-  parentheses may sometimes be in order to guarantee identical behavior.
-  In addition, put string comparisons in parentheses, e.g.
-  \ntt{("{\sl text1}" == "{\sl text2}")}
+  parentheses may sometimes be in order.
+  Dpic also requires comparisons to be put in parentheses in numerical
+  expressions; e.g., 
+  \ntt{x = ("{\sl text1}" == "{\sl text2}")}
 
   The construct {\tt x<A,B>} is intended to have the same meaning as
   {\tt (x between A and B)} but, in some obscure
@@ -1277,8 +1294,9 @@ to older versions.
   the form {\tt(x between A and B)} should be used in such expressions,
   e.g.
    \ntt{\tt if (0.5 between A and B).y < 2 then }\tLB~$\ldots$ \tRB\\
-% In other cases, putting a comparison using {\tt<} inside parentheses will
-% ensure correct results.
+
+% In all cases, putting comparisons inside parentheses will
+% render them robust to logical agreement and to error messages.
 
 \subsection{{\tt then}}
   Versions of gpic up to 1.19 ignore the {\tt then} keyword, so that
@@ -1300,6 +1318,11 @@ to older versions.
     {\tt last line.c}.\\
   In gpic, the location corresponding to {\tt last line} is
     {\tt last line.start}.
+
+  In dpic version 2017.01.01 and later,
+  {\tt last line.wid} returns the arrowhead width of the line;
+  similarly for {\tt .ht} and for the other linear objects including {\tt move}.
+  The arrowhead height value is returned by {\tt last line.ht}.
 
 % Gpic and ATT pic use {\tt .start} for all of the compass corners of these
 % objects, whereas dpic attempts a slightly more elaborate computation.
@@ -1345,25 +1368,27 @@ arguments can be arbitrary expressions rather than the constants shown.
   \ntt{"abc" + sprintf(" def\%g",2)}\\
   is equivalent to {\tt"abc def2"}.
 
+  In a macro, a dollar sign followed by an integer in a
+  string will expand to the corresponding macro argument if it is
+  defined.  Separate the dollar sign from the integer to avoid
+  expansion, as in the TeX strings
+   {\tt"\tLB\tBS\$\tRB{}1"}, {\tt"\$\tBS\$ 1\$"}, or {\tt"\$\tLB 0\tRB\$"},
+  for example.
+
   Both dpic and gpic treat \tBS\ as an escape character prior to the
   quote character in a string, so {\tt"\tBS""} is a length-one string containing
   the double quote.  Otherwise, the backslash is an ordinary string
   character.
   For example, the characters \verb|\\"U| in a string are output as \verb|\"U|
   to produce \"U when processed by LaTeX.
-
-  In a macro, a dollar sign followed by an integer in a
-  string will expand to the corresponding macro argument if it is
-  defined.  Separate the dollar sign from the integer to avoid
-  expansion, as in the TeX strings
-%"{\$}1", "$\$ 1$", or "${0}$"
-   {\tt"\tLB\tBS\$\tRB{}1"}, {\tt"\$\tBS\$ 1\$"}, or {\tt"\$\tLB 0\tRB\$"},
-  for example.
-%  Some previous versions of dpic allowed {\tt\$} to escape the
-%  dollar sign in strings but this created other difficulties.
+  A string with a backslash as last character
+  has to be generated using a macro; for example, if we write
+  {\tt define charstr \tLB"\$1"\tRB} then {\tt charstr(abc\tBS)}
+  evaluates to a string containing the required final backslash.
 
   Both dpic and gpic allow logical comparison of strings.
-  Put the comparison in parentheses.
+  Put the comparison in parentheses if it is to be used in a numerical
+  expression.
 
   String height and width are unscaled on final output from dpic since
   these depend on later formatting by LaTeX.
@@ -1665,7 +1690,7 @@ A few additional mathematical functions are defined in dpic:
   {\tt loge}, {\tt sign}, {\tt tan}, and {\tt pmod}.
 
 \subsection{PSTricks anomaly}
-  Some time in the mid 2000 to 2010 interval,
+  At some time in the mid 2000 to 2010 interval,
   the behaviour of the low-level PSTricks command
   {\tt \tBS{}psbezier}
   was changed to match the existing context-dependent behavior

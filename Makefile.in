@@ -1,0 +1,87 @@
+# For Linux (expects "make DESTDIR=xxx PREFIX=yyy install"):
+DESTDIR = /usr
+PREFIX = .
+DEST = ${DESTDIR}/${PREFIX}/bin
+
+MANDIR = $(DESTDIR)/$(PREFIX)/share/man/man1
+DOCDIR = $(DESTDIR)/$(PREFIX)/share/doc/dpic
+
+#-----------------------------------------------------------------------
+
+DEFS=@defrand@ @defno_snprintf@ @safe_mode@ @no_intt@
+CC=@CC@
+PC=@PC@
+CFLAGS += $(DEFS) -O
+
+OBJECTS = dpic.o p2clib.o
+
+#DATE = `date +%Y.%m.%d`
+DATE=@VERSION@
+
+#-----------------------------------------------------------------------
+
+SOURCES = \
+ src/dp0.x src/dpic.x src/dpic1.x src/mfp.x \
+ src/mpo.x src/pdf.x src/pgf.x src/ps.x src/pst.x src/svg.x \
+ src/sysdep.x src/tex.x src/xfig.x \
+ src/dpic.bnf
+
+dpic: dpic.c $(OBJECTS)
+	$(CC) -o dpic $(OBJECTS) -lm @iberty@
+
+install: installdpic installdocs
+
+installdpic: dpic
+	mkdir -p $(DEST)
+	if test -x dpic.exe ; then \
+      strip dpic.exe; install dpic.exe $(DEST) ; \
+    else \
+      strip dpic; install -m 755 dpic $(DEST) ; \
+    fi
+
+#SPECMANDIR = $(DESTDIR)/usr/share/man/man1
+installdocs: doc/dpicdoc.pdf
+	mkdir -p $(DOCDIR)
+	mkdir -p $(MANDIR)
+#	mkdir -p $(SPECMANDIR)
+	install -m 644 doc/dpicdoc.pdf $(DOCDIR)
+	install -m 644 doc/dpictools.pic $(DOCDIR)
+#	install -m 644 doc/dpic.1 $(SPECMANDIR)
+	cat doc/dpic.1 | gzip > $(MANDIR)/dpic.1.gz
+#Ubuntu files:
+#/usr/bin/dpic
+#/usr/share/doc/dpic/CHANGES.gz
+#/usr/share/doc/dpic/README.gz
+#/usr/share/doc/dpic/changelog.Debian.gz
+#/usr/share/doc/dpic/copyright
+#/usr/share/man/man1/dpic.1.gz
+
+uninstall:
+	rm -f $(DEST)/dpic* $(MANDIR)/dpic.1.gz
+	if test `basename $(DOCDIR)` = dpic ; then \
+      rm -r $(DOCDIR) ; \
+    else rm -f $(DOCDIR)/dpicdoc.pdf ; \
+    fi
+
+doc/dpicdoc.pdf:
+	(cd doc; make)
+
+# The following is only executed if src files are changed. 
+LEXCINCLUDES = entryhp.h lxhp.h lxnp.h lxtv.h entrytv.h lxch.h
+CMPR = awk '{b=b$$0; if(length(b) > 75){print b; b=""}}; END{print b}'
+dpic.c: $(SOURCES)
+	(cd src; make DEBUG="$(DEBUG)" DATE=$(DATE) CC=$(CC) )
+	cp src/dpic.c src/parstab.i .
+	for name in $(LEXCINCLUDES) ; do \
+       $(CMPR) src/$$name > $$name ; done;
+	chmod 644 *.c *.i *.h
+	if test -n "$(DEBUG)" ; \
+      then $(CC) -c src/sysdep.c; fi
+
+#                               Delete compiled files
+clean:
+	-rm -f *.o dpic dpic.exe *.LOG config.log config.status
+	(cd src; make clean )
+	(cd doc; make clean )
+
+distclean: clean

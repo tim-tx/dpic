@@ -12,6 +12,10 @@
 
 
 #include <stdio.h>
+/* if defined(__GNUC__) || defined(HAVE_INTTYPES_H) */
+#ifndef NO_INTTYPES_H
+#include <inttypes.h>
+#endif
 
 
 
@@ -311,7 +315,13 @@ extern Void     free        PP( (Anyptr) );
 #endif
 #endif
 
+/* if defined(__GNUC__) || defined(HAVE_INTTYPES_H) */
+#ifndef NO_INTTYPES_H
+extern uintptr_t      _OutMem     PV(); /* (DA) */
+#else
 extern int      _OutMem     PV();
+#endif
+
 extern int      _CaseCheck  PV();
 extern int      _NilCheck   PV();
 extern int	_Escape     PP( (int) );

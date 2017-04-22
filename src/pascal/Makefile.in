@@ -1,9 +1,6 @@
 #-----------------------------------------------------------
 # Type   make DEBUG=   to turn off debug.
 #
-# Installation on another computer: "make; make clean" preserves tables
-#
-# Directories ...
 
 # Directory for test installation obtained by typing `make'.
 DDIR = test
@@ -19,31 +16,33 @@ DATE = `date +%Y.%m.%d`
 # Must handle multiline macros:
 CPP= cpp -E -P
 
+OPTIONS = -O
+
 # GPC compiler version 20050331 or later -----------------------------
 INC=H
-
-OPTIONS = -O
-PC = gpc $(OPTIONS)
+PC = gpc
 OBJECTS = dpic.o
-SED1= -e "s/VERSIONDATE/dpic version $(DATE)/" \
-      -e 's/^\(.include\) *[^ ]\([^ ]*\)[^ ] */\1 \"\2\"/'
-MAKETARGET = $(PC) -o $(DDIR)/dpic $(OBJECTS) $(LIBS)
+MAKETARGET = $(PC) -o $(DDIR)/dpic $(OBJECTS)
 
-## Uncomment for Free pascal compiler (tested on Ubuntu): ------------
-#INC=F
-#
-#OPTIONS = -O
-#PC = fpc $(OPTIONS)
-#OBJECTS = dpic
-#SED1= -e "s/VERSIONDATE/dpic version $(DATE)/" \
-#   -e '/^. [0-9][0-9]* "/d' \
-#   -e 's/^\(.include\) *[^ ]\([^ ]*\)[^ ] */\1 \"\2\"/' \
-#   -e '/^function/s/(\*\*/( /'  -e '/^function/s/\*\*)/ )/' \
-#   -e '/^procedure/s/(\*\*/( /' -e '/^procedure/s/\*\*)/ )/'
-#MAKETARGET = mv dpic $(DDIR)
+# Free pascal compiler (tested on Ubuntu): ---------------------------
+INC=F
+PC = fpc
+OBJECTS = dpic
+SEDF= -e '/^. [0-9][0-9]* "/d' \
+   -e '/^function/s/(\*\*/( /'  -e '/^function/s/\*\*)/ )/' \
+   -e '/^procedure/s/(\*\*/( /' -e '/^procedure/s/\*\*)/ )/'
+MAKETARGET = mv dpic $(DDIR)
 
+SED= $(SED0) $(SEDF)
+
+# - Set by configure -------------------------------------------------
+SED= $(SED0) @SED1@
+
+INC=@INC@
+PC=@PC@
+OBJECTS=@OBJECTS@
+MAKETARGET=@MAKETARGET@
 # --------------------------------------------------------------------
-SEDZ=
 
 # The tables must be in the same directory as the executable, and have
 # the suffix .tab
@@ -51,15 +50,19 @@ DPICTABL = $(DDIR)/dpic.tab
 
 DEBUG = -e 's/(\*D\([A-Z]\)/(*\1/g' -e 's/\([A-Z]\)D\*)/\1*)/g' \
    | sed -e 's/(\*D//g' -e 's/D\*)//g'
+
 # Uncomment to turn off debug:
 # DEBUG =
 
 COMINC = -e 's/(\*[A-CE-Z]*'$(INC)'[A-CE-Z]*//g' \
          -e 's/[A-CE-Z]*'$(INC)'[A-CE-Z]*\*)//g'
-SED0=sed $(COMPTABLES) $(DEBUG) $(COMINC) -e 's/@/^/g' \
-   -e "s/|startangle|/endpos.xpos/g" -e "s/|arcangle|/endpos.ypos/g"
 
-SED= $(SED0) $(SED1)
+SED0=sed $(DEBUG) $(COMINC) -e 's/@/^/g' \
+   -e "s/|startangle|/endpos.xpos/g" -e "s/|arcangle|/endpos.ypos/g" \
+   -e "s/VERSIONDATE/dpic version $(DATE)/" \
+   -e 's/^\(.include\) *[^ ]\([^ ]*\)[^ ] */\1 \"\2\"/' \
+   -e '/^. [0-9][0-9]* "/d' \
+
 
 # --------------------------------------------------------------------
 
@@ -135,19 +138,19 @@ xfiles:
 
 dpic.p: xfiles
 	make $(PRELIM)
-	cat dpic.x | $(SED) $(SEDZ) \
+	cat dpic.x | $(SED) \
         -e '/include/s/dpic1.p/dpic1.x/' \
     | $(CPP) > dpic.p
-#	cat dpic.x | $(SED) $(SEDZ) -e 's/\([^-]\)integer/\1longint/g' \
+#	cat dpic.x | $(SED) -e 's/\([^-]\)integer/\1longint/g' \
 #        -e 's/\([^a-z]\)real\([^a-z]\)/\1double\2/' \
 #        -e '/include/s/dpic1.p/dpic1.x/' \
 #    | $(CPP) > dpic.p
 
 dpic.o:	dpic.p
-	${PC} -c $*.p
+	${PC} $(OPTIONS) -c $*.p
 
 dpic:	dpic.p
-	${PC} dpic.p
+	${PC} $(OPTIONS) dpic.p
 
 dp0.h:
 	cat ../dp0.x | $(SED) > dp0.h

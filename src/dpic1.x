@@ -354,6 +354,7 @@ begin
    end;
 
 procedure eqop(var x: real; op: integer; y: real);
+var i,j: integer;
 begin
    case op of
       XEQ,XLcoloneq: x := y;
@@ -361,8 +362,11 @@ begin
       XLminuseq: x := x - y;
       XLmulteq: x := x * y;
       XLdiveq: if y = 0 then markerror(852) else x := x / y;
-      XLremeq: if y = 0 then markerror(852)
-         else x := round(x) mod round(y);
+      XLremeq: begin
+         i := round(x); j := round(y);
+         if j = 0 then begin markerror(852); x := 0 end
+         else x := i - (i div j)*j
+         end;
       otherwise
       end
    end;
@@ -490,7 +494,7 @@ begin
       idx := ord(chb@[chbufx]);
       if length > 2 then idx := idx+ord(chb@[chbufx+length-2])
       end;
-   varhash := idx mod (HASHLIM+1)
+   varhash := idx - (idx div (HASHLIM+1))*(HASHLIM+1)
    end;
 
 function findname( eb:primitivep;
@@ -688,25 +692,27 @@ begin
       XBLOCK: ph := blockheight;
       XLellipse: ph := elheight;
       XLcircle: ph := 2.0 * radius;
-      XLline,XLarrow,XLmove: ph := abs(endpos.ypos - aat.ypos);
+  (*  XLline,XLarrow,XLmove: ph := abs(endpos.ypos - aat.ypos); *)
+      XLline,XLarrow,XLmove,XLspline: ph := height;
       otherwise ph := 0.0
       end;
    pheight := ph
    end;
 
 function pwidth(pr: primitivep ): real;
-var ph: real;
+var pw: real;
 begin
-   if pr = nil then ph := 0.0
+   if pr = nil then pw := 0.0
    else with pr@ do case ptype of
-      XLbox,XLstring: ph := boxwidth;
-      XBLOCK: ph := blockwidth;
-      XLellipse: ph := elwidth;
-      XLcircle: ph := 2.0 * radius;
-      XLline,XLarrow,XLmove: ph := abs(endpos.xpos - aat.xpos);
-      otherwise ph := 0.0
+      XLbox,XLstring: pw := boxwidth;
+      XBLOCK: pw := blockwidth;
+      XLellipse: pw := elwidth;
+      XLcircle: pw := 2.0 * radius;
+  (*  XLline,XLarrow,XLmove: pw := abs(endpos.xpos - aat.xpos); *)
+      XLline,XLarrow,XLmove,XLspline: pw := width;
+      otherwise pw := 0.0
       end;
-   pwidth := ph
+   pwidth := pw
    end;
 
 procedure neswrec(ptm: primitivep);
@@ -1232,6 +1238,7 @@ begin
 procedure addelem(prold,prnew: primitivep);
 var pp,pq: primitivep;
 begin
+   (*D if debuglevel > 0 then write(log,'addelem: '); D*)
    if (prold <> nil) and (prnew <> nil) then begin
       pp := prold;
       while pp@.next <> nil do begin
@@ -1325,7 +1332,7 @@ begin
 
 (*        addsuffix(chbuf,chbufx,length,attstack@[newp+1].xval); *)
 procedure addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; suff:real);
-var i,j: integer;
+var i,j,k: integer;
 begin
    (*D if debuglevel <> 0 then begin writeln(log,
      'addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; suff:real)');
@@ -1350,9 +1357,10 @@ begin
    j := len-2;
    i := round(suff); if i < 0 then i := -i;
    repeat
-      buf@[inx+j] := chr((i mod 10) + ord('0'));
-      j := j-1;
-      i := i div 10
+      k := i div 10;
+      buf@[inx+j] := chr(i-k*10 + ord('0'));
+      i := k;
+      j := j-1
    until i = 0;
    if round(suff) < 0 then begin buf@[inx+j] := '-'; j := j-1 end;
    buf@[inx+j] := '[';
@@ -1463,6 +1471,7 @@ var
    macp,lastp: argp;
    primp,prp,eb: primitivep;
    i,j,k,kk,lj,ll,nexprs: integer;
+   (*D kx: integer; D*)
    r,s,t,x1,y1,dx,dy,ts: real;
    bswitch: boolean;
 
@@ -1609,32 +1618,38 @@ begin (*produce*)
       state := 0;
       if (prim <> nil) and (lexval<>XLcontinue) then begin
          i := newp-1; j := 1;
-         (*D if debuglevel>0 then writeln(log,
-            ' Elementlist2: Searching for last drawn element'); D*)
-         while i > j do if (attstack@[i].lexval in [XNL,XLBRACE,XFOR,XLendfor])
+         (*D if debuglevel>0 then write(log,
+            ' Elementlist2: Searching for last drawn element, newp=',newp:1);D*)
+         while i > j do if
+            (attstack@[i].lexval in [XNL,XLBRACE,XFOR,XLendfor,XLabel])
             and (attstack@[i].prim = nil) then i := i-1 else j := i;
-         (*D if debuglevel > 0 then begin
-            if i = 1 then write(log,' Not found') else write(log,' Found:');
-            writeln(log,' newp=',newp:1,
-               ', attstack@[',i:1,'].lexval=',attstack@[i].lexval:1);
-            if attstack@[i].prim<>nil then begin
-               writeln(log,'attstack@[',i:1,'].prim=');
-               snaptype(log,attstack@[i].prim@.ptype)
-               end
-            end; D*)
+         (*D if debuglevel>0 then begin
+            if i = 1 then writeln(log,' Not found') else begin
+              write(log,' Found:');
+              writeln(log,', attstack@[',i:1,'].lexval=',attstack@[i].lexval:1);
+              if attstack@[i].prim<>nil then begin
+                writeln(log,'attstack@[',i:1,'].prim=');
+                snaptype(log,attstack@[i].prim@.ptype)
+                end end end; D*)
          if attstack@[i].prim <> nil then begin
             addelem(attstack@[i].prim,prim);
-            (*D if debuglevel > 0  then printobject(attstack@[i].prim); D*)
+            (*D if debuglevel > 0  then begin
+               writeln(log,' From stack[',newp:1,'] to [',i:1,']');
+               printobject(attstack@[i].prim) end; D*)
             state := i-newp
             end
          else if attstack@[i].lexval = XBRACKETL then begin
             attstack@[i+1].prim := prim;
-            (*D if debuglevel > 0  then printobject(attstack@[i+1].prim); D*)
+            (*D if debuglevel > 0 then begin
+               writeln(log,' From stack[',newp:1,'] to [',i+1:1,']');
+               printobject(attstack@[i+1].prim) end; D*)
             state := i+1-newp
             end
          else begin
             attstack@[i].prim := prim;
-            (*D if debuglevel > 0  then printobject(attstack@[i].prim); D*)
+            (*D if debuglevel > 0 then begin
+               writeln(log,' state[',newp:1,']=',i-1:1);
+               printobject(attstack@[i].prim) end; D*)
             state := i-newp
             end
          end
@@ -1660,11 +1675,11 @@ begin (*produce*)
          xval := 0.0
          end
       else xval := xval / attstack@[newp+2].xval;
-   term4: if attstack@[newp+2].xval = 0.0 then begin
-         markerror(852);
-         xval := 0.0
-         end
-      else xval := round(xval) mod round(attstack@[newp+2].xval);
+   term4: begin
+      i := round(xval); j := round(attstack@[newp+2].xval);
+      if j = 0 then begin markerror(852); xval := 0.0 end
+      else xval := i - (i div j)*j
+      end;
 
 (*      element = namedobj   *)
 (*              | "<Label>" suffix ":" position   *)
@@ -1933,7 +1948,7 @@ assignlist2: xval := attstack@[newp+2].xval ;
 
 (*              | "copy" stringexpr   *)
    command7: with attstack@[newp+1] do if prim <> nil then begin
-      (*P2CC #ifdef SAFE_MODE *) (*P2CP markerror(906); *)
+      (*P2CC #ifdef SAFE_MODE *) (*P2CP markerror(901); *)
       (*P2CC #else *) pointinput(prim@.textp);
       (*P2CC #endif *)
       deletestringbox( prim )
@@ -2115,7 +2130,8 @@ assignlist2: xval := attstack@[newp+2].xval ;
       inlogic := false;
       xval := attstack@[newp+2].xval;
       (*D if debuglevel > 0 then begin
-          if xval <> 0.0 then writeln(log,' true') else writeln(log,' false')
+          if xval <> 0.0 then writeln(log,' logexpr=true')
+          else writeln(log,'logexpr=false')
           end; D*)
       if xval <> 0.0 then for i := 1 to 3 do attstack@[newp+i].lexval := XLBRACE
       else begin
@@ -2250,10 +2266,10 @@ assignlist2: xval := attstack@[newp+2].xval ;
       if prim=nil then begin end
       else if prim@.textp=nil then markerror(861)
       else if (p=redirect2) and(attstack@[newp].lexval<>XGT) then markerror(869)
-      else if safemode then markerror(906)
+      else if safemode then markerror(901)
       else bswitch := true;
       (*P2CC #ifdef SAFE_MODE *)
-      (*P2CP if bswitch then markerror(906); *)
+      (*P2CP if bswitch then markerror(901); *)
       (*P2CC #else *)
       if bswitch then pointoutput(true,prim@.textp,attstack@[newp].state);
       (*P2CC #endif *)
@@ -2266,10 +2282,10 @@ assignlist2: xval := attstack@[newp+2].xval ;
       else if prim@.textp=nil then markerror(861)
       else if (attstack@[newp].lexval<>XGT) or (attstack@[newp+1].lexval<>XGT)
          then markerror(869)
-      else if safemode then markerror(906)
+      else if safemode then markerror(901)
       else bswitch := true;
       (*P2CC #ifdef SAFE_MODE *)
-      (*P2CP if bswitch then markerror(906); *)
+      (*P2CP if bswitch then markerror(901); *)
       (*P2CC #else *)
       if bswitch then pointoutput(false,prim@.textp,attstack@[newp].state);
       (*P2CC #endif *)
@@ -2288,13 +2304,11 @@ assignlist2: xval := attstack@[newp+2].xval ;
          if prim@.textp = nil then begin end
          else with prim@.textp@ do if segmnt = nil then begin end
          else if seginx+len >= CHBUFSIZ then markerror(866)
+         else if safemode then markerror(901)
          else begin
-            (*P2CC #ifdef SAFE_MODE *) (*P2CP markerror(906); *)
-            (*P2CC #else *)
-            if safemode then markerror(906) else begin
-               segmnt@[seginx+len] := chr(0);
-               attstack@[newp].xval := system(segmnt@[seginx])
-               end;
+            (*P2CC #ifndef SAFE_MODE *)
+            segmnt@[seginx+len] := chr(0);
+            attstack@[newp].xval := system(segmnt@[seginx])
             (*P2CC #endif *)
             end;
          deletestringbox( prim )
@@ -2389,7 +2403,7 @@ assignlist2: xval := attstack@[newp+2].xval ;
          else begin
             j := j+1;
                (*D if debuglevel > 0 then begin write(log,'format="');
-                 for k := lj to j-1 do write(log,segmnt@[seginx+k]);
+                 for kx := lj to j-1 do write(log,segmnt@[seginx+kx]);
                  write(log, '" nexprs=',nexprs:2,' Numerical print value=');
                  wfloat(log,attstack@[newp+4+2*i].xval); writeln(log);
                  flush(log) end; D*)
@@ -2400,31 +2414,28 @@ assignlist2: xval := attstack@[newp+2].xval ;
                 s := 10.0*s + ord(segmnt@[seginx+k])-ord('0'); k := k+1 end;
             r := 0.0;
             for ll := k+1 to j-1 do r :=10.0*r+ord(segmnt@[seginx+ll])-ord('0');
-            ll := 1;
-            if (s>(CHBUFSIZ-1)) or (r>(CHBUFSIZ-1)) then begin
+            ll := 0;
+            if (s > (CHBUFSIZ-2)) or (r > (CHBUFSIZ-2)) then begin
                 markerror(865); j := len end
             else begin
                lastc := segmnt@[seginx+j]; segmnt@[seginx+j] := chr(0);
-              sprintf(tmpbuf@[1],segmnt@[seginx+lj],attstack@[newp+4+2*i].xval);
-               segmnt@[seginx+j] := lastc;
-               k := CHBUFSIZ;
-               while ll<k do if tmpbuf@[ll]=chr(0) then k := ll else ll := ll+1;
-               ll := ll-1
+               ll := sprintf( tmpbuf@[1],
+                 segmnt@[seginx+lj], attstack@[newp+4+2*i].xval );
+               segmnt@[seginx+j] := lastc
                end; *)
             (*P2CC #else *)
-            lastc := segmnt@[seginx+j]; segmnt@[seginx+j] := chr(0);
-            k := snprintf( tmpbuf@[1], CHBUFSIZ,
-               segmnt@[seginx+lj], attstack@[newp+4+2*i].xval );
-            segmnt@[seginx+j] := lastc;
-            if k > (CHBUFSIZ-2) then begin markerror(865); ll := CHBUFSIZ-2 end
-            else if k > 0 then ll := k else ll := 0;
+               lastc := segmnt@[seginx+j]; segmnt@[seginx+j] := chr(0);
+               ll := snprintf( tmpbuf@[1], (CHBUFSIZ-1),
+                  segmnt@[seginx+lj], attstack@[newp+4+2*i].xval );
+               segmnt@[seginx+j] := lastc;
             (*P2CC #endif *)
+            if ll > (CHBUFSIZ-2) then begin markerror(865); ll:= CHBUFSIZ-2 end;
                (*D if debuglevel > 0 then begin
                   write(log,' tmpbuf(1:',ll:1,')=');
-                  for lj := 1 to ll do write(log,tmpbuf@[lj]);
+                  for kx := 1 to ll do write(log,tmpbuf@[kx]);
                   writeln(log); flush(log) end; D*)
                                  (* Copy tmpbuf to the string *)
-            if (ll > 0) and (ll <= (CHBUFSIZ-2)) then
+            if ll > 0 then
                kk := putstring(kk,attstack@[newp].prim@.textp,tmpbuf,1,ll);
             i := i+1;
             lj := j
