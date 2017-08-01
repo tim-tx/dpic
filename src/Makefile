@@ -171,3 +171,4 @@ veryclean: clean
 	(cd tables && make veryclean)
 	(cd p2c && rm -rf home p2c* )
 	(cd Pgen && rm -f Pgen* PG* pg* )
+	(cd Pgen/src && rm -f *.exe PG PGc PGf PGp )

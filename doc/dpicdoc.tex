@@ -970,7 +970,7 @@ one or two postprocessors such as Tikz-pgf or PSTricks.
   ellipses.  However, the recent outlined and shaded attributes allow
   the filling of areas outline by one linear object such as a
   multi-segment line or spline, as described above.
-  Use the \verb|\pscustom| function of PSTricks, for example,
+  Use the\verb|\pscustom| function of PSTricks, for example,
   for more elaborate fills.
 \fi
 
@@ -981,6 +981,15 @@ can be colored and filled using, for example,
 and, if the two colors are the same, this can be abbreviated as
 \ntt{ellipse colored "{\sl color}"}\\
 where the color strings are compatible with the postprocessor.
+The \Mfour\ macro
+\ntt{rgbstring({\sl red fraction,green fraction,blue fraction})}\\
+evaluates to a string compatible with the postprocessor
+(for postprocessors that allow it; that is, \TPGF, \PSTricks, SVG, \MetaPost,
+  PDF, and raw \Postscript)
+so that the following produces a circle filled in gold, for example:
+\ntt{circle shaded rgbstring(1,0.84,0)}.
+
+\iffalse
 For example, the definitions
 \begin{verbatim}
 define(`gold_',`1,0.84,0')
@@ -999,14 +1008,13 @@ allow the command
 \ntt{circle shaded "gold"}\\
 to work for the three different postprocessors specified plus
 direct postscript or PDF output.
-Alternatively, the \Mfour\ macro
-{\tt rgbstring({\sl fraction,fraction,fraction})}
-evaluates to a string compatible with the postprocessor
-so that the following produces the same result:
-\ntt{circle shaded rgbstring(1,0.84,0)}.
+\fi
 
-  More elaborate options can also be invoked. For example, with PSTricks
-  output the sequence
+  More elaborate options can also be invoked. For example,
+  with \TPGF output, the command
+    \ntt{box shaded "orange, opacity=0.5"}\\
+  sets the opacity of the fill,
+  and with PSTricks output, the sequence
     \ntt{box shaded "lightgray,fillstyle=hlines*,linecolor=blue,}
     \ntt{hatchwidth=0.5pt,hatchsep=5pt,hatchcolor=red,hatchangle=45"}\\
   produces a hatched multicoloured fill and is equivalent to
@@ -1018,13 +1026,11 @@ so that the following produces the same result:
 One limitation of the pic language is that it lacks the concept of a path
 composed of different basic curves such as lines, splines, and
 arcs.
-% The language was never explicitly designed to draw filled objects
-% of arbitrary shape.
 \Dpic, however, extends the {\tt shaded} and {\tt outlined} directives to
 linear objects such as lines or splines where the output postprocessor allows.
 Consider, for example, the following macro:
 \begin{verbatim}
-define slantbox { [
+define slantbox { [ # wid, ht, xslant, yslant, attributes
   w = $1 ; h = $2 ; xs = $3 ; ys = $4
   NE: (w+xs,h+ys)/2 ; SE: (w-xs,-h+ys)/2
   SW: (-w-xs,-h-ys)/2 ; NW: (-w+xs,h-ys)/2
@@ -1071,13 +1077,14 @@ For TikZ-PGF, try
   following code fragment, an assignment to {\tt x} is written to an
   external file so that the required value of {\tt x} will be known after
   the file is read on the second pass.
-\begin{verbatim}
-  x = <default value>
-  print "" >> "datafile"       # Make sure the file exists
-  copy "datafile"              # On second pass, read x = <required value>
-  ... draw objects and calculate required value y ...
-  print sprintf("x = %g",y) > "datafile"  # Write out the assignment
-\end{verbatim}
+\enlargethispage{\baselineskip}
+  \ntt{x = {\sl default value}}
+  \ntt{print "" >> "datafile" \hfill      \# Make sure the file exists}
+  \ntt{copy "datafile" \hfill \# On second pass, read x = required value}
+  \ntt{{\sl ... draw objects and calculate required value y ...}}
+  \ntt{print sprintf("x = \%g",y) > "datafile"\hfill
+    \# Write out the assignment}
+\\
 \iffalse
   Provided the diagram source is a file ({\tt test.pic}, for example),
   the second explicit call to \dpic\ can be avoided
@@ -1147,7 +1154,7 @@ will also import pdf for processing by pdflatex.
   {\tt \tLB\tBS{}small \tBS{}includegraphics\tLB{\sl file}.eps\tRB\tRB}.
 
   {\em Postscript bounding boxes:}
-  For a while, the dpic \verb|%%BoundingBox| output line simply gave the nominal
+  For a while, the dpic\verb|%%BoundingBox| output line simply gave the nominal
   bounding box determined by line ends and other control points.  The
   use of dpic in server mode has induced a change that correctly
   defines the bounding box for very basic diagrams.  More explicitly,
@@ -1167,7 +1174,7 @@ will also import pdf for processing by pdflatex.
   %%BoundingBox: -1 -1 55 37
   %%HiResBoundingBox: -0.4 -0.4 54.4 36.4
 \end{verbatim}
-  The \verb|%%BoundingBox| line contains integer values that enclose the
+  The\verb|%%BoundingBox| line contains integer values that enclose the
   high-resolution coordinates.
 
   {\em PDF bounding boxes:}
@@ -1212,8 +1219,8 @@ to older versions.
   Type dpic -h to see a list of dpic options.
 
 \subsection{Output formats}
-  Gpic {\tt-t} output consists of a sequence of \verb|\special| statements
-  contained in the TeX box \verb|\box\graph|.  The \verb|\special| statements
+  Gpic {\tt-t} output consists of a sequence of\verb|\special| statements
+  contained in the TeX box\verb|\box\graph|.  The\verb|\special| statements
   are
   automatically copied into the {\tt.dvi} file for interpretation by a
   printer driver such as dvips.
@@ -1230,7 +1237,7 @@ to older versions.
   on the assumption that the text point size should be 11.  Dpic ignores
   non-continuation lines beginning with {\tt.}\ within pictures.
   Some programs (e.g., pstoedit) add Troff
-  comment lines beginning with \verb|.\"| outside the
+  comment lines beginning with\verb|.\"| outside the
   {\tt.PS}, {\tt.PE} delimiters.  These
   lines must be dealt with separately.
 
@@ -1320,21 +1327,18 @@ to older versions.
     {\tt last line.start}.
 
   In dpic version 2017.01.01 and later,
-  {\tt last line.wid} returns the arrowhead width of the line;
-  similarly for {\tt .ht} and for the other linear objects including {\tt move}.
-  The arrowhead height value is returned by {\tt last line.ht}.
+  {\tt last line.wid} returns the arrowhead width of the line or the default
+  arrowhead width if the line has not been given an arrowhead;
+  similarly for {\tt .ht} and for the other linear objects including {\tt move}
+  and, of course, {\tt arrow}.
 
-% Gpic and ATT pic use {\tt .start} for all of the compass corners of these
-% objects, whereas dpic attempts a slightly more elaborate computation.
-  The compass corners of multisegmented linear objects are not precisely defined
+  The compass corners of multisegmented linear objects are not
+  defined in descriptions of the \pic\ grammar
   and they should be used with care.
-
-% Be explicit in placing objects rather than relying on defaults.
 
 \subsection{Arc defaults}  Gpic and dpic have different algorithms for picking
   a default radius.  The best practice is to specify arcs completely.
   There is also ambiguity in the pic language.  The statement
-% Note the ambiguity in the pic language:
    \ntt{arc cw rad x from A to B}\\
   does not define a unique arc.
   There are two arcs, with centres on opposite sides of the line
@@ -1376,10 +1380,11 @@ arguments can be arbitrary expressions rather than the constants shown.
   for example.
 
   Both dpic and gpic treat \tBS\ as an escape character prior to the
-  quote character in a string, so {\tt"\tBS""} is a length-one string containing
+  double-quote
+  character in a string, so {\tt"\tBS""} is a length-one string containing
   the double quote.  Otherwise, the backslash is an ordinary string
   character.
-  For example, the characters \verb|\\"U| in a string are output as \verb|\"U|
+  For example, the characters\verb|\\"U| in a string are output as\verb|\"U|
   to produce \"U when processed by LaTeX.
   A string with a backslash as last character
   has to be generated using a macro; for example, if we write
@@ -1414,15 +1419,15 @@ arguments can be arbitrary expressions rather than the constants shown.
    \ntt{if (sh "{\sl shell command}") == 0 then \tLB\ldots\tRB }
 
 \subsection{{\tt copy}}
-  Dpic supports the command
+  \Dpic\ supports the command
     \ntt{copy "{\sl filename}"}\\
-  but does not directly support the commands
+  but does not directly support the \gpic\ commands
     \ntt{copy {\rm[}{\sl filename}{\rm]}
       thru X {\sl body} X {\rm[} until {\sl word} {\rm]}}
     \ntt{copy {\rm[}{\sl filename}{\rm]}
       thru {\sl macro} {\rm[} until {\sl word} {\rm]}}
 
-  These functions (and many more) are readily implementable with dpic in any
+  These functions and many more are readily implementable with dpic in any
   unix-like environment.
 %  To customize an operation such as
 %    \ntt{copy {\sl filename} thru {\sl macro}}\\
@@ -1454,7 +1459,7 @@ is given by the following macro:
 \begin{verbatim}
 #                               copythru(macro_name,"filename")
 #                               Implements copy filename thru macro_name 
-#                               for data separated by comma, spaces, or tabs
+#                               for data separated by commas, spaces, or tabs
 define copythru { sh "sed -e 's/^[ \t]*/$1(/' -e 's/[ \t]*$/)/' \
   -e 's/[, \t][ \t]*/,/g' $2 > copy_tmp__"
 copy "copy_tmp__"
@@ -1463,8 +1468,8 @@ sh "rm -f copy_tmp__" }
 The lines of the {\sl filename} file are changed to calls of the {\tt
 macro\_name} macro and written into a temporary file, which is then
 read by \dpic.  Such usage is not as simple as a built-in function but
-allows greater flexibility of data by customization of the {\tt copythru}
-macro to suit.
+allows greater flexibility of data because the {\tt copythru}
+macro can be replaced by one customized to suit.
 
 \subsection{{\tt plot}}
   The {\tt plot} command is deprecated in gpic and not allowed in dpic.
@@ -1488,9 +1493,11 @@ macro to suit.
   produces a box with dimensions scaled by 1.2, and
   \ntt{[box; line scaled 3; circle] scaled 0.5}\\
   scales all objects within the block by 0.5.  The latter can be used
-  in place of setting the scale environment variable when, for example,
-  different parts of a diagram require different scaling.  As always,
-  line thicknesses are not scaled.
+  when different parts of a diagram require different scaling.
+  For example, if file {\tt component.pic} contains a component
+  scaled by 25.4, then the following allow it to be used:
+  \ntt{[ copy("component.pic")] scaled 1/25.4}\\
+  As always, line thicknesses are not scaled.
 
 \subsection{Arrowheads}
   Pic processors provide a limited variety of built-in arrowhead
@@ -1524,8 +1531,8 @@ macro to suit.
   arrowhead = 0    # default 1
   arrow
 
-# Method 2 (change only the currently drawn object):
-  arrow thick 2 ht 0.18 wid 0.09 -> 0
+# Method 2 (put a type 0 arrowhead on the current object):
+  arrow -> 0 thick 2 ht 0.18 wid 0.09
 \end{verbatim}
 
   There is a subtle language problem concerning arrowheads.  Let us
@@ -1694,7 +1701,7 @@ A few additional mathematical functions are defined in dpic:
   the behaviour of the low-level PSTricks command
   {\tt \tBS{}psbezier}
   was changed to match the existing context-dependent behavior
-  of the {\tt \tBS{}pscurve} command within the~\verb|\pscustom| environment%
+  of the {\tt \tBS{}pscurve} command within the\verb|\pscustom| environment%
 \footnote{%
   The context-dependency of {\tt \tBS{}pscurve} was taken to be a feature
   rather than a bug.
@@ -1786,8 +1793,8 @@ command "\makeatletter\@ifundefined{ifPst@noCurrentPoint}%
 
   Legacy diagrams can often be treated in the following way, if pstricks97.tex
   is available on your machine as in MiKTeX distributions, for example.
-  Replace the line \verb|\usepackage{pstricks}| with
-  \verb|\usepackage[97]{pstricks}| or \verb|\input{pstricks97.tex}|.
+  Replace the line\verb|\usepackage{pstricks}|
+  with\verb|\usepackage[97]{pstricks}| or\verb|\input{pstricks97.tex}|.
   However, this method precludes using the newer PSTricks facilities.
 
 \pdfbookmark[section]{\refname}{refs}

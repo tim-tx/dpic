@@ -23,7 +23,8 @@ begin
 procedure pdfwln(s: string; ln: integer; var strm: strptr);
 begin
    pdfstream(s,ln,strm);
-   pdfstream(chr(10),1,strm)
+   (*P2CIP*) pdfstream(nlch,1,strm)(*P2CP*)
+   (*P2CC pdfstream("\n", 1, strm); *)
    end;
 
 procedure addbytes(n: integer);
@@ -100,7 +101,7 @@ begin
    end;
 
 procedure pdfwfloat( y: real);
-var ix,j,k,ln: integer;
+var ix,ixd,j,digit,ln: integer;
   ts: array[1..10] of char;
   nz: boolean;
 begin
@@ -110,15 +111,14 @@ begin
    else begin j := 0; ix := round(y*1000000); nz := false end;
    ln := 0;
    repeat
-      j := j+1;
-      k := ix-(ix div 10)*10;
+      j := j+1; ixd := ix div 10; digit := ix-ixd*10;
       if (j=7) and nz then begin ln := ln+1; ts[ln] := '.' end
       else if j=7 then nz := true
-      else if not nz then nz := k<>0;
-      if nz then begin ln := ln+1; ts[ln] := chr(ord('0')+k) end;
-      ix := ix div 10
+      else if not nz then nz := digit<>0;
+      if nz then begin ln := ln+1; ts[ln] := chr(ord('0')+digit) end;
+      ix := ixd
    until (ix = 0) and (j>6);
-   for k:=1 to ln do pdfstream(ts[ln+1-k],1,cx)
+   for j:=1 to ln do pdfstream(ts[ln+1-j],1,cx)
    end;
 
 procedure resetgs(node: primitivep);

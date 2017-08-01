@@ -15,34 +15,37 @@ begin
    writeln('\end{tikzpicture}')
    (*D; if debuglevel > 0 then writeln(log,'pgfpostlude done') D*)
    end;
-
+                                (* np is always <> nil: *)
 procedure pgfwrtext(np: primitivep; tp: strptr; x,y: real );
 var A,B,L,R: boolean;
 begin
-   if tp = nil then begin end
-   else if tp@.next <> nil then begin
+   if tp <> nil then begin
       write('\draw '); wcoord(output,x,y); write(' node');
-      write('{'); texstacktext( np,tp ); writeln('};')
-      end
-   else begin
-      write('\draw '); wcoord(output,x,y); write(' node');
-      checkjust(tp,A,B,L,R);
-      if A or B or L or R then begin
-         write('['); 
-         if      A and L then write('above right')
-         else if A and R then write('above left')
-         else if B and L then write('below right')
-         else if B and R then write('below left')
-         else if A then write('above')
-         else if B then write('below')
-         else if L then write('right')
-         else if R then write('left');
-         write('=');
-                            (* Assume pgf built-in text offset = 4 bp *)
-         wfloat(output,(venv(np,XLtextoffset)*72/scale-4.0)/fsc);
-         write('bp]')
+      if (np@.ptype=XLstring) and (np@.name<>nil) then begin
+         write('('); wstring( output,np@.name ); write(')')
          end;
-      write('{'); wstring( output,tp ); writeln('};')
+      if tp@.next <> nil then begin
+         write('{'); texstacktext( np,tp ) end
+      else begin
+         checkjust(tp,A,B,L,R);
+         if A or B or L or R then begin
+            write('['); 
+            if      A and L then write('above right')
+            else if A and R then write('above left')
+            else if B and L then write('below right')
+            else if B and R then write('below left')
+            else if A then write('above')
+            else if B then write('below')
+            else if L then write('right')
+            else if R then write('left');
+            write('=');
+                               (* Assume pgf built-in text offset = 4 bp *)
+            wfloat(output,(venv(np,XLtextoffset)*72/scale-4.0)/fsc);
+            write('bp]');
+            end;
+         write('{'); wstring( output,tp )
+         end;
+      writeln('};')
       end
    end;
 

@@ -31,7 +31,7 @@
 .\" Use \(ts instead of ".
 .tr \(ts"
 .\"
-.TH DPIC 1 "2016 Jan 08"
+.TH DPIC 1 "2017 Aug 01"
 .SH NAME
 dpic \(hy convert pic\(hylanguage input to LaTeX\(hycompatible and other formats
 .SH SYNOPSIS
@@ -996,17 +996,18 @@ The variables, their default values, and default uses are given below
 .B "   textwid      "
 0      assumed width of text
 .P
-When a value is assigned to the variable
+When a value is assigned to the environment variable
 .B scale,
 all of the above values are multiplied by the new value of
 .B scale.
-The drawing units are thereby changed but the default physical sizes of
-drawn objects remain unchanged since, on final output, dimensions are
-divided by the
+This is normally done once at the top of the outermost scope of a diagram.
+Drawing units are thereby changed but the default physical sizes of
+drawn objects remain unchanged since dimensions are divided by the outermost
 .B scale
-value.
-In addition, the following are unchanged by
-.B scale:
+value on ouput.
+In addition when
+.B scale
+is changed, the following are unchanged:
 .P
 .B "   arrowhead    "
 1      arrowhead shape
@@ -1022,9 +1023,6 @@ In addition, the following are unchanged by
 .br
 .B "   maxpswid     "
 8.5    maximum allowed diagram width
-.br
-.B "   scale        "
-1      drawing unit scale factor
 .P
 The variables
 .B maxpswid

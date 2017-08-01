@@ -1,13 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(dpic,2017.04.22)
+AC_INIT(dpic,2017.08.01)
 AC_CONFIG_AUX_DIR(autoconf/scripts)
 
 AC_LANG_C
 
 PACKAGE=dpic
 UCPACKAGE=DPIC
-VERSION=2017.04.22
+VERSION=2017.08.01
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_SUBST(UCPACKAGE)

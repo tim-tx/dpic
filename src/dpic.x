@@ -2,7 +2,7 @@
 
 (* BSD Licence:
 
-    Copyright (c) 2016, J. D. Aplevich
+    Copyright (c) 2017, J. D. Aplevich
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without

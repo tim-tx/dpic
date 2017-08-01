@@ -31,7 +31,7 @@
 %
 % Use {\tt "} instead of ".
 %
-\phead{DPIC}{1}{2017.01.01}{}{}\shead{NAME}
+\phead{DPIC}{1}{2017.08.01}{}{}\shead{NAME}
 dpic - convert pic-language input to LaTeX-compatible and other formats
 \shead{SYNOPSIS}
 {\tt dpic\ [\ -defghmprstvx\ ]\ [\ -z\ ]\ [}
@@ -995,17 +995,18 @@ The variables, their default values, and default uses are given below
 {\tt \ \ \ textwid\ \ \ \ \ \ }
 0      assumed width of text
 
-When a value is assigned to the variable
+When a value is assigned to the environment variable
 {\tt scale,}
 all of the above values are multiplied by the new value of
 {\tt scale.}
-The drawing units are thereby changed but the default physical sizes of
-drawn objects remain unchanged since, on final output, dimensions are
-divided by the
+This is normally done once at the top of the outermost scope of a diagram.
+Drawing units are thereby changed but the default physical sizes of
+drawn objects remain unchanged since dimensions are divided by the outermost
 {\tt scale}
-value.
-In addition, the following are unchanged by
-{\tt scale:}
+value on ouput.
+In addition when
+{\tt scale}
+is changed, the following are unchanged:
 
 {\tt \ \ \ arrowhead\ \ \ \ }
 1      arrowhead shape
@@ -1021,9 +1022,6 @@ In addition, the following are unchanged by
 \\\hbox{}\hskip-1pt
 {\tt \ \ \ maxpswid\ \ \ \ \ }
 8.5    maximum allowed diagram width
-\\\hbox{}\hskip-1pt
-{\tt \ \ \ scale\ \ \ \ \ \ \ \ }
-1      drawing unit scale factor
 
 The variables
 {\tt maxpswid}

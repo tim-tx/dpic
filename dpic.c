@@ -1,6 +1,6 @@
 /* dpic translator program. */
 /* BSD Licence:
-    Copyright (c) 2016, J. D. Aplevich
+    Copyright (c) 2017, J. D. Aplevich
     All rights reserved.
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -415,9 +415,8 @@
 #define Xminus          11
 #define XSLASH          12
 /* Machine constants */
-#define ordMINCH        0                  /* first element of type character */
-/* last element of type character,
-   newline, tab, CR, ETX */
+/* Assume ASCII; forget EBCDIC */
+#define ordMINCH        0
 #define ordMAXCH        255
 #define ordNL           10
 #define ordTAB          9
@@ -425,16 +424,16 @@
 #define ordETX          3
 #define ordBSL          92
 
-#define bslch           ((Char)ordBSL)
-#define tabch           ((Char)ordTAB)
 #define nlch            ((Char)ordNL)
+#define tabch           ((Char)ordTAB)
 #define crch            ((Char)ordCR)
 #define etxch           ((Char)ordETX)
+#define bslch           ((Char)ordBSL)
 
+#define CHBUFSIZ        4095            /* size of chbuf arrays, input record */
 #define maxbval         16383
 /* must be > CHBUFSIZ-2 */
 /* Lexical parameters */
-#define CHBUFSIZ        4095            /* size of chbuf arrays, input record */
 #define FILENAMELEN     1024                      /* max length of file names */
 /*F FILENAMELEN = 255; F*/
 /* Lalr machine parameters */
@@ -2250,7 +2249,7 @@ void xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2017.01.01 option -x for Fig 3.1')
+     writeln('# dpic version 2017.08.01 option -x for Fig 3.1')
      */
   printf("#FIG 3.2\n");
   printf("Landscape\n");
@@ -2260,7 +2259,7 @@ void xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2017.01.01 option -x for Fig 3.2\n");
+  printf("# dpic version 2017.08.01 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 }
 
@@ -2682,7 +2681,7 @@ void svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2017.01.01 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2017.08.01 option -v for SVG 1.1 -->\n");
   hsize = (e - w + 2 * lth) / fsc;
   vsize = (n - s + 2 * lth) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -3568,7 +3567,7 @@ void pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2017.01.01 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2017.08.01 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -4338,7 +4337,7 @@ void mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2017.01.01 option -m for mfpic\n");
+  printf("\n%% dpic version 2017.08.01 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -5033,7 +5032,7 @@ void mfpdraw(primitive *node)
 /* Output routines for MetaPost */
 void mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2017.01.01 option -s for MetaPost\n");
+  printf("%% dpic version 2017.08.01 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -5699,7 +5698,7 @@ void mpodraw(primitive *node)
 /* pgf output routines */
 void pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2017.01.01 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2017.08.01 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -5713,58 +5712,61 @@ void pgfpostlude(void)
 }
 
 
+/* np is always <> nil: */
 void pgfwrtext(primitive *np, nametype *tp, double x, double y)
 { boolean A, B, L, R;
 
   if (tp == NULL) {
       return;
   }
-  if (tp->next_ != NULL) {
-      printf("\\draw ");
-      wcoord(&output, x, y);
-      printf(" node");
-      putchar('{');
-      texstacktext(np, tp);
-      printf("};\n");
-      return;
-  }
   printf("\\draw ");
   wcoord(&output, x, y);
   printf(" node");
-  checkjust(tp, &A, &B, &L, &R);
-  if (A || B || L || R) {
-      putchar('[');
-      if (A && L) {
-	  printf("above right");
-      }
-      else if (A && R) {
-	  printf("above left");
-      }
-      else if (B && L) {
-	  printf("below right");
-      }
-      else if (B && R) {
-	  printf("below left");
-      }
-      else if (A) {
-	  printf("above");
-      }
-      else if (B) {
-	  printf("below");
-      }
-      else if (L) {
-	  printf("right");
-      }
-      else if (R) {
-	  printf("left");
-      }
-      putchar('=');
-      /* Assume pgf built-in text offset = 4 bp */
-      wfloat(&output, (venv(np, XLtextoffset) * 72 / scale - 4.0) / fsc);
-      printf("bp]");
+  if (np->ptype == XLstring && np->name != NULL) {
+      putchar('(');
+      wstring(&output, np->name);
+      putchar(')');
   }
-  putchar('{');
-  wstring(&output, tp);
+  if (tp->next_ != NULL) {
+      putchar('{');
+      texstacktext(np, tp);
+  }
+  else {
+      checkjust(tp, &A, &B, &L, &R);
+      if (A || B || L || R) {
+	  putchar('[');
+	  if (A && L) {
+	      printf("above right");
+	  }
+	  else if (A && R) {
+	      printf("above left");
+	  }
+	  else if (B && L) {
+	      printf("below right");
+	  }
+	  else if (B && R) {
+	      printf("below left");
+	  }
+	  else if (A) {
+	      printf("above");
+	  }
+	  else if (B) {
+	      printf("below");
+	  }
+	  else if (L) {
+	      printf("right");
+	  }
+	  else if (R) {
+	      printf("left");
+	  }
+	  putchar('=');
+	  /* Assume pgf built-in text offset = 4 bp */
+	  wfloat(&output, (venv(np, XLtextoffset) * 72 / scale - 4.0) / fsc);
+	  printf("bp]");
+      }
+      putchar('{');
+      wstring(&output, tp);
+  }
   printf("};\n");
 }
 
@@ -6412,7 +6414,7 @@ void psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2017.01.01 option ");
+  printf("\n%%%%Creator: dpic version 2017.08.01 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -7309,7 +7311,7 @@ void pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2017.01.01 option -d for PDF\n");
+  printf("%% Creator: dpic version 2017.08.01 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
   /* 1. 2. 3. 4. 5. 6. */
@@ -7372,7 +7374,7 @@ void pdfprelude(double n, double s, double e, double w, double lth)
 
 
 void pdfwfloat(double y)
-{ int ix, j, k;
+{ int ix, ixd, j, digit;
   int ln = 0;
   Char ts[10];
   boolean nz;
@@ -7395,7 +7397,8 @@ void pdfwfloat(double y)
   }
   do {
       j++;
-      k = ix - ix / 10 * 10;
+      ixd = ix / 10;
+      digit = ix - ixd * 10;
       if (j == 7 && nz) {
 	  ln++;
 	  ts[ln-1] = '.';
@@ -7404,16 +7407,16 @@ void pdfwfloat(double y)
 	  nz = true;
       }
       else if (!nz) {
-	  nz = (k != 0);
+	  nz = (digit != 0);
       }
       if (nz) {
 	  ln++;
-	  ts[ln-1] = k + '0';
+	  ts[ln-1] = digit + '0';
       }
-      ix /= 10;
+      ix = ixd;
   } while (ix != 0 || j <= 6);
-  for (k = 1; k <= ln; k++) {
-      sprintf(STR1, "%c", ts[ln - k]);
+  for (j = 1; j <= ln; j++) {
+      sprintf(STR1, "%c", ts[ln - j]);
       pdfstream(STR1, 1, &cx);
   }
 }
@@ -8259,7 +8262,7 @@ void texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2017.01.01 option ");
+  printf("%% dpic version 2017.08.01 option ");
   switch (drawmode) {
 
   case TeX:
@@ -9311,7 +9314,7 @@ if env = nil then write(log,'nil') D*/
             write(log,' lspec=',lspec(spec):1);
             wlogfl('lfill',lfill,0); wlogfl('aradius',aradius,0);
             write(log,' (|','startangle|,|','arcangle|)(deg)=');
-            wpair(log,endpos.xpos *180.0/pi,endpos.ypos *180.0/pi); writeln(log);
+            wpair(log,endpos.xpos *180.0/pi,endpos.ypos *180.0/pi);writeln(log);
             write(log,' (from)=');
             wpair(log,aat.xpos+aradius*cos(endpos.xpos),
        aat.ypos+aradius*sin(endpos.xpos));
@@ -10815,6 +10818,10 @@ void resetenv(int envval, primitive *envbl)
       envval = XLenvvar + 1;
       last = XLlastenv;
   }
+  else if (envval < 0) {
+      envval = XLenvvar + 1;
+      last = XLlastsc;
+  }
   else {
       last = envval;
   }
@@ -10951,7 +10958,7 @@ void resetscale(double x, int opr, primitive *envbl)
 { double r, s;
   int i;
 
-  resetenv(0, envbl);
+  resetenv(-1, envbl);
   r = envbl->Upr.UBLOCK.env[XLscale - XLenvvar - 1];
   eqop(&envbl->Upr.UBLOCK.env[XLscale - XLenvvar - 1], opr, x);
   s = envbl->Upr.UBLOCK.env[XLscale - XLenvvar - 1];
@@ -15109,7 +15116,6 @@ void produce(stackinx newp, int p)
 	  break;
 
 	case XLradius:
-	case XLdiameter:
 	  With2 = With->prim;
 	  if (With2->ptype == XLcircle) {
 	      With->xval = With2->Upr.Ucircle.radius;
@@ -15117,11 +15123,26 @@ void produce(stackinx newp, int p)
 	  else if (With2->ptype == XLarc) {
 	      With->xval = With2->Upr.Uline.aradius;
 	  }
+	  else if (With2->ptype == XLbox) {
+	      With->xval = With2->Upr.Ubox.boxradius;
+	  }
 	  else {
+	      With->xval = 0.0;
 	      markerror(858);
 	  }
-	  if (attstack[newp+1].lexval == XLdiameter) {
-	      With->xval *= 2.0;
+	  break;
+
+	case XLdiameter:
+	  With2 = With->prim;
+	  if (With2->ptype == XLcircle) {
+	      With->xval = With2->Upr.Ucircle.radius * 2;
+	  }
+	  else if (With2->ptype == XLarc) {
+	      With->xval = With2->Upr.Uline.aradius * 2;
+	  }
+	  else {
+	      With->xval = 0.0;
+	      markerror(858);
 	  }
 	  break;
 
@@ -15134,6 +15155,7 @@ void produce(stackinx newp, int p)
 	      With->xval = With2->lthick;
 	  }
 	  else {
+	      With->xval = 0.0;
 	      markerror(858);
 	  }
 	  break;
@@ -15159,6 +15181,7 @@ void produce(stackinx newp, int p)
 	      }
 	  }
 	  else {
+	      With->xval = 0.0;
 	      markerror(858);
 	  }
 	  break;
@@ -18686,7 +18709,7 @@ void getoptions(void)
 	  FMHGD*/
       }
       else if (cht == 'h' || cht == '-') {
-	  fprintf(errout, " *** dpic version 2017.01.01\n");
+	  fprintf(errout, " *** dpic version 2017.08.01\n");
 	  fprintf(errout, " Options:\n");
 	  fprintf(errout, "     (none) LaTeX picture output\n");
 	  fprintf(errout, "     -d PDF output\n");

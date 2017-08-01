@@ -30,23 +30,19 @@ const
 #include 'lxcst.h'
 
                                 (* Machine constants                  *)
-    ordMINCH = 0;               (* first element of type character    *)
+                                (* Assume ASCII; forget EBCDIC        *)
+    ordMINCH = 0; ordMAXCH = 255;
+    ordNL = 10; ordTAB = 9; ordCR = 13; ordETX = 3; ordBSL = 92;
 
-                                (* last element of type character,
-                                   newline, tab, CR, ETX              *)
-(*GHMF
-    ordMAXCH = 255; ordNL = 10; ordTAB = 9; ordCR = 13; ordETX = 3;
-    ordBSL = 92;                                                  FMHG*)
+    nlch = chr(ordNL); tabch = chr(ordTAB); crch = chr(ordCR);
+    etxch = chr(ordETX); bslch = chr(ordBSL);
 
-    bslch = chr(ordBSL); tabch = chr(ordTAB);  nlch = chr(ordNL);
-    crch = chr(ordCR);  etxch = chr(ordETX); 
-
+    CHBUFSIZ = 4095;            (* size of chbuf arrays, input record *)
     (*P2CIP*)
     maxbval = (ordMAXCH+1)*(ordMAXCH+1)-1;
-    (*P2CP maxbval = 128*128-1; *) (* must be > CHBUFSIZ-2 *)
+    (*P2CP maxbval = 128*128-1; *)            (* must be > CHBUFSIZ-2 *)
 
                                 (* Lexical parameters                 *)
-    CHBUFSIZ = 4095;            (* size of chbuf arrays, input record *)
     (*GHM FILENAMELEN = 1024; MHG*)       (* max length of file names *)
     (*F FILENAMELEN = 255; F*)
 

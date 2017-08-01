@@ -255,7 +255,7 @@ begin
             write(log,' lspec=',lspec(spec):1);
             wlogfl('lfill',lfill,0); wlogfl('aradius',aradius,0);
             write(log,' (|','startangle|,|','arcangle|)(deg)=');
-            wpair(log,|startangle| *180.0/pi,|arcangle| *180.0/pi); writeln(log);
+            wpair(log,|startangle| *180.0/pi,|arcangle| *180.0/pi);writeln(log);
             write(log,' (from)=');
             wpair(log,aat.xpos+aradius*cos(|startangle|),
                       aat.ypos+aradius*sin(|startangle|));
@@ -1068,6 +1068,7 @@ var i,last: environx;
 begin
    if envbl <> nil then with envbl@ do begin
       if envval = 0 then begin envval := XLenvvar+1; last := XLlastenv end
+      else if envval < 0 then begin envval := XLenvvar+1; last := XLlastsc end
       else last := envval;
       if env = nil then begin
          new(env);
@@ -1125,7 +1126,7 @@ procedure resetscale(x: real; opr: integer; envbl: primitivep);
 var r,s: real;
    i: integer;
 begin
-   resetenv(0,envbl);
+   resetenv(-1,envbl);
    r := envbl@.env@[XLscale];
    eqop(envbl@.env@[XLscale],opr,x);
    s := envbl@.env@[XLscale];
@@ -3572,16 +3573,17 @@ closeblock1: if (prim <> nil) and (envblock@.env <> nil) then begin
    primary7: if prim <> nil then case attstack@[newp+1].lexval of
       XLheight: xval := pheight(prim);
       XLwidth: xval := pwidth(prim);
-      XLradius,XLdiameter: begin
-         with prim@ do if ptype = XLcircle then xval := radius
+      XLradius: with prim@ do if ptype = XLcircle then xval := radius
          else if ptype = XLarc then xval := aradius
-         else markerror(858);
-         if attstack@[newp+1].lexval = XLdiameter then xval := xval*2.0
-         end;
+         else if ptype = XLbox then xval := boxradius
+         else begin xval := 0; markerror(858) end;
+      XLdiameter: with prim@ do if ptype = XLcircle then xval := radius*2
+         else if ptype = XLarc then xval := aradius*2
+         else begin xval := 0; markerror(858) end;
       XLthickness: with prim@ do if ptype
          in [XLbox,XLellipse,XLcircle,XLline,XLarrow,XLspline,XLarc] then
          xval := lthick
-         else markerror(858);
+         else begin xval := 0; markerror(858) end;
       XLlength: with prim@ do if ptype in [XLline,XLarrow,XLmove,XLspline]
          then begin
            primp := prim; while primp@.son<>nil do primp := primp@.son;
@@ -3590,7 +3592,7 @@ closeblock1: if (prim <> nil) and (envblock@.env <> nil) then begin
            if r=0.0 then xval := s else if s=0.0 then xval := r
            else xval := sqrt(r*r+s*s)
            end
-         else markerror(858);
+         else begin xval := 0; markerror(858) end;
       otherwise
       end;
 (*                  | "rand" "(" ")"  random number between 0 and 1 *)
