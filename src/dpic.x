@@ -2,7 +2,7 @@
 
 (* BSD Licence:
 
-    Copyright (c) 2017, J. D. Aplevich
+    Copyright (c) 2018, J. D. Aplevich
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,8 +48,6 @@ program dpic(input,output,errout,copyin,redirect
 (* include dp0.h *)
 #include 'dp0.h'
 
-(* include dp1.h *)
-(*dp1.x---------------------------------------------------------------*)
 procedure copyleft( mac: fbufferp; var buf: fbufferp ); forward;
 procedure doprod(prno: integer); forward;
 procedure markerror(emi: integer); forward;
@@ -93,6 +91,7 @@ procedure pointoutput(nw: boolean; txt: strptr; var ier: integer ); forward;
       ordp := Integer(p)
       end; GD*)
 (*P2CP*)
+(*DM function ordp(p:pointer): integer; external; MD*)
 
 (*DFGHM function odp(p:pointer): integer; MHGFD*)
 (*D begin
@@ -172,6 +171,7 @@ procedure newbuf( var buf: fbufferp );
 begin
    (*D if debuglevel > 0 then write(log,' newbuf'); D*)
    if freeinbuf = nil then begin
+      (* p2c automatically adds memory allocation failure checks *)
       new(buf); new(buf@.carray)
       (*D; if debuglevel > 0 then logaddr( buf ) D*)
       end
@@ -276,21 +276,21 @@ begin
    if t <> 0 then write(errout,' *** dpic: ');
    case t of
       0: ;
-      1: writeln(errout,'Input file not readable');
+      1: writeln(errout,'input file not readable');
       (*P2 IP*)
       2: writeln(errout,'dpic data file dpic.tab not readable');
       (*P2 P*)
-      3: writeln(errout,'Maximum error count exceeded');
-      4: writeln(errout,'Character buffer overflow: "CHBUFSIZ" exceeded');
-      5: writeln(errout,'End of file encountered on input');
+      3: writeln(errout,'maximum error count exceeded');
+      4: writeln(errout,'character buffer overflow: "CHBUFSIZ" exceeded');
+      5: writeln(errout,'end of file encountered on input');
       6: begin
-         writeln(errout,'Too many pending actions, const "STACKMAX" exceeded,');
+         writeln(errout,'too many pending actions, const "STACKMAX" exceeded,');
          writeln(errout,' possibly caused by infinite recursion.')
          end;
-      7: writeln(errout,'Input too complex, const "REDUMAX" exceeded');
-      8: writeln(errout,'Error recovery abandoned');
-      (*D 9: writeln(errout,'Debug special exit'); D*)
-      otherwise writeln(errout,'Unknown fatal error')
+      7: writeln(errout,'input too complex, const "REDUMAX" exceeded');
+      8: writeln(errout,'error recovery abandoned');
+      9: writeln(errout,'subscript out of range');
+      otherwise writeln(errout,'unknown fatal error')
       end;
    (*P2CIP*)
    (*MGH goto 999 HGM*)
@@ -308,18 +308,6 @@ begin
    end;
 
 (*--------------------------------------------------------------------*)
-
-(* include dpic2.p *)
-(* MGHF# include 'dpic2.p'FHGM *)
-
-(* include dp0.h *)
-(* G#include 'dp0.h'G *)
-
-(* include dp1.h *)
-(* G#include 'dp1.h'G *)
-
-(* include sysdep.h *)
-(* DG#include 'sysdep.h'GD *)
 
 procedure controls;
 begin
@@ -469,18 +457,6 @@ begin
    write('{'); wfloat(output,x); write('}')
    end;
 
-function testjust(n,flag: integer): boolean;
-begin
-   case flag of
-      XEMPTY: testjust := (n=0);
-      XLcenter: testjust := (n=15);
-      XLrjust: testjust := (n mod 4) = 1;
-      XLljust: testjust := (n mod 4) = 2;
-      XLbelow: testjust := (n div 4) = 1;
-      XLabove: testjust := (n div 4) = 2
-      end
-   end;
-
 procedure checkjust( tp: strptr; var A,B,L,R: boolean );
 var i: integer;
 begin
@@ -488,10 +464,10 @@ begin
       A := false; B := false; L := false; R := false end
    else begin
       i := round(tp@.val);
-      A := testjust(i,XLabove);
-      B := testjust(i,XLbelow);
-      L := testjust(i,XLljust);
-      R := testjust(i,XLrjust);
+      A := (i div 4) = 2;
+      B := (i div 4) = 1;
+      L := (i mod 4) = 2;
+      R := (i mod 4) = 1
       end
    end;
 
@@ -1225,7 +1201,7 @@ begin
          end
       end
    end;
-(* G end. G *) (* dpic2 *)
+(* G end. G *)
 
 (* include dpic1.p *)
 (*MGHF#include 'dpic1.p'FHGM*)
@@ -1518,7 +1494,7 @@ begin
       862: writeln(errout,'For ... by *() limits must have the same sign');
       863: writeln(errout,'Non-integer power of negative value');
       864: writeln(errout,'Incorrect number of sprintf arguments');
-      865: writeln(errout,'Bad sprintf format');
+      865: writeln(errout,'Bad sprintf format; only e, f, g allowed');
       866: writeln(errout,'String exceeds max length of 4095 characters');
       867: writeln(errout,'Invalid log or sqrt argument');
       868: writeln(errout,'Function argument out of range');
@@ -1526,6 +1502,8 @@ begin
       870: writeln(errout,'Zero value of scale not allowed');
       871: writeln(errout,'Zero second argument of pmod not allowed');
       872: writeln(errout,'Buffer overflow while defining macro argument');
+      873: writeln(errout,'Format width too large');
+      874: writeln(errout,'System routine snprintf error: bad formatted value');
                                 (* warning messages *)
       901: writeln(errout,'Safe mode: sh, copy, and print to file disallowed');
       903: writeln(errout,'Picture size adjusted to maxpswid value');
@@ -1612,6 +1590,7 @@ begin
 (*P2CC
    int ll,c;
    if (feof( *infname )) |* inputeof = true; return; *|
+   c = ' ';
    for (ll = CHBUFSIZ-1; inbuf->savedlen < ll; ) |*
       c = getc( *infname );
       if ((char)c == '\n') ll = inbuf->savedlen;
@@ -1628,18 +1607,12 @@ begin
       *|
    if ((ll == CHBUFSIZ-1) && ((char)c != '\n') && (c != EOF)) |*
       inbuf->savedlen++; inbuf->carray[inbuf->savedlen] = bslch; *|
-   else |*
-      while ((inbuf->savedlen > 0) && (inbuf->carray[inbuf->savedlen] == '\r'))
-         inbuf->savedlen--;
-      if (inbuf->carray[inbuf->savedlen] != bslch || lexstate != 2) |*
-         inbuf->savedlen++;
-         inbuf->carray[inbuf->savedlen] = nlch;
-         *|
-      *|
+   else if (inbuf->carray[inbuf->savedlen] != bslch || lexstate != 2) |*
+      inbuf->savedlen++;
+      inbuf->carray[inbuf->savedlen] = nlch; *|
    *)
 
-   (*D; if debuglevel > 0 then begin writeln(log);
-      write(log,'readline ');
+   (*D; if debuglevel > 0 then begin writeln(log); write(log,'readline ');
       if inputeof then writeln(log,'inputeof') else wrbuf(inbuf,3,0) end D*)
    end;
                                 (* Get the next line and set lexstate *)
@@ -2437,8 +2410,8 @@ begin (*lexical*)
             (newsymb <> -2) then readlatex
                                 (* Search in the lexical tree *)
          else begin
-            newsymb := entrytv[ord(firstch)];
-            lxix := entryhp[ord(firstch)];
+            newsymb := entrytv[abs(ord(firstch))];
+            lxix := entryhp[abs(ord(firstch))];
             while lxix <> 0 do
                if ch='$' then begin if not insertarg then lxix := 0 end
                else if lxch[lxix] = ch then begin
@@ -3025,6 +2998,9 @@ begin
          FMHGD*)(*GHMF
          else if (cht = 'h') or (cht = '-') then begin
             writeln(errout,' *** VERSIONDATE');
+            FMHG*)(*DGHMF
+            writeln(errout,' Debug is enabled');
+            FMHGD*)(*GHMF
             writeln(errout,' Options:');
             writeln(errout,'     (none) LaTeX picture output');
             writeln(errout,'     -d PDF output');
@@ -3066,6 +3042,7 @@ begin (* dpic *)
    openfiles;
    inputeof := false;
    new(attstack);
+   tmpbuf := nil;
    parse;
    (*P2CIP*)
    (*MGH 999: HGM*)

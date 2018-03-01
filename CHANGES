@@ -1,19 +1,26 @@
 Distribution dates other than those shown correspond to changes (usually of
 documentation) not involving functionality.
 
+2018 02 01 Enabled the use of snprintf for some (at least) 64-bit compilers.
+           Tweaked the source for warning-free -pedantic compilation.
+           Renamed dpicdoc.pdf to dpic-doc.pdf. Cleaned up the C code to
+           assume c99/POSIX 2008 compiling.
+2017 12 01 Improved configure script. Fixed a bug to retain the name of
+           a linear object followed by continue. 
 2017 08 01 The value last box.rad gives a value instead of an error.  The
- unscaled environment variables are unaffected when scale is changed.
+           unscaled environment variables are unaffected when scale is changed.
 2017 06 01 The tikz node for a named string is given the dpic string name.
 2017 01 01 Changed "last line.wid" to return arrowhead wid; similarly for
- .ht and for other linear objects.
- (2017 04 22): Recent distributions of this version contain changes to the
- source, p2c/src and Pgen/src directories for gcc 5.4 and for 64-bit
- compilation; normal installation is unaffected.
+           .ht and for other linear objects.
+           (2017 04 22): Recent distributions of this version contain
+           changes to the source, p2c/src and Pgen/src directories
+           for gcc 5.4 and for 64-bit compilation; normal installation
+           is unaffected.
 2016 08 24 Fixed a bug involving labels within if statements.
 2016 07 12 Minor cleanup of code and distribution files.
 2016 07 04 Gcc flags include -ansi by default. Treat \# in strings as
- ordinary characters. Removed zero characters from error msgs.  Fixed a bug
- with macro arguments in strings. Cleanup of string code.
+           ordinary characters. Removed zero characters from error msgs.
+           Fixed a bug with macro arguments in strings. Cleanup of string code.
 2015 12 31 Code tweaked to remove memory leaks.  Pascal source included in the
            distribution.
 2015 11 05 Added robustness for different compilers, easier p2c conversion.

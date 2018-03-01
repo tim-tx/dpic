@@ -32,7 +32,7 @@ SED0= -e 's/@/^/g' \
 SED1=-e 's/^ *\(.include\) *[^ ]\([^ ]*\)[^ ] */\1 \"\2\"/' \
    -e "s/VERSIONDATE/dpic version $(DATE)/"
 #                               Braces in C code
-SEDC=-e 's/|\*/{/g' -e 's/\*|/}/g'
+SEDC=sed -e 's/|\*/{/g' -e 's/\*|/}/g'
 
 SED= sed $(COMPTABLES) $(DEBUG) $(COMINC) $(SED0) $(SED1)
 
@@ -79,7 +79,7 @@ dpic.c: dpic.b
 #                               C code tweaks and readable struct names
 dpic.b: dpic.a U1.sed U2.sed
 	sed -f sysdep.sed \
-        -e 's/^main/void main/' \
+        -e 's/^main/int main/' \
         -e '1,4d' -e 's/UEMPTY6/Ublock/g' -e 's/UU/Upr/g' -e 's/WITH/With/g' \
         -e 's/Static //' \
         -e '/random()  *\//s/SHORT_MAX/LONG_MAX/' \
@@ -87,7 +87,7 @@ dpic.b: dpic.a U1.sed U2.sed
         -e 's/PASCAL_MAIN(.*$$/P_argc = argc; P_argv = argv; __top_jb = NULL;/'\
         -e 's%exit(EXIT_SUCCESS);%if (errcount==0) exit(EXIT_SUCCESS); \
          else exit(EXIT_FAILURE);%' \
-    dpic.a | sed -f U1.sed | sed -f U2.sed > dpic.b
+    dpic.a | sed -f U1.sed | sed -f U2.sed | $(SEDC) > dpic.b
 
 #                               Convert pascal to C
 dpic.a: dpic.p $(P2C)
@@ -103,7 +103,7 @@ dpic.p: $(PARSCONSTS) $(LEXERRORS) $(LEXEDIT) controlerr.i sysdep.h \
       mfp.h mpo.h pdf.h pgf.h ps.h pst.h svg.h tex.h xfig.h \
       dpic.x parserr.i lxcst.h dp0.h dpic1.p
 	echo "{Integer16=2}" > dpic.p
-	cat dpic.x | $(SED) $(SEDC) | $(CPP) >> dpic.p
+	cat dpic.x | $(SED) | $(CPP) >> dpic.p
 
 $(P2C):
 	if test $(P2C) != p2c ; then (cd p2c; mkdir -p home; cd src ; \

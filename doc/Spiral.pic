@@ -1,9 +1,9 @@
 .PS
 # Spiral.m4 (Uses Circuit_macros library)
-# threeD_init Version 8.5.2: TikZ PGF m4 macro settings.
+# threeD_init Version 8.7.1: TikZ PGF m4 macro settings.
   
 # threeD_init begin
-  # gen_init Version 8.5.2: TikZ PGF m4 macro settings.
+  # gen_init Version 8.7.1: TikZ PGF m4 macro settings.
   
 
   define rpoint__ {
@@ -22,6 +22,20 @@
   
   
   # gen_init end
+
+  
+ m4azim=(20)*(dtor_)
+ m4elev=(20)*(dtor_)
+ m4rot =0
+ m4caz=cos(m4azim)
+ m4saz=sin(m4azim)
+ m4cel=cos(m4elev)
+ m4sel=sin(m4elev)
+ m4cro=1
+ m4sro=0
+ view3D1=m4caz*m4cel
+ view3D2=m4saz*m4cel
+ view3D3=m4sel  ; light3D1=view3D1; light3D2=view3D2; light3D3=view3D3
 
 
 # threeD_init end

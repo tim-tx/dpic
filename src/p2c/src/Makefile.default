@@ -45,7 +45,7 @@ DEB = # -g		   # uncomment this for debugging
 DEFS =			   # place other -D types of things here
 # DEFS = -DNO_INTTYPES_H 	# uncomment this if uintptr_t causes trouble
 
-CFLAGS = $(OPT) $(DEB) $(DEFS) -ansi  # -ansi added (DA)
+CFLAGS = $(OPT) $(DEB) $(DEFS)
 LFLAGS =
 
 

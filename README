@@ -3,21 +3,26 @@ Dpic is an implementation of the pic "little language" for creating line
 drawings and illustrations for documents, web pages, and other uses.
 
 Copying: 
-The files in this distribution are copyright (c) 2017, J. D. Aplevich,
+The files in this distribution are copyright (c) 2018, J. D. Aplevich,
 and are distributed under the licence at the end of this file, except for
-the file dpicdoc.pdf, which is subject to the Creative Commons attribution
+the file dpic-doc.pdf, which is subject to the Creative Commons attribution
 licence version 3.0 http://creativecommons.org/licenses/by/3.0/.
 
 Unix installation:
    Type `./configure' to generate a Makefile, then `make' to compile the
    sources.  Type `make install' or, if necessary, `sudo make install' to
    install the executable in /usr/bin, a man page in /usr/share/man/man1,
-   and dpicdoc.pdf in /usr/share/dpic.  To install the executable only,
+   and dpic-doc.pdf in /usr/share/dpic.  To install the executable only,
    type `make installdpic' and to install the documents only, type
    `make installdocs'.
 
-   If the installation fails, look at the file Makefile.default, and use
-   it instead.
+   The configure script attempts to identify whether specific compiler
+   options are required to process ANSI C but not all compilers
+   have identical options or libraries so you may have to change
+   the Makefile by hand accordingly.  You might also look at the file
+   Makefile.default, and use it instead.  Problems, if any, might arise
+   with system routines; e.g. if 'print sprintf("%g",2.0)' does not print 2,
+   recompile using -DNO_SNPRINTF
 
 Web-server installation:
    You probably should disable the sh and copy commands in dpic for security
@@ -29,7 +34,8 @@ Web-server installation:
 Installation on a non-unix PC:
    If you do not wish to compile the program, copy dpic.exe from the
    distribution Windows directory into your folder of executable files.
-   You can also compile as above using make and your favourite compiler.
+   Note that this version will search for files using PC format for the
+   file path; that is, with backslash separators.
 
    Otherwise, commands equivalent to the following should do the trick:
       gcc   -O  -c  dpic.c
@@ -102,16 +108,17 @@ the src directory to pascal that is compatible either with GNU pascal
 executable and the required tables in the pascal/test directory.
 
 Bugs:
-   If you discover a bug, please check that your version is the
-   latest.  Feel free to send bug reports.  Dpic has been relatively
-   solid but, by definition, it hasn't been tested for all possible
-   illegal input, and the distribution has undergone some recent changes
-   to simplify the source and make the pascal available.
+   If you discover a bug, please check that your version is the latest.
+   Feel free to send bug reports.  Dpic has been relatively solid but,
+   by definition, it hasn't been tested for all possible illegal input,
+   and the distribution has undergone changes for portability, simplicity,
+   and to include the pascal source.  The distributed version is tested
+   using pascal compilers and gcc on cygwin32 and cygwin64 machines.
 
    When inconsistencies between dpic and gpic are found, I usually check
-   to see whether dpic should be changed to conform.  Error and warning
-   messages are not identical.  Other exceptions can be found in the
-   file dpicdoc.pdf.
+   to see whether dpic should be changed to conform but there are small
+   deliberate differences.  Error and warning messages are not identical.
+   Other exceptions can be found in the file dpic-doc.pdf.
 
 Version:
    The version of dpic is the date the source was created, printed as a
@@ -119,25 +126,25 @@ Version:
 
 Source:
    The source code was originally written and maintained in Pascal to
-   run on IBM VM/CMS and DEC VMS operating systems, but it has been
-   moved several times since and has evolved considerably.  The Pascal
-   is translated to ANSI C by P2C, then changed to simplify reading
-   and compilation and to run on a variety of platforms.  Proto-Pascal
-   source files are included here in the src directory.  Selected lines
-   must be uncommented for translation to C or for Pascal compilation.
-   GNU pascal and Free Pascal are supported currently.  A parser generator
-   such as the ubiquitous yacc was not readily available when dpic was
-   first written so a different tool was employed.  If source files in
-   the src directory are changed, the Makefile compiles, as necessary,
-   the pascal to C translator and the parser generator with its output
-   filters and runs them to produce new files in the formats requred.
-   These tools are included here for the sole purpose of generating
-   dpic C source.
+   run on IBM VM/CMS and DEC VMS operating systems, but it has been moved
+   several times over the years and has evolved considerably.  The Pascal
+   is translated to ANSI C (plus snprintf()) by P2C, then changed to
+   simplify reading and compilation and to run on a variety of platforms.
+   Proto-Pascal source files are included here in the src directory.
+   Selected lines are uncommented automatically for translation to C or
+   for Pascal compilation.  GNU pascal and Free Pascal are supported
+   currently.  A parser generator such as the ubiquitous yacc was not
+   readily available when dpic was first written so a different tool
+   was employed.  If source files in the src directory are changed,
+   the Makefile compiles, as necessary, the pascal to C translator and
+   the parser generator with its output filters and runs them to produce
+   new files in the formats requred.  These tools are included here for
+   the sole purpose of generating dpic C source.
 
 -------------------------------------------------------------------
 BSD Licence:
  
-    Copyright (c) 2017, J. D. Aplevich
+    Copyright (c) 2018, J. D. Aplevich
     All rights reserved.
  
     Redistribution and use in source and binary forms, with or without

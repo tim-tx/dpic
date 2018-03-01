@@ -1,13 +1,15 @@
 dnl Process this file with autoconf to produce a configure script.
+dnl i.e. autoconf configure.ac > ../Makefile
 
-AC_INIT(dpic,2017.09.03)
+AC_INIT(dpic,2018.03.01)
 AC_CONFIG_AUX_DIR(autoconf/scripts)
+m4_include(m4/ax_check_compile_flag.m4)
 
 AC_LANG_C
 
 PACKAGE=dpic
 UCPACKAGE=DPIC
-VERSION=2017.09.03
+VERSION=2018.03.01
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_SUBST(UCPACKAGE)
@@ -39,6 +41,9 @@ fi
 
 CFLAGS=${CFLAGS:-"-O"}
 AC_PROG_CC
+
+AX_CHECK_COMPILE_FLAG([-std=c90],[AC_SUBST(cninety,-std=c90)])
+
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
@@ -51,7 +56,7 @@ AC_CHECK_FUNC(random,,
   [AC_CHECK_LIB(iberty,random,
    AC_SUBST(iberty,-liberty),AC_SUBST(defrand,-DRAND))])
 
-AC_CHECK_FUNC(snprintf,,AC_SUBST(defno_snprintf,-DNO_SNPRINTF))
+AC_CHECK_FUNC(snprintf,,[AC_SUBST(defno_snprintf,-DNO_SNPRINTF)])
 
 test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
 AC_SUBST(INSTALL_DATA)

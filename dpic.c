@@ -1,6 +1,6 @@
 /* dpic translator program. */
 /* BSD Licence:
-    Copyright (c) 2017, J. D. Aplevich
+    Copyright (c) 2018, J. D. Aplevich
     All rights reserved.
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -53,10 +53,6 @@
 
 #define maxint          2147483647L
 #define randmax         maxint
-#if defined(RAND_MAX)
-#undef randmax
-#define randmax (double) RAND_MAX
-#endif
 
 #define HASHLIM         9               /* Hash array upper val for var names */
 /* Parser constants */
@@ -430,7 +426,7 @@
 #define etxch           ((Char)ordETX)
 #define bslch           ((Char)ordBSL)
 
-#define CHBUFSIZ        4095            /* size of chbuf arrays, input record */
+#define CHBUFSIZ        4095                  /* upper limit of chbuf buffers */
 #define maxbval         16383
 /* must be > CHBUFSIZ-2 */
 /* Lexical parameters */
@@ -440,12 +436,7 @@
 #define STACKMAX        255                /* size of attstack and parsestack */
 #define REDUMAX         128                       /* size of reduction buffer */
 #define MAXERRCOUNT     3                /* max no of errors before giving up */
-/* Text parameters */
-#define DFONT           11            /* default svg textht, pt; should be adj*/
-
-#define TEXTRATIO       1.6                  /* baseline to text height ratio */
 /* Draw types */
-
 #define MFpic           1
 #define MPost           2
 #define PDF             3
@@ -458,20 +449,25 @@
 #define TeX             10
 #define tTeX            11
 #define xfig            12
-/* processor constants */
-#define SVGPX           90                             /* SVG pixels per inch */
 
 #define SPLT            0.551784           /* optimum spline tension for arcs */
 
+#define pointd          72
+/* postprocessor constants (vars?) */
+#define SVGPX           90                             /* SVG pixels per inch */
 #define xfigres         1200
 #define xdispres        80
-#define pointd          72
+/* Text parameters (vars?) */
+#define DFONT           11                         /* default svg textht, pt; */
+
+#define TEXTRATIO       1.6                  /* baseline to text height ratio */
 
 
 /* Lexical types */
 typedef short chbufinx;
 
-typedef uchar symbol;
+/* 0..symbmax; */
+typedef int symbol;
 
 typedef short lxinx;
 
@@ -543,7 +539,7 @@ typedef struct primitive {
     struct {
       double blockheight, blockwidth;
       postype here;
-      nametype *vars[HASHLIM + 1];
+      nametype *(vars[HASHLIM + 1]);
       int nvars[HASHLIM + 1];
       double *env;
     } UBLOCK;
@@ -660,7 +656,7 @@ FILE *redirect;                              /*G asmname 'redi_rect'; G*/
 /*DG asmname 'log_file'; GD*/
 mstring infname;                         /* name of current input file */
 mstring outfnam;                        /* name of current output file */
-boolean inputeof;                                 /* end of input flag */
+boolean inputeof;                                 /* end-of-input flag */
 boolean forbufend;                                /* end of for buffer */
 int argct;                             /* argument counter for options */
 int drawmode;                                     /* output conversion */
@@ -668,14 +664,12 @@ boolean safemode;                               /* disable sh and copy */
 /*D oflag: integer; D*/
 /* debug level and open logfile flag */
 /* Lexical analyzer character buffer */
-/* chbuf: strptr; */
 Char *chbuf;
-chbufinx chbufi, oldbufi;                    /* character buffer index */
+chbufinx chbufi, oldbufi;                  /* character buffer indices */
 /* Lexical variables */
 Char ch;                                          /* current character */
 short newsymb;                               /* current lexical symbol */
-int lexstate;                    /* 0..4: <.PS; .PS; in pic; .PE; >.PE */
-int lexsymb;
+int lexsymb, lexstate;           /* 0..4: <.PS; .PS; in pic; .PE; >.PE */
 boolean inlogic;                      /* set < to <compare> in context */
 boolean instr;                           /* set while reading a string */
 fbuffer *inbuf, *savebuf, *freeinbuf, *topbuf;
@@ -695,6 +689,8 @@ double xfheight;                   /* for calculating xfig coordinates */
 Char *freeseg;                        /* segment open to store strings */
 short freex;                                     /* next free location */
 Char *tmpbuf;                        /* buffer for snprintf or sprintf */
+Char *tmpfmt;
+/* format buffer for snprintf */
 double scale, fsc;               /* scale factor and final scale factor*/
 int splcount, spltot;                          /* spline depth counter */
 int pdfobjcount;                                        /* pdf objects */
@@ -749,8 +745,6 @@ int startinx, lri, start;
 
 
 /*--------------------------------------------------------------------*/
-/* include dp1.h */
-/*dp1.x---------------------------------------------------------------*/
 void copyleft(fbuffer *mac, fbuffer **buf);
 
 void doprod(int prno);
@@ -785,90 +779,79 @@ void pointoutput(boolean nw, nametype *txt, int *ier);
 /* include sysdep.h */
 /* sysdep.x Required UNIX functions */
 /*F{$linklib c} F*/
+/* access */
 /*F cdecl; F*/
 /*HF name 'access' FH*/
 /*G; asmname '_p_Access' G*/
 extern int access(Char *f, int n);
 
+/* isatty */
 /*F cdecl; F*/
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'isatty' FHG*/
 
+/* time */
 /*F cdecl; F*/
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'time' FHG*/
 
+/* sprintf */
 /*GHF real FHG*/
 /*F cdecl; F*/
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'sprintf' FHG*/
 
+/* snprintf */
 /*GHF real FHG*/
 /*F cdecl; F*/
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'snprintf' FHG*/
 
+/* system */
 /*F cdecl; F*/
-/* procedure system( var s: char ); */
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'system' FHG*/
 
-/* These need tweaking for different operating systems: */
+/* The following legacy tests may need tweaking for different operating
+   systems and probably could be handled in the configure script. */
+/* random */
 /*F cdecl; F*/
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'random' FHG*/
-#if defined(__MSDOS__) || defined(RAND) 
-#undef random
-#define random() rand()
-#else
-extern long random(void);
-#if !defined(RAND_MAX)
-#undef randmax
-#define randmax (double) LONG_MAX
-#endif
-#endif
 
+/* srandom */
 /*HF name FH*/
 /*G; asmname G*/
 /*GHF 'srandom' FHG*/
-#if defined(_POSIX_SOURCE) || defined(__sun)
-extern void srandom(unsigned s);
-#elif defined(__MSDOS__) || defined(RAND) 
-extern void srand(unsigned s);
-#define srandom(x) srand((unsigned)(x))
-#elif defined(mips)
-#elif defined(__APPLE__)
-#elif defined(__OpenBSD__)
-extern void srand(unsigned int s);
-#else
-extern void srandom(int s);
-#endif
 
 
 /*-----------------------------------------------------------------*/
+/*DM function ordp(p:pointer): integer; external; MD*/
 /*DFGHM function odp(p:pointer): integer; MHGFD*/
 /*D begin
       odp := ordp(p) mod 10000
       end; D*/
 /* Numerical utilities: */
-double principal(double x, double r)
+double
+principal(double x, double r)
 { while (x > r) {
       x -= 2 * r;
   }
-  while (x < -r) {
+  while (x < (-r)) {
       x += 2 * r;
   }
   return x;
 }
 
 
-double Max(double x, double y)
+double
+Max(double x, double y)
 { if (y > x) {
       return y;
   }
@@ -878,7 +861,8 @@ double Max(double x, double y)
 }
 
 
-double Min(double x, double y)
+double
+Min(double x, double y)
 { if (y < x) {
       return y;
   }
@@ -888,37 +872,42 @@ double Min(double x, double y)
 }
 
 
-int Floor(double x)
-{ if (x >= 0 || (long)x == x) {
+int
+Floor(double x)
+{ if ((x >= 0) || (((long)x) == x)) {
       return ((long)x);
   }
   else {
-      return ((long)x - 1);
+      return (((long)x) - 1);
   }
 }
 
 
-int Ceil(double x)
-{ if (x < 0 || (long)x == x) {
+int
+Ceil(double x)
+{ if ((x < 0) || (((long)x) == x)) {
       return ((long)x);
   }
   else {
-      return ((long)x + 1);
+      return (((long)x) + 1);
   }
 }
 
 
-boolean isdistmax(double x)
-{ return (fabs(x / distmax - 1.0) < 1e-6);
+boolean
+isdistmax(double x)
+{ return (fabs((x / distmax) - 1.0) < 1e-6);
 }
 
 
-boolean ismdistmax(double x)
-{ return (fabs(x / mdistmax - 1.0) < 1e-6);
+boolean
+ismdistmax(double x)
+{ return (fabs((x / mdistmax) - 1.0) < 1e-6);
 }
 
 
-double datan(double y, double x)
+double
+datan(double y, double x)
 { double r;
 
   r = atan2(y , x);
@@ -926,14 +915,15 @@ double datan(double y, double x)
 }
 
 
-double linlen(double x, double y)
+double
+linlen(double x, double y)
 { double xm, ym;
 
   /* linlen := sqrt( x*x + y*y ) */
   if (fabs(x) > fabs(y)) {
       xm = fabs(x);
       ym = y / xm;
-      return (xm * sqrt(1.0 + ym * ym));
+      return (xm * sqrt(1.0 + (ym * ym)));
   }
   if (y == 0.0) {
       xm = 0.0;
@@ -943,13 +933,14 @@ double linlen(double x, double y)
       xm = fabs(y);
       ym = x / xm;
   }
-  return (xm * sqrt(1.0 + ym * ym));
+  return (xm * sqrt(1.0 + (ym * ym)));
 }
 
 
 /* Get and initialize a buffer from the
    old-buffer stack or make a new one */
-void newbuf(fbuffer **buf)
+void
+newbuf(fbuffer **buf)
 { fbuffer *With;
 
   /*D if debuglevel > 0 then write(log,' newbuf'); D*/
@@ -958,6 +949,7 @@ void newbuf(fbuffer **buf)
       /*D; if debuglevel > 0 then logaddr( buf ) D*/
       (*buf)->carray = Malloc(sizeof(chbufarray));
   }
+  /* p2c automatically adds memory allocation failure checks */
   else {
       /*D if debuglevel > 0 then write(log,' f'); D*/
       *buf = freeinbuf;
@@ -976,13 +968,14 @@ void newbuf(fbuffer **buf)
 
 
 /* Put buffers onto top of old-buffer stack */
-void disposebufs(fbuffer **buf)
+void
+disposebufs(fbuffer **buf)
 { /*D; loc: integer D*/
   fbuffer *bu;
 
   /*D if debuglevel > 0 then begin writeln(log);
       write(log,'disposebufs(',loc:1,')[',odp(buf):1,']') end; D*/
-  if (*buf == NULL) {
+  if ((*buf) == NULL) {
       return;
   }
   bu = *buf;
@@ -997,7 +990,8 @@ void disposebufs(fbuffer **buf)
 
 /* Get and initialize an arg from the
    old-arg stack or make a new one */
-void newarg(arg **ar)
+void
+newarg(arg **ar)
 { arg *With;
 
   if (freearg == NULL) {
@@ -1017,11 +1011,12 @@ void newarg(arg **ar)
 
 
 /* Put arg structs onto top of old-arg stack */
-void disposeargs(arg **ar)
+void
+disposeargs(arg **ar)
 { arg *a;
 
   /*D if debuglevel > 0 then writeln(log,'disposeargs[',odp(ar):1,']'); D*/
-  if (*ar == NULL) {
+  if ((*ar) == NULL) {
       return;
   }
   a = *ar;                                                              /*D,0D*/
@@ -1038,14 +1033,16 @@ void disposeargs(arg **ar)
 
 /* Causes immediate physical write to console,
    not needed for most systems: */
-void consoleflush(void)
+void
+consoleflush(void)
 { /*DGHMF; if debuglevel > 0 then flush(log) FMHGD*/
   fflush(errout);
   P_ioresult = 0;
 }
 
 
-void deletebufs(fbuffer **buf, boolean mv)
+void
+deletebufs(fbuffer **buf, boolean mv)
 { fbuffer *bu;
 
   /*D if debuglevel > 0 then write(log,' deletebufs dispose:'); D*/
@@ -1057,7 +1054,7 @@ void deletebufs(fbuffer **buf, boolean mv)
 	  bu = bu->prevb;
       }
   }
-  while (*buf != NULL) {
+  while ((*buf) != NULL) {
       bu = (*buf)->nextb;
       /*D if debuglevel > 0 then begin write(log,' '); logaddr(buf) end; D*/
       Free((*buf)->carray);
@@ -1069,7 +1066,8 @@ void deletebufs(fbuffer **buf, boolean mv)
 
 
 /* We are finished */
-void epilog(void)
+void
+epilog(void)
 { deletebufs(&inbuf, true);
   /*D if debuglevel > 0 then
      writeln(log,'dispose(chbuf)[',odp(chbuf):1,']'); D*/
@@ -1085,7 +1083,8 @@ void epilog(void)
 
 
 /* Unrecoverable errors */
-void fatal(int t)
+void
+fatal(int t)
 { if (t != 0) {
       fprintf(errout, " *** dpic: ");
   }
@@ -1096,38 +1095,41 @@ void fatal(int t)
     break;
 
   case 1:
-    fprintf(errout, "Input file not readable\n");
+    fprintf(errout, "input file not readable\n");
     break;
 
   case 3:
-    fprintf(errout, "Maximum error count exceeded\n");
+    fprintf(errout, "maximum error count exceeded\n");
     break;
 
   case 4:
-    fprintf(errout, "Character buffer overflow: \"CHBUFSIZ\" exceeded\n");
+    fprintf(errout, "character buffer overflow: \"CHBUFSIZ\" exceeded\n");
     break;
 
   case 5:
-    fprintf(errout, "End of file encountered on input\n");
+    fprintf(errout, "end of file encountered on input\n");
     break;
 
   case 6:
     fprintf(errout,
-	    "Too many pending actions, const \"STACKMAX\" exceeded,\n");
+	    "too many pending actions, const \"STACKMAX\" exceeded,\n");
     fprintf(errout, " possibly caused by infinite recursion.\n");
     break;
 
   case 7:
-    fprintf(errout, "Input too complex, const \"REDUMAX\" exceeded\n");
+    fprintf(errout, "input too complex, const \"REDUMAX\" exceeded\n");
     break;
 
   case 8:
-    fprintf(errout, "Error recovery abandoned\n");
+    fprintf(errout, "error recovery abandoned\n");
     break;
-    /*D 9: writeln(errout,'Debug special exit'); D*/
+
+  case 9:
+    fprintf(errout, "subscript out of range\n");
+    break;
 
   default:
-    fprintf(errout, "Unknown fatal error\n");
+    fprintf(errout, "unknown fatal error\n");
     break;
   }
   epilog();
@@ -1140,53 +1142,52 @@ void fatal(int t)
 
 
 /*--------------------------------------------------------------------*/
-/* include dpic2.p */
-/* MGHF# include 'dpic2.p'FHGM */
-/* include dp0.h */
-/* G#include 'dp0.h'G */
-/* include dp1.h */
-/* G#include 'dp1.h'G */
-/* include sysdep.h */
-/* DG#include 'sysdep.h'GD */
-void controls(void)
+void
+controls(void)
 { printf("\n ..controls ");
 }
 
 
-void wrand(void)
+void
+wrand(void)
 { printf(" and ");
 }
 
 
-void ddot(void)
+void
+ddot(void)
 { printf("\n ..");
 }
 
 
-void ddash(void)
+void
+ddash(void)
 { printf("\n --");
 }
 
 
-void space(void)
+void
+space(void)
 { putchar(' ');
 }
 
 
-void quote(void)
+void
+quote(void)
 { putchar('"');
 }
 
 
-void getlinshade(primitive *nod, primitive **tn, nametype **ss,
-			nametype **so, double *fillval, boolean *hshade)
+void
+getlinshade(primitive *nod, primitive **tn, nametype **ss, nametype **so,
+	    double *fillval, boolean *hshade)
 { primitive *With;
 
   *tn = nod;
   *ss = NULL;
   *so = NULL;
   *fillval = -1.0;
-  while (*tn != NULL) {
+  while ((*tn) != NULL) {
       With = *tn;
       if (With->outlinep != NULL) {
 	  *so = With->outlinep;
@@ -1203,41 +1204,46 @@ void getlinshade(primitive *nod, primitive **tn, nametype **ss,
 	  if (With->shadedp != NULL) {
 	      *ss = With->shadedp;
 	  }
-	  if (With->Upr.Uline.lfill >= 0.0 && With->Upr.Uline.lfill <= 1.0) {
+	  if ((With->Upr.Uline.lfill >= 0.0) && (With->Upr.Uline.lfill <= 1.0)) {
 	      *fillval = With->Upr.Uline.lfill;
 	  }
 	  *tn = nod;
 	  nod = nod->son;
       }
   }
-  if (*ss != NULL || *fillval >= 0.0) {
+  if (((*ss) != NULL) || ((*fillval) >= 0.0)) {
       *hshade = true;
   }
 }
 
 
 /* Arrowhead location (lex value) and number */
-int ahlex(int atyp)
+int
+ahlex(int atyp)
 { return (atyp >> 3);
 }
 
 
-int ahnum(int atyp)
+int
+ahnum(int atyp)
 { return (atyp & 7);
 }
 
 
-int pahlex(int atyp, int alex)
-{ return ((atyp & 7) + alex * 8);
+int
+pahlex(int atyp, int alex)
+{ return ((atyp & 7) + (alex * 8));
 }
 
 
-int pahnum(int atyp, int anum)
-{ return ((atyp >> 3) * 8 + (anum & 7));                      /* 0 < anum < 7 */
+int
+pahnum(int atyp, int anum)
+{ return (((atyp >> 3) * 8) + (anum & 7));                    /* 0 < anum < 7 */
 }
 
 
-void wfloat(FILE **iou, double y)
+void
+wfloat(FILE **iou, double y)
 { char buf[25];
   int i;
   if (fabs(y)==distmax)
@@ -1254,7 +1260,8 @@ void wfloat(FILE **iou, double y)
 }
 
 
-void wpair(FILE **iou, double x, double y)
+void
+wpair(FILE **iou, double x, double y)
 { putc('(', *iou);
   wfloat(iou, x);
   putc(',', *iou);
@@ -1263,7 +1270,8 @@ void wpair(FILE **iou, double x, double y)
 }
 
 
-void wcoord(FILE **iou, double x, double y)
+void
+wcoord(FILE **iou, double x, double y)
 { putc('(', *iou);
   wfloat(iou, x / fsc);
   putc(',', *iou);
@@ -1273,12 +1281,14 @@ void wcoord(FILE **iou, double x, double y)
 }
 
 
-void wpos(postype pos)
+void
+wpos(postype pos)
 { wcoord(&output, pos.xpos, pos.ypos);
 }
 
 
-void wstring(FILE **iou, nametype *p)
+void
+wstring(FILE **iou, nametype *p)
 { int i, FORLIM;
 
   /*D if debuglevel <= 0 then begin end
@@ -1307,48 +1317,16 @@ void wstring(FILE **iou, nametype *p)
 }
 
 
-void wbrace(double x)
+void
+wbrace(double x)
 { putchar('{');
   wfloat(&output, x);
   putchar('}');
 }
 
 
-boolean testjust(int n, int flag)
-{ boolean Result;
-
-  switch (flag) {
-
-  case XEMPTY:
-    Result = (n == 0);
-    break;
-
-  case XLcenter:
-    Result = (n == 15);
-    break;
-
-  case XLrjust:
-    Result = ((n & 3) == 1);
-    break;
-
-  case XLljust:
-    Result = ((n & 3) == 2);
-    break;
-
-  case XLbelow:
-    Result = (n >> 2 == 1);
-    break;
-
-  case XLabove:
-    Result = (n >> 2 == 2);
-    break;
-  }
-  return Result;
-}
-
-
-void checkjust(nametype *tp, boolean *A, boolean *B, boolean *L,
-		      boolean *R)
+void
+checkjust(nametype *tp, boolean *A, boolean *B, boolean *L, boolean *R)
 { int i;
 
   if (tp == NULL) {
@@ -1359,25 +1337,27 @@ void checkjust(nametype *tp, boolean *A, boolean *B, boolean *L,
       return;
   }
   i = (long)floor(tp->val + 0.5);
-  *A = testjust(i, XLabove);
-  *B = testjust(i, XLbelow);
-  *L = testjust(i, XLljust);
-  *R = testjust(i, XLrjust);
+  *A = ((i >> 2) == 2);
+  *B = ((i >> 2) == 1);
+  *L = ((i & 3) == 2);
+  *R = ((i & 3) == 1);
 }
 
 
-int lspec(int n)
+int
+lspec(int n)
 { /* if ((n div 16) mod 2) <> 0 then lspec := XLsolid
   else */
   return ((n & 7) + XLlinetype);
 }
 
 
-void getlinespec(primitive *nd, int *lsp, primitive **lastnd)
+void
+getlinespec(primitive *nd, int *lsp, primitive **lastnd)
 { primitive *tn = nd;
 
-  if (nd->ptype == XLarc || nd->ptype == XLarrow || nd->ptype == XLline ||
-       nd->ptype == XLspline) {
+  if ((nd->ptype == XLarc) || (nd->ptype == XLarrow) ||
+      (nd->ptype == XLline) || (nd->ptype == XLspline)) {
       while (tn->son != NULL) {
 	  tn = tn->son;
       }
@@ -1387,7 +1367,8 @@ void getlinespec(primitive *nd, int *lsp, primitive **lastnd)
 }
 
 
-primitive *findenv(primitive *p)
+primitive *(
+findenv(primitive *p))
 { primitive *q = NULL;
 
   while (p != q) {
@@ -1409,10 +1390,11 @@ primitive *findenv(primitive *p)
 }
 
 
-double venv(primitive *p, int ind)
+double
+venv(primitive *p, int ind)
 { double v = 0.0;
 
-  if (ind <= XLenvvar || ind > XLlastenv) {
+  if ((ind <= XLenvvar) || (ind > XLlastenv)) {
       return v;
   }
   p = findenv(p);
@@ -1423,7 +1405,8 @@ double venv(primitive *p, int ind)
 }
 
 
-double qenv(primitive *p, int ind, double localval)
+double
+qenv(primitive *p, int ind, double localval)
 { double noval;
 
   switch (ind) {
@@ -1454,16 +1437,18 @@ double qenv(primitive *p, int ind, double localval)
 
 
 /* orig + mat(cs) * [x,y] */
-postype affine(double x, double y, postype orig, postype cs)
+postype
+affine(double x, double y, postype orig, postype cs)
 { postype tpos;
 
-  tpos.xpos = orig.xpos + cs.xpos * x - cs.ypos * y;
-  tpos.ypos = orig.ypos + cs.ypos * x + cs.xpos * y;
+  tpos.xpos = orig.xpos + (cs.xpos * x) - (cs.ypos * y);
+  tpos.ypos = orig.ypos + (cs.ypos * x) + (cs.xpos * y);
   return tpos;
 }
 
 
-postype affang(postype point, postype shaft)
+postype
+affang(postype point, postype shaft)
 { double lgth;
   postype tpos;
 
@@ -1480,12 +1465,14 @@ postype affang(postype point, postype shaft)
 }
 
 
-double posangle(postype V, postype C)
+double
+posangle(postype V, postype C)
 { return (datan(V.ypos - C.ypos, V.xpos - C.xpos));
 }
 
 
-void initnesw(void)
+void
+initnesw(void)
 { south = distmax;
   north = -south;
   west = south;
@@ -1493,7 +1480,8 @@ void initnesw(void)
 }
 
 
-void neswstring(primitive *pmp, double ht, double wd)
+void
+neswstring(primitive *pmp, double ht, double wd)
 { boolean A, B, L, R;
   double x, y, offst;
 
@@ -1504,25 +1492,25 @@ void neswstring(primitive *pmp, double ht, double wd)
   offst = venv(pmp, XLtextoffset);
   y = pmp->aat.ypos;
   if (A) {
-      y += ht * 0.5 + offst;
+      y += (ht * 0.5) + offst;
   }
   else if (B) {
-      y += -ht * 0.5 - offst;
+      y += ((-ht) * 0.5) - offst;
   }
   if (drawmode == SVG) {
       offst = pmp->Upr.Ubox.boxheight / 3;
   }
   x = pmp->aat.xpos;
   if (R) {
-      x += -wd * 0.5 - offst;
+      x += ((-wd) * 0.5) - offst;
   }
   else if (L) {
-      x += wd * 0.5 + offst;
+      x += (wd * 0.5) + offst;
   }
-  north = Max(north, y + ht * 0.5);
-  south = Min(south, y - ht * 0.5);
-  west = Min(west, x - wd * 0.5);
-  east = Max(east, x + wd * 0.5);
+  north = Max(north, y + (ht * 0.5));
+  south = Min(south, y - (ht * 0.5));
+  west = Min(west, x - (wd * 0.5));
+  east = Max(east, x + (wd * 0.5));
   /*D; if debuglevel>0 then begin
      write(log,' neswstring:');
      wlogfl('aat.xpos',aat.xpos,0); wlogfl('x',x,0);
@@ -1531,7 +1519,8 @@ void neswstring(primitive *pmp, double ht, double wd)
 }
 
 
-void neswline(primitive *pmp)
+void
+neswline(primitive *pmp)
 { double aht, awd;
   postype cs, cc, cd;
   int TEMP;
@@ -1544,26 +1533,26 @@ void neswline(primitive *pmp)
   south = Min(south, Min(pmp->aat.ypos, pmp->Upr.Uline.endpos.ypos));
   north = Max(north, Max(pmp->aat.ypos, pmp->Upr.Uline.endpos.ypos));
   TEMP = ahlex(pmp->Upr.Uline.atype);
-  if (TEMP == XLEFTHEAD || TEMP == XDOUBLEHEAD) {
+  if ((TEMP == XLEFTHEAD) || (TEMP == XDOUBLEHEAD)) {
       cs = affang(pmp->Upr.Uline.endpos, pmp->aat);
       awd = qenv(pmp, XLarrowht, pmp->Upr.Uline.width);
       aht = qenv(pmp, XLarrowwid, pmp->Upr.Uline.height);
       cc = affine(aht, awd / 2, pmp->aat, cs);
-      cd = affine(aht, awd / -2, pmp->aat, cs);
+      cd = affine(aht, awd / (-2), pmp->aat, cs);
       west = Min(west, Min(cc.xpos, cd.xpos));
       east = Max(east, Max(cc.xpos, cd.xpos));
       south = Min(south, Min(cc.ypos, cd.ypos));
       north = Max(north, Max(cc.ypos, cd.ypos));
   }
   TEMP = ahlex(pmp->Upr.Uline.atype);
-  if (!(TEMP == XRIGHTHEAD || TEMP == XDOUBLEHEAD)) {
+  if (!((TEMP == XRIGHTHEAD) || (TEMP == XDOUBLEHEAD))) {
       return;
   }
   cs = affang(pmp->aat, pmp->Upr.Uline.endpos);
   awd = qenv(pmp, XLarrowht, pmp->Upr.Uline.width);
   aht = qenv(pmp, XLarrowwid, pmp->Upr.Uline.height);
   cc = affine(aht, awd / 2, pmp->Upr.Uline.endpos, cs);
-  cd = affine(aht, awd / -2, pmp->Upr.Uline.endpos, cs);
+  cd = affine(aht, awd / (-2), pmp->Upr.Uline.endpos, cs);
   west = Min(west, Min(cc.xpos, cd.xpos));
   east = Max(east, Max(cc.xpos, cd.xpos));
   south = Min(south, Min(cc.ypos, cd.ypos));
@@ -1571,7 +1560,8 @@ void neswline(primitive *pmp)
 }
 
 
-boolean inarc(double strt, double fin, double ang, double arcang)
+boolean
+inarc(double strt, double fin, double ang, double arcang)
 { boolean inarctmp;
 
   /*D if debuglevel > 0 then begin
@@ -1611,7 +1601,8 @@ boolean inarc(double strt, double fin, double ang, double arcang)
 }
 
 
-void nesw(primitive *ptmp)
+void
+nesw(primitive *ptmp)
 { double hight, wdth, sang, eang;
 
   if (ptmp == NULL) {
@@ -1651,10 +1642,10 @@ void nesw(primitive *ptmp)
   case XBLOCK:
   case XLcircle:
   case XLellipse:
-    north = Max(north, ptmp->aat.ypos + hight * 0.5);
-    south = Min(south, ptmp->aat.ypos - hight * 0.5);
-    west = Min(west, ptmp->aat.xpos - wdth * 0.5);
-    east = Max(east, ptmp->aat.xpos + wdth * 0.5);
+    north = Max(north, ptmp->aat.ypos + (hight * 0.5));
+    south = Min(south, ptmp->aat.ypos - (hight * 0.5));
+    west = Min(west, ptmp->aat.xpos - (wdth * 0.5));
+    east = Max(east, ptmp->aat.xpos + (wdth * 0.5));
     break;
 
   case XLstring:
@@ -1683,28 +1674,30 @@ void nesw(primitive *ptmp)
     }
     else {
 	north = Max(north,
-	    ptmp->aat.ypos + ptmp->Upr.Uline.aradius * Max(sin(sang), sin(eang)));
+	    ptmp->aat.ypos + (ptmp->Upr.Uline.aradius * Max(sin(sang), sin(eang))));
     }
-    if (inarc(sang, eang, -0.5 * pi, ptmp->Upr.Uline.endpos.ypos)) {
+    if (inarc(sang, eang, (-0.5) * pi, ptmp->Upr.Uline.endpos.ypos)) {
 	south = Min(south, ptmp->aat.ypos - ptmp->Upr.Uline.aradius);
     }
     else {
 	south = Min(south,
-	    ptmp->aat.ypos + ptmp->Upr.Uline.aradius * Min(sin(sang), sin(eang)));
+	    ptmp->aat.ypos + (ptmp->Upr.Uline.aradius * Min(sin(sang), sin(eang))));
     }
     if (inarc(sang, eang, pi, ptmp->Upr.Uline.endpos.ypos)) {
 	west = Min(west, ptmp->aat.xpos - ptmp->Upr.Uline.aradius);
     }
     else {
 	west = Min(west,
-	    ptmp->aat.xpos + ptmp->Upr.Uline.aradius * Min(cos(sang), cos(eang)));
+		   ptmp->aat.xpos + (ptmp->Upr.Uline.aradius * Min(cos(sang),
+								 cos(eang))));
     }
     if (inarc(sang, eang, 0.0, ptmp->Upr.Uline.endpos.ypos)) {
 	east = Max(east, ptmp->aat.xpos + ptmp->Upr.Uline.aradius);
     }
     else {
 	east = Max(east,
-	    ptmp->aat.xpos + ptmp->Upr.Uline.aradius * Max(cos(sang), cos(eang)));
+		   ptmp->aat.xpos + (ptmp->Upr.Uline.aradius * Max(cos(sang),
+								 cos(eang))));
     }
     break;
   }
@@ -1716,7 +1709,8 @@ void nesw(primitive *ptmp)
 }
 
 
-void texstacktext(primitive *np, nametype *tp)
+void
+texstacktext(primitive *np, nametype *tp)
 { nametype *tx;
   boolean A, B, L, R;
   double toff;
@@ -1728,7 +1722,7 @@ void texstacktext(primitive *np, nametype *tp)
   if (tx != NULL) {
       printf("\\shortstack{");
   }
-  toff = venv(np, XLtextoffset) / scale * 72;
+  toff = (venv(np, XLtextoffset) / scale) * 72;
   do {
       checkjust(tp, &A, &B, &L, &R);
       if (L) {
@@ -1759,7 +1753,8 @@ void texstacktext(primitive *np, nametype *tp)
 }
 
 
-int primdepth(primitive *ptmp)
+int
+primdepth(primitive *ptmp)
 { int dep = 0;
 
   while (ptmp != NULL) {
@@ -1770,29 +1765,33 @@ int primdepth(primitive *ptmp)
 }
 
 
-void pprop(postype p1, postype *p2, double a, double b, double c)
+void
+pprop(postype p1, postype *p2, double a, double b, double c)
 { if (c != 0.0) {
-      p2->xpos = (a * p1.xpos + b * p2->xpos) / c;
-      p2->ypos = (a * p1.ypos + b * p2->ypos) / c;
+      p2->xpos = ((a * p1.xpos) + (b * p2->xpos)) / c;
+      p2->ypos = ((a * p1.ypos) + (b * p2->ypos)) / c;
   }
 }
 
 
-void wprop(postype p1, postype p2, double a, double b, double c)
+void
+wprop(postype p1, postype p2, double a, double b, double c)
 { pprop(p1, &p2, a, b, c);                             /* Note: p2 is not var */
   wpos(p2);
 }
 
 
-boolean iscorner(double theta)
+boolean
+iscorner(double theta)
 { /*D if debuglevel = 2 then
     writeln(log,'iscorner(',theta*180/pi:7:4,')=',
       (abs(theta) < 0.001) or (abs(0.5*pi-abs(theta)) < 0.001)); D*/
-  return (fabs(theta) < 0.001 || fabs(0.5 * pi - fabs(theta)) < 0.001);
+  return ((fabs(theta) < 0.001) || (fabs((0.5 * pi) - fabs(theta)) < 0.001));
 }
 
 
-int hcf(int x, int y)
+int
+hcf(int x, int y)
 { int i;
 
   if (x < 0) {
@@ -1808,7 +1807,7 @@ int hcf(int x, int y)
   }
   while (y > 0) {
       i = y;
-      y = x - x / y * y;
+      y = x - ((x / y) * y);
       x = i;
   }
   if (x == 0) {
@@ -1826,13 +1825,14 @@ begin
   if i < 0 then iabs := -i else iabs := i
   end;
 */
-void wrslope(double xp, double yp, boolean arrow)
+void
+wrslope(double xp, double yp, boolean arrow)
 { int i, ix, iy;
   double r;
 
   /*D if debuglevel > 0 then begin
      write(log,'wrslope xp,yp: '); wpair(log,xp,yp) end; D*/
-  if (xp == 0.0 && yp == 0.0) {
+  if ((xp == 0.0) && (yp == 0.0)) {
       xp = 1.0;
       yp = 0.0;
   }
@@ -1849,8 +1849,8 @@ void wrslope(double xp, double yp, boolean arrow)
   else {
       i = 6;
   }
-  iy = (long)floor((i + 0.49999) * yp / r + 0.5);
-  ix = (long)floor((i + 0.49999) * xp / r + 0.5);
+  iy = (long)floor(((i + 0.49999) * yp / r) + 0.5);
+  ix = (long)floor(((i + 0.49999) * xp / r) + 0.5);
   i = hcf(ix, iy);
   iy /= i;
   ix /= i;
@@ -1869,7 +1869,8 @@ void wrslope(double xp, double yp, boolean arrow)
 }
 
 
-boolean isthen(primitive *pr)
+boolean
+isthen(primitive *pr)
 { if (pr == NULL) {
       return false;
   }
@@ -1879,7 +1880,8 @@ boolean isthen(primitive *pr)
 }
 
 
-boolean firstsegment(primitive *pr)
+boolean
+firstsegment(primitive *pr)
 { if (pr == NULL) {
       return false;
   }
@@ -1889,15 +1891,16 @@ boolean firstsegment(primitive *pr)
 }
 
 
-boolean drawn(primitive *node, int linesp, double fill)
+boolean
+drawn(primitive *node, int linesp, double fill)
 { if (node == NULL) {
       return false;
   }
   else if (node->shadedp != NULL) {
       return true;
   }
-  else if (linesp == XLdotted || linesp == XLdashed || linesp == XLsolid ||
-	   fill >= 0.0 && fill <= 1.0) {
+  else if ((linesp == XLdotted) || (linesp == XLdashed) ||
+	   (linesp == XLsolid) || ((fill >= 0.0) && (fill <= 1.0))) {
       return true;
   }
   else {
@@ -1907,12 +1910,13 @@ boolean drawn(primitive *node, int linesp, double fill)
 
 
 /* distance to P control point */
-double ahoffset(double ht, double wid, double lti)
+double
+ahoffset(double ht, double wid, double lti)
 { if (wid == 0.0) {
       return 0.0;
   }
   else {
-      return (lti * sqrt(ht * ht + wid * wid / 4) / wid);
+      return (lti * sqrt((ht * ht) + (wid * wid / 4)) / wid);
   }
 }
 
@@ -1924,10 +1928,10 @@ begin
    wfloat(log,P.xpos); write(log,','); wfloat(log,P.ypos); write(log,')')
    end; D*/
 /* Arrowhead control points */
-void dahead(postype point, postype shaft, double ht, double wid,
-		   double ltu, postype *P, postype *L, postype *R,
-		   postype *Px, postype *Lx, postype *Rx, postype *C,
-		   double *x, double *y)
+void
+dahead(postype point, postype shaft, double ht, double wid, double ltu,
+       postype *P, postype *L, postype *R, postype *Px, postype *Lx,
+       postype *Rx, postype *C, double *x, double *y)
 { /* arrowhead ht and wid, user units */
   /* line thickness in diagram units */
   /* adj point, left, right pts, dir cosines */
@@ -1948,33 +1952,33 @@ void dahead(postype point, postype shaft, double ht, double wid,
       po = ht;
   }
   *P = affine(po, 0.0, point, *C);        /* point adjusted by line thickness */
-  h = ht - ltu / 2;
+  h = ht - (ltu / 2);
   *x = h - po;
   if (ht == 0.0) {
       v = 0.0;
   }
   else {
-      v = wid / 2 * *x / ht;
+      v = (wid / 2) * (*x) / ht;
   }
   *R = affine(h, v, point, *C);
   *L = affine(h, -v, point, *C);
-  if (*x == 0.0) {
+  if ((*x) == 0.0) {
       t = 1.0;
   }
   else {
-      t = ht / *x;
+      t = ht / (*x);
   }
-  Rx->xpos = point.xpos + (R->xpos - P->xpos) * t;            /* right corner */
-  Rx->ypos = point.ypos + (R->ypos - P->ypos) * t;
-  Lx->xpos = point.xpos + (L->xpos - P->xpos) * t;             /* left corner */
-  Lx->ypos = point.ypos + (L->ypos - P->ypos) * t;
+  Rx->xpos = point.xpos + ((R->xpos - P->xpos) * t);          /* right corner */
+  Rx->ypos = point.ypos + ((R->ypos - P->ypos) * t);
+  Lx->xpos = point.xpos + ((L->xpos - P->xpos) * t);           /* left corner */
+  Lx->ypos = point.ypos + ((L->ypos - P->ypos) * t);
   Px->xpos = (point.xpos + Lx->xpos + Rx->xpos) / 3;      /* type 3 center pt */
   Px->ypos = (point.ypos + Lx->ypos + Rx->ypos) / 3;
   if (ht == 0.0) {
       *y = 0.0;
   }
   else {
-      *y = ht - po + ltu * wid / ht / 4;
+      *y = ht - po + (ltu * wid / ht / 4);
       /*D; if debuglevel > 0 then begin
           write(log,' dahead out: po='); wfloat(log,po);
           logpos('P',P); logpos('L',L); logpos('R',R); logpos('C',C);
@@ -1985,50 +1989,51 @@ void dahead(postype point, postype shaft, double ht, double wid,
 }
 
 
-void popgwarc(postype Ctr, double radius, double startangle,
-		     double endangle, double ccw)
+void
+popgwarc(postype Ctr, double radius, double startangle, double endangle,
+	 double ccw)
 { int narcs, i;
   double c, s, cc, ss, arcangle;
   postype Q;
 
-  if (ccw > 0 && endangle < startangle) {
+  if ((ccw > 0) && (endangle < startangle)) {
       endangle += 2 * pi;
   }
-  else if (ccw < 0 && endangle > startangle) {
+  else if ((ccw < 0) && (endangle > startangle)) {
       endangle -= 2 * pi;
   }
-  narcs = (long)(1.0 + fabs(endangle - startangle) / pi);
+  narcs = (long)(1.0 + (fabs(endangle - startangle) / pi));
   arcangle = (endangle - startangle) / narcs;
   c = cos(arcangle / 2);
   s = sin(arcangle / 2);
   cc = (4 - c) / 3;
   if (s != 0.0) {
-      ss = (1.0 - c * cc) / s;
+      ss = (1.0 - (c * cc)) / s;
   }
   else {
       ss = 0.0;
   }
   for (i = 1; i <= narcs; i++) {
       controls();
-      Q.xpos = cos(startangle + (i - 0.5) * arcangle);
-      Q.ypos = sin(startangle + (i - 0.5) * arcangle);
+      Q.xpos = cos(startangle + ((i - 0.5) * arcangle));
+      Q.ypos = sin(startangle + ((i - 0.5) * arcangle));
       wpos(affine(radius * cc, -radius * ss, Ctr, Q));
       wrand();
       wpos(affine(radius * cc, radius * ss, Ctr, Q));
       ddot();
-      Q.xpos = Ctr.xpos + radius * cos(startangle + i * arcangle);
-      Q.ypos = Ctr.ypos + radius * sin(startangle + i * arcangle);
+      Q.xpos = Ctr.xpos + (radius * cos(startangle + (i * arcangle)));
+      Q.ypos = Ctr.ypos + (radius * sin(startangle + (i * arcangle)));
       wpos(Q);
   }
 }
 
 
 /* Parameters and positions for traced arrows*/
-void arcahead(postype C, postype point, int atyp, double ht,
-		     double wid, double lth, double radius, double angle,
-		     postype *P, postype *Co, postype *Ci, postype *Px,
-		     postype *Cox, postype *Cix, postype *Ao, postype *Ai,
-		     double *ccw, double *lwi, boolean *startarrow)
+void
+arcahead(postype C, postype point, int atyp, double ht, double wid,
+	 double lth, double radius, double angle, postype *P, postype *Co,
+	 postype *Ci, postype *Px, postype *Cox, postype *Cix, postype *Ao,
+	 postype *Ai, double *ccw, double *lwi, boolean *startarrow)
 { double lw, aa, bb, cc, s, v, d, b, t;
   postype Q;
   double TEMP, TEMP1;
@@ -2052,11 +2057,11 @@ void arcahead(postype C, postype point, int atyp, double ht,
   *startarrow = (radius >= 0);
   ht = fabs(ht);
   wid = fabs(wid);
-  *lwi = lth / 72 * scale;                 /* line thickness in diagram units */
+  *lwi = (lth / 72) * scale;               /* line thickness in diagram units */
   lw = Min(fabs(*lwi), Min(wid / 2, ht / 2));
   wid = Max(wid, lw);
   radius = fabs(radius);
-  d = sqrt(ht * ht + wid * wid / 4);
+  d = sqrt((ht * ht) + (wid * wid / 4));
   /* Centres of the wing arcs */
   if (d == 0) {
       Q.xpos = 1.0;
@@ -2064,7 +2069,7 @@ void arcahead(postype C, postype point, int atyp, double ht,
   }
   else {
       Q.xpos = ht / d;
-      Q.ypos = *ccw * wid / 2 / d;
+      Q.ypos = (*ccw) * wid / 2 / d;
   }
   *Ci = affine(C.xpos - point.xpos, C.ypos - point.ypos, point, Q);
   Q.ypos = -Q.ypos;
@@ -2077,18 +2082,18 @@ void arcahead(postype C, postype point, int atyp, double ht,
       t = Min(pi / 2, d / radius);
   }
   Q.xpos = cos(t);
-  Q.ypos = *ccw * sin(t);
+  Q.ypos = (*ccw) * sin(t);
   *Ao = affine(point.xpos - Co->xpos, point.ypos - Co->ypos, *Co, Q);
   TEMP = Ao->xpos - C.xpos;
   TEMP1 = Ao->ypos - C.ypos;
   /* Make angle(C to Ai) = angle(C to Ao) */
-  aa = TEMP * TEMP + TEMP1 * TEMP1;
-  bb = 2 * ((Ao->xpos - C.xpos) * (C.xpos - Ci->xpos) +
-	    (Ao->ypos - C.ypos) * (C.ypos - Ci->ypos));
+  aa = (TEMP * TEMP) + (TEMP1 * TEMP1);
+  bb = 2 * (((Ao->xpos - C.xpos) * (C.xpos - Ci->xpos)) +
+	    ((Ao->ypos - C.ypos) * (C.ypos - Ci->ypos)));
   TEMP = C.xpos - Ci->xpos;
   TEMP1 = C.ypos - Ci->ypos;
-  cc = TEMP * TEMP + TEMP1 * TEMP1 - radius * radius;
-  s = bb * bb - 4 * aa * cc;
+  cc = (TEMP * TEMP) + (TEMP1 * TEMP1) - (radius * radius);
+  s = (bb * bb) - (4 * aa * cc);
   if (s < 0) {
       v = aa;
   }
@@ -2108,15 +2113,15 @@ void arcahead(postype C, postype point, int atyp, double ht,
       *P = *Ao;
   }
   else {
-      b = 2 * radius * sqrt((1 - ht / d) / 2);            /* distance C to Co */
+      b = 2 * radius * sqrt((1 - (ht / d)) / 2);          /* distance C to Co */
       /* Angle from Co-C to P, center C */
-      Q.xpos = (b * b - lw * lw + 2 * lw * radius) / (2 * b * radius);
+      Q.xpos = ((b * b) - (lw * lw) + (2 * lw * radius)) / (2 * b * radius);
       if (fabs(Q.xpos) > 1) {
 	  P->xpos = (Ao->xpos + Ai->xpos) / 2;
 	  P->ypos = (Ao->ypos + Ai->ypos) / 2;
       }
       else {
-	  Q.ypos = -*ccw * sqrt(1 - Q.xpos * Q.xpos);
+	  Q.ypos = -(*ccw) * sqrt(1 - (Q.xpos * Q.xpos));
 	  *P = affine(radius * (Co->xpos - C.xpos) / b,
 		      radius * (Co->ypos - C.ypos) / b, C, Q);
       }
@@ -2126,15 +2131,15 @@ void arcahead(postype C, postype point, int atyp, double ht,
       t = 0.0;
   }
   else {
-      t = Min(pi / 2, ht / radius * 2 / 3);
+      t = Min(pi / 2, (ht / radius) * 2 / 3);
   }
   Q.xpos = cos(t);
-  Q.ypos = *ccw * sin(t);
+  Q.ypos = (*ccw) * sin(t);
   *Px = affine(point.xpos - C.xpos, point.ypos - C.ypos, C, Q);
   v = radius * radius;
   TEMP = Ao->xpos - Px->xpos;
   TEMP1 = Ao->ypos - Px->ypos;
-  d = TEMP * TEMP + TEMP1 * TEMP1;
+  d = (TEMP * TEMP) + (TEMP1 * TEMP1);
   if (d == 0) {
       s = sqrt(v);
   }
@@ -2142,13 +2147,13 @@ void arcahead(postype C, postype point, int atyp, double ht,
       s = 0.0;
   }
   else {
-      s = sqrt(v / d - 0.25);
+      s = sqrt((v / d) - 0.25);
   }
-  Cox->xpos = (Px->xpos + Ao->xpos) / 2 - *ccw * (Ao->ypos - Px->ypos) * s;
-  Cox->ypos = (Px->ypos + Ao->ypos) / 2 + *ccw * (Ao->xpos - Px->xpos) * s;
+  Cox->xpos = ((Px->xpos + Ao->xpos) / 2) - ((*ccw) * (Ao->ypos - Px->ypos) * s);
+  Cox->ypos = ((Px->ypos + Ao->ypos) / 2) + ((*ccw) * (Ao->xpos - Px->xpos) * s);
   TEMP = Ai->xpos - Px->xpos;
   TEMP1 = Ai->ypos - Px->ypos;
-  d = TEMP * TEMP + TEMP1 * TEMP1;
+  d = (TEMP * TEMP) + (TEMP1 * TEMP1);
   if (d == 0) {
       s = sqrt(v);
   }
@@ -2156,10 +2161,10 @@ void arcahead(postype C, postype point, int atyp, double ht,
       s = 0.0;
   }
   else {
-      s = sqrt(v / d - 0.25);
+      s = sqrt((v / d) - 0.25);
   }
-  Cix->xpos = (Px->xpos + Ai->xpos) / 2 - *ccw * (Ai->ypos - Px->ypos) * s;
-  Cix->ypos = (Px->ypos + Ai->ypos) / 2 + *ccw * (Ai->xpos - Px->xpos) * s;
+  Cix->xpos = ((Px->xpos + Ai->xpos) / 2) - ((*ccw) * (Ai->ypos - Px->ypos) * s);
+  Cix->ypos = ((Px->ypos + Ai->ypos) / 2) + ((*ccw) * (Ai->xpos - Px->xpos) * s);
   /*D; if debuglevel > 0 then begin
      writeln(log,' arcahead out:');
      write(log,' lw='); wfloat(log,lw);
@@ -2175,18 +2180,18 @@ void arcahead(postype C, postype point, int atyp, double ht,
 }
 
 
-void startarc(primitive *n, postype X0, double lth, double *h,
-		     double *w)
+void
+startarc(primitive *n, postype X0, double lth, double *h, double *w)
 { double x, y;
 
   *h = qenv(n, XLarrowht, n->Upr.Uline.height);
   *w = qenv(n, XLarrowwid, n->Upr.Uline.width);
-  y = ahoffset(*h, *w, lth / 72 * scale);
-  if (n->Upr.Uline.aradius * n->Upr.Uline.aradius - y * y <= 0.0) {
+  y = ahoffset(*h, *w, (lth / 72) * scale);
+  if ((n->Upr.Uline.aradius * n->Upr.Uline.aradius) - (y * y) <= 0.0) {
       x = 0.0;
   }
   else {
-      x = 2 * atan(y / sqrt(n->Upr.Uline.aradius * n->Upr.Uline.aradius - y * y));
+      x = 2 * atan(y / sqrt((n->Upr.Uline.aradius * n->Upr.Uline.aradius) - (y * y)));
   }
   if (n->Upr.Uline.endpos.ypos >= 0.0) {
       n->Upr.Uline.endpos.xpos += x;
@@ -2199,17 +2204,18 @@ void startarc(primitive *n, postype X0, double lth, double *h,
 }
 
 
-void endarc(primitive *n, postype X0, double lth, double *h, double *w)
+void
+endarc(primitive *n, postype X0, double lth, double *h, double *w)
 { double x, y;
 
   *h = qenv(n, XLarrowht, n->Upr.Uline.height);
   *w = qenv(n, XLarrowwid, n->Upr.Uline.width);
-  y = ahoffset(*h, *w, lth / 72 * scale);
-  if (n->Upr.Uline.aradius * n->Upr.Uline.aradius - y * y <= 0.0) {
+  y = ahoffset(*h, *w, (lth / 72) * scale);
+  if ((n->Upr.Uline.aradius * n->Upr.Uline.aradius) - (y * y) <= 0.0) {
       x = 0.0;
   }
   else {
-      x = 2 * atan(y / sqrt(n->Upr.Uline.aradius * n->Upr.Uline.aradius - y * y));
+      x = 2 * atan(y / sqrt((n->Upr.Uline.aradius * n->Upr.Uline.aradius) - (y * y)));
   }
   if (n->Upr.Uline.endpos.ypos >= 0.0) {
       n->Upr.Uline.endpos.ypos -= x;
@@ -2220,22 +2226,24 @@ void endarc(primitive *n, postype X0, double lth, double *h, double *w)
 }
 
 
-postype arcstart(primitive *n)
+postype
+arcstart(primitive *n)
 { postype X;
 
-  X.xpos = n->aat.xpos + n->Upr.Uline.aradius * cos(n->Upr.Uline.endpos.xpos);
-  X.ypos = n->aat.ypos + n->Upr.Uline.aradius * sin(n->Upr.Uline.endpos.xpos);
+  X.xpos = n->aat.xpos + (n->Upr.Uline.aradius * cos(n->Upr.Uline.endpos.xpos));
+  X.ypos = n->aat.ypos + (n->Upr.Uline.aradius * sin(n->Upr.Uline.endpos.xpos));
   return X;
 }
 
 
-postype arcend(primitive *n)
+postype
+arcend(primitive *n)
 { postype X;
 
-  X.xpos = n->aat.xpos + n->Upr.Uline.aradius *
-			 cos(n->Upr.Uline.endpos.xpos + n->Upr.Uline.endpos.ypos);
-  X.ypos = n->aat.ypos + n->Upr.Uline.aradius *
-			 sin(n->Upr.Uline.endpos.xpos + n->Upr.Uline.endpos.ypos);
+  X.xpos = n->aat.xpos + (n->Upr.Uline.aradius * cos(
+			    n->Upr.Uline.endpos.xpos + n->Upr.Uline.endpos.ypos));
+  X.ypos = n->aat.ypos + (n->Upr.Uline.aradius * sin(
+			    n->Upr.Uline.endpos.xpos + n->Upr.Uline.endpos.ypos));
   return X;
 }
 
@@ -2243,13 +2251,14 @@ postype arcend(primitive *n)
 /* include xfig.h */
 /* xfig.x */
 /* Output routines for xfig */
-void xfigprelude(void)
+void
+xfigprelude(void)
 { /* writeln('#FIG 3.1');
      writeln('Landscape');
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2017.08.01 option -x for Fig 3.1')
+     writeln('# dpic version 2018.03.01 option -x for Fig 3.1')
      */
   printf("#FIG 3.2\n");
   printf("Landscape\n");
@@ -2259,23 +2268,26 @@ void xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2017.08.01 option -x for Fig 3.2\n");
+  printf("# dpic version 2018.03.01 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 }
 
 
-void wfigpt(double x)
-{ printf(" %ld", (long)floor(x / fsc * xfigres + 0.5));
+void
+wfigpt(double x)
+{ printf(" %ld", (long)floor(((x / fsc) * xfigres) + 0.5));
 }
 
 
-void wfigcoord(double x, double y)
+void
+wfigcoord(double x, double y)
 { wfigpt(x);
   wfigpt(xfheight - y);
 }
 
 
-void arrowline(int atype, double wid, double ht, double lth)
+void
+arrowline(int atype, double wid, double ht, double lth)
 { if (ahnum(atype) == 0) {
       printf("%c0 0 ", tabch);
   }
@@ -2291,7 +2303,8 @@ void arrowline(int atype, double wid, double ht, double lth)
 }
 
 
-int linstyle(int i)
+int
+linstyle(int i)
 { if (i == XLsolid) {
       i = 0;
       return i;
@@ -2310,22 +2323,23 @@ int linstyle(int i)
 }
 
 
-void hdrline(int object_code, int sub_type, int line_style, double lth,
-		    double gfill)
+void
+hdrline(int object_code, int sub_type, int line_style, double lth,
+	double gfill)
 { /* first 10 values object_code .. style_val */
   printf("%d %d %d ", object_code, sub_type, linstyle(line_style));
   if (line_style == XLinvis) {
       printf("0 ");
   }
   else {
-      printf("%ld ", (long)floor(lth * xdispres / pointd + 0.5));
+      printf("%ld ", (long)floor((lth * xdispres / pointd) + 0.5));
   }
   printf("0 -1 0 -1 ");               /* pencolor, fillcolor, depth, penstyle */
-  if (gfill == -1.0) {
+  if (gfill == (-1.0)) {
       printf("-1 ");                                             /* area fill */
   }
   else {
-      printf("%ld ", (long)floor((1.0 - gfill) * 20 + 0.5));
+      printf("%ld ", (long)floor(((1.0 - gfill) * 20) + 0.5));
   }
   /* style_val */
   if (line_style == XLdashed) {
@@ -2341,7 +2355,8 @@ void hdrline(int object_code, int sub_type, int line_style, double lth,
 }
 
 
-int fwdarrow(int i)
+int
+fwdarrow(int i)
 { if ((ahlex(i) == XRIGHTHEAD) | (ahlex(i) == XDOUBLEHEAD)) {
       return 1;
   }
@@ -2351,7 +2366,8 @@ int fwdarrow(int i)
 }
 
 
-int bckarrow(int i)
+int
+bckarrow(int i)
 { if ((ahlex(i) == XLEFTHEAD) | (ahlex(i) == XDOUBLEHEAD)) {
       return 1;
   }
@@ -2361,16 +2377,17 @@ int bckarrow(int i)
 }
 
 
-void polyline(int object_code, int sub_type, int line_style,
-		     double lth, double gfill, double lrad, int atype,
-		     double lwid, double lht, int npoints)
+void
+polyline(int object_code, int sub_type, int line_style, double lth,
+	 double gfill, double lrad, int atype, double lwid, double lht,
+	 int npoints)
 { hdrline(object_code, sub_type, line_style, lth, gfill);
   if (object_code == 3) {
       printf("0 ");                           /* cap_style = butt for splines */
       /* join_style = miter, cap_style = butt, radius */
   }
   else {
-      printf("0 0 %ld ", (long)floor(lrad * xdispres + 0.5));
+      printf("0 0 %ld ", (long)floor((lrad * xdispres) + 0.5));
   }
   printf("%d %d %d\n", fwdarrow(atype), bckarrow(atype), npoints);
   if (fwdarrow(atype) == 1) {
@@ -2382,8 +2399,9 @@ void polyline(int object_code, int sub_type, int line_style,
 }
 
 
-void xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid,
-		       double x, double y)
+void
+xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid, double x,
+	   double y)
 { double ydisp;
   int istr, nstr, figjust, i;
   boolean A, B, L, R;
@@ -2428,15 +2446,15 @@ void xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid,
       /*D if debuglevel > 0 then writeln(log,
         ' bxht=',bxht:9:2,' bxwid=',bxwid:9:2,' length=',tp^.len:1); D*/
       if (A) {
-	  ydisp = bxht / 5 + venv(np, XLtextoffset);
+	  ydisp = (bxht / 5) + venv(np, XLtextoffset);
       }
       else if (B) {
-	  ydisp = -bxht - venv(np, XLtextoffset);
+	  ydisp = (-bxht) - venv(np, XLtextoffset);
       }
       else {
-	  ydisp = bxht / -3;
+	  ydisp = bxht / (-3);
       }
-      wfigcoord(x, y + ydisp + ((nstr + 1.0) / 2 - istr) * bxht);
+      wfigcoord(x, y + ydisp + ((((nstr + 1.0) / 2) - istr) * bxht));
       putchar(' ');
       FORLIM = tp->len;
       for (i = 0; i < FORLIM; i++) {
@@ -2451,9 +2469,10 @@ void xfigwrtext(primitive *np, nametype *tp, double bxht, double bxwid,
 }
 
 
-void farc(int object_code, int sub_type, int line_style, double lth,
-		 double gfill, int atype, double radius, double strtang,
-		 double arcang, double x, double y, double lwid, double lht)
+void
+farc(int object_code, int sub_type, int line_style, double lth, double gfill,
+     int atype, double radius, double strtang, double arcang, double x,
+     double y, double lwid, double lht)
 { hdrline(object_code, sub_type, line_style, lth, gfill);
   printf("0 ");
   if (arcang < 0.0) {
@@ -2464,11 +2483,11 @@ void farc(int object_code, int sub_type, int line_style, double lth,
   }
   printf("%d %d ", fwdarrow(atype), bckarrow(atype));
   wfigcoord(x, y);
-  wfigcoord(x + radius * cos(strtang), y + radius * sin(strtang));
-  wfigcoord(x + radius * cos(strtang + arcang / 2),
-	    y + radius * sin(strtang + arcang / 2));
-  wfigcoord(x + radius * cos(strtang + arcang),
-	    y + radius * sin(strtang + arcang));
+  wfigcoord(x + (radius * cos(strtang)), y + (radius * sin(strtang)));
+  wfigcoord(x + (radius * cos(strtang + (arcang / 2))),
+	    y + (radius * sin(strtang + (arcang / 2))));
+  wfigcoord(x + (radius * cos(strtang + arcang)),
+	    y + (radius * sin(strtang + arcang)));
   putchar('\n');
   if (fwdarrow(atype) == 1) {
       arrowline(atype, lwid, lht, lth);
@@ -2479,9 +2498,10 @@ void farc(int object_code, int sub_type, int line_style, double lth,
 }
 
 
-void fellipse(int object_code, int sub_type, int line_style,
-		     double lth, double gfill, double center_x,
-		     double center_y, double radius_x, double radius_y)
+void
+fellipse(int object_code, int sub_type, int line_style, double lth,
+	 double gfill, double center_x, double center_y, double radius_x,
+	 double radius_y)
 { hdrline(object_code, sub_type, line_style, lth, gfill);
   printf("1 0.0");
   wfigcoord(center_x, center_y);
@@ -2493,12 +2513,13 @@ void fellipse(int object_code, int sub_type, int line_style,
 }
 
 
-boolean rdrawn(primitive *np)
+boolean
+rdrawn(primitive *np)
 { boolean rv = false;
   boolean v;
   primitive *With;
 
-  while (rv == false && np != NULL) {
+  while ((rv == false) && (np != NULL)) {
       With = np;
       if (With->ptype == XLbox) {
 	  v = drawn(np, lspec(With->spec), With->Upr.Ubox.boxfill);
@@ -2509,15 +2530,15 @@ boolean rdrawn(primitive *np)
       else if (With->ptype == XLellipse) {
 	  v = drawn(np, lspec(With->spec), With->Upr.Uellipse.efill);
       }
-      else if (With->ptype == XLspline || With->ptype == XLarrow ||
-	       With->ptype == XLline || With->ptype == XLarc) {
+      else if ((With->ptype == XLspline) || (With->ptype == XLarrow) ||
+	       (With->ptype == XLline) || (With->ptype == XLarc)) {
 	  /* v := drawn(np,lspec(spec),-1.0) */
 	  v = drawn(np, lspec(With->spec), With->Upr.Uline.lfill);
       }
       else {
 	  v = false;
       }
-      if (v || With->textp != NULL) {
+      if (v || (With->textp != NULL)) {
 	  rv = true;
 	  break;
       }
@@ -2532,7 +2553,8 @@ boolean rdrawn(primitive *np)
 }
 
 
-void xfigdraw(primitive *node)
+void
+xfigdraw(primitive *node)
 { int i, lsp;
   double fill;
   primitive *tn;
@@ -2579,7 +2601,7 @@ void xfigdraw(primitive *node)
 	    wfigcoord(node->aat.xpos, node->aat.ypos);
 	}
 	wfigcoord(node->Upr.Uline.endpos.xpos, node->Upr.Uline.endpos.ypos);
-	if (node->son == NULL && node->ptype == XLspline) {
+	if ((node->son == NULL) && (node->ptype == XLspline)) {
 	    printf("\n%c 0.0", tabch);
 	    FORLIM = spltot;
 	    for (i = 2; i <= FORLIM; i++) {
@@ -2669,7 +2691,8 @@ void xfigdraw(primitive *node)
 /* include svg.h */
 /* svg.x */
 /* Output routines for SVG */
-void svgprelude(double n, double s, double e, double w, double lth)
+void
+svgprelude(double n, double s, double e, double w, double lth)
 { double hsize, vsize;
 
   /*D if debuglevel > 0 then begin
@@ -2681,9 +2704,9 @@ void svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2017.08.01 option -v for SVG 1.1 -->\n");
-  hsize = (e - w + 2 * lth) / fsc;
-  vsize = (n - s + 2 * lth) / fsc;
+  printf("<!-- Creator: dpic version 2018.03.01 option -v for SVG 1.1 -->\n");
+  hsize = (e - w + (2 * lth)) / fsc;
+  vsize = (n - s + (2 * lth)) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
 	 Ceil(hsize + 0.5), Ceil(vsize + 0.5));
   printf("<svg\n");
@@ -2711,37 +2734,41 @@ void svgprelude(double n, double s, double e, double w, double lth)
   printf(" stroke=\"black\"");
   printf(" stroke-miterlimit=\"10\"");
   printf(" stroke-width=\"");
-  wfloat(&output, 0.8 / 72 * SVGPX);
+  wfloat(&output, (0.8 / 72) * SVGPX);
   printf("\" fill=\"none\">\n");
   printf("<g>\n");
   gslinethick = 0.8;
 }
 
 
-void svgpostlude(void)
+void
+svgpostlude(void)
 { printf("</g></svg>\n");
   /*D; if debuglevel > 0 then writeln(log,'svgpostlude done') D*/
 }
 
 
-void svgsetstroke(double lth)
+void
+svgsetstroke(double lth)
 { if (lth == gslinethick) {
       return;
   }
   printf(" stroke-width=\"");
-  wfloat(&output, lth / 72 * SVGPX);
+  wfloat(&output, (lth / 72) * SVGPX);
   printf("\"\n");
 }
 
 
-void svgsoutline(nametype *so)
+void
+svgsoutline(nametype *so)
 { printf(" stroke=\"");
   wstring(&output, so);
   printf("\"\n");
 }
 
 
-void fillgray(double fll)
+void
+fillgray(double fll)
 { printf(" fill=\"");
   if (fll == 0.0) {
       printf("black");
@@ -2760,18 +2787,19 @@ void fillgray(double fll)
   }
   else {
       printf("rgb(");
-      fprintf(output, "%ld", (long)floor(fll * 255 + 0.5));
+      fprintf(output, "%ld", (long)floor((fll * 255) + 0.5));
       putchar(',');
-      fprintf(output, "%ld", (long)floor(fll * 255 + 0.5));
+      fprintf(output, "%ld", (long)floor((fll * 255) + 0.5));
       putchar(',');
-      fprintf(output, "%ld", (long)floor(fll * 255 + 0.5));
+      fprintf(output, "%ld", (long)floor((fll * 255) + 0.5));
       putchar(')');
   }
   printf("\"\n");
 }
 
 
-void svglineoptions(primitive *node, int lnspec)
+void
+svglineoptions(primitive *node, int lnspec)
 { double param;
 
   if (node->lthick >= 0.0) {
@@ -2801,7 +2829,7 @@ void svglineoptions(primitive *node, int lnspec)
 	param = node->lparam;
     }
     else {
-	param = qenv(node, XLlinethick, node->lthick) / 72 * 5 * scale;
+	param = (qenv(node, XLlinethick, node->lthick) / 72) * 5 * scale;
     }
     printf(" stroke-linecap=\"round\"");
     printf(" stroke-dasharray=\"0.5,");
@@ -2816,9 +2844,10 @@ void svglineoptions(primitive *node, int lnspec)
 }
 
 
-void svgfilloptions(primitive *node, double fill, nametype *sh,
-			   int lnspec, boolean poly)
-{ fill = (long)floor(fill * 1000000L + 0.5) / 1000000.0;
+void
+svgfilloptions(primitive *node, double fill, nametype *sh, int lnspec,
+	       boolean poly)
+{ fill = ((long)floor((fill * 1000000L) + 0.5)) / 1000000.0;
   switch (node->ptype) {
 
   case XLbox:
@@ -2857,7 +2886,7 @@ void svgfilloptions(primitive *node, double fill, nametype *sh,
       wstring(&output, sh);
       printf("\"\n");
   }
-  else if (fill >= 0.0 && fill <= 1.0) {
+  else if ((fill >= 0.0) && (fill <= 1.0)) {
       fillgray(fill);
   }
   else if (node->ptype == XLstring) {
@@ -2867,26 +2896,30 @@ void svgfilloptions(primitive *node, double fill, nametype *sh,
 }
 
 
-void svgendpath(void)
+void
+svgendpath(void)
 { printf(" />\n");
 }
 
 
-void svgparam(Char *p, double x)
+void
+svgparam(Char *p, double x)
 { printf(" %s=\"", p);
   wfloat(&output, x / fsc);
   quote();
 }
 
 
-void svgcoord(Char *s1, Char *s2, double x, double y)
+void
+svgcoord(Char *s1, Char *s2, double x, double y)
 { svgparam(s1, x);
   /*DGHMF ;flush(output) FMHGD*/
   svgparam(s2, xfheight - y);
 }
 
 
-void svgwpos(postype p)
+void
+svgwpos(postype p)
 { wfloat(&output, p.xpos / fsc);
   putchar(',');
   /*D;if debuglevel > 0 then begin
@@ -2900,13 +2933,15 @@ void svgwpos(postype p)
 }
 
 
-void svgwprop(postype p1, postype p2, double a, double b, double c)
+void
+svgwprop(postype p1, postype p2, double a, double b, double c)
 { pprop(p1, &p2, a, b, c);
   svgwpos(p2);
 }
 
 
-void svgwstring(nametype *p)
+void
+svgwstring(nametype *p)
 { int i;
   Char c;
   boolean waswhite = false;
@@ -2926,8 +2961,8 @@ void svgwstring(nametype *p)
   FORLIM = p->len;
   for (i = 0; i < FORLIM; i++) {
       c = p->segmnt[p->seginx + i];
-      iswhite = (c == etxch || c == nlch || c == tabch || c == ' ');
-      if (!iswhite || !waswhite) {
+      iswhite = ((c == etxch) || (c == nlch) || (c == tabch) || (c == ' '));
+      if ((!iswhite) || (!waswhite)) {
 	  putchar(c);
       }
       waswhite = iswhite;
@@ -2935,7 +2970,8 @@ void svgwstring(nametype *p)
 }
 
 
-void svgwtext(primitive *node, nametype *tp, double x, double y)
+void
+svgwtext(primitive *node, nametype *tp, double x, double y)
 { int nstr = 0;
   nametype *tx;
   boolean L, R, A, B;
@@ -2951,7 +2987,7 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
       tx = tx->next_;
   }
   /* boxheight = nstrings * textht */
-  if (node->ptype == XLstring && nstr > 0) {
+  if ((node->ptype == XLstring) && (nstr > 0)) {
       textht = node->Upr.Ubox.boxheight / nstr;
   }
   textoff = venv(node, XLtextoffset);
@@ -2962,7 +2998,7 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
     writeln(log,' textoff=',textoff:8:3,'[',textoff/fsc:8:3,
      '] textht=',textht:8:3,'[',textht/fsc:8:3,']')
     end; D*/
-  y += (nstr / 2.0 - 4.0 / 5) * textht;
+  y += ((nstr / 2.0) - (4.0 / 5)) * textht;
   do {
       checkjust(tp, &A, &B, &L, &R);
       printf("<text");
@@ -2971,7 +3007,7 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
       }
       else {
 	  printf(" font-size=\"");
-	  wfloat(&output, textht / scale * 72);
+	  wfloat(&output, (textht / scale) * 72);
 	  printf("pt\"");
 	  svgfilloptions(node, node->Upr.Ubox.boxfill, node->shadedp,
 			 lspec(node->spec), false);
@@ -2986,20 +3022,20 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
 	  printf(" text-anchor=\"end\"");
       }
       if (L) {
-	  dx = textoff - textht * 2 / 5;
+	  dx = textoff - (textht * 2 / 5);
       }
       else if (R) {
-	  dx = textht / 7 - textoff;
+	  dx = (textht / 7) - textoff;
       }
       else {
-	  dx = textht / -7;
+	  dx = textht / (-7);
       }
-      dy = textht / -20;
+      dy = textht / (-20);
       if (A) {
-	  dy += textoff + textht / 2;
+	  dy += textoff + (textht / 2);
       }
       else if (B) {
-	  dy += textht * (1 - TEXTRATIO) / 2 - textoff;
+	  dy += (textht * (1 - TEXTRATIO) / 2) - textoff;
       }
       /*D if debuglevel>0 then begin
         writeln(log,' A=',A,' B=',B,' L=',L,' R=',R,
@@ -3019,7 +3055,8 @@ void svgwtext(primitive *node, nametype *tp, double x, double y)
 }
 
 
-void svgwarc(postype E, double r, double angle, double ccw)
+void
+svgwarc(postype E, double r, double angle, double ccw)
 { printf(" A ");
   wfloat(&output, fabs(r) / fsc);
   space();
@@ -3044,9 +3081,9 @@ void svgwarc(postype E, double r, double angle, double ccw)
 }
 
 
-void svgarcahead(postype C, int atyp, postype *point, nametype *sou,
-			double ht, double wid, double lth, double radius,
-			double angle)
+void
+svgarcahead(postype C, int atyp, postype *point, nametype *sou, double ht,
+	    double wid, double lth, double radius, double angle)
 { postype P, Q, Co, Ci, Px, Cox, Cix, Ao, Ai;
   double ccw, lwi;
   boolean startarrow;
@@ -3065,7 +3102,7 @@ void svgarcahead(postype C, int atyp, postype *point, nametype *sou,
   else {
       printf(" fill=\"black\"\n");
   }
-  if (atyp == 0 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 0) && (lwi < ((wid - lwi) / 2))) {
       printf(" d=\"M ");
       svgwpos(P);
       putchar('\n');
@@ -3082,7 +3119,7 @@ void svgarcahead(postype C, int atyp, postype *point, nametype *sou,
       putchar('\n');
       svgwarc(P, radius - lwi, 1.0, -ccw);
   }
-  else if (atyp == 3 && lwi < (wid - lwi) / 2) {
+  else if ((atyp == 3) && (lwi < ((wid - lwi) / 2))) {
       printf(" d=\"M ");
       svgwpos(Px);
       putchar('\n');
@@ -3110,13 +3147,14 @@ void svgarcahead(postype C, int atyp, postype *point, nametype *sou,
 }
 
 
-void svgahead(int atyp, postype *point, postype shaft, nametype *sou,
-		     double ht, double wid, double lth, double fill)
+void
+svgahead(int atyp, postype *point, postype shaft, nametype *sou, double ht,
+	 double wid, double lth, double fill)
 { postype P, L, R, Px, Lx, Rx, Q;
   double x, y;
 
-  dahead(*point, shaft, ht, wid, lth / 72 * scale, &P, &L, &R, &Px, &Lx, &Rx,
-	 &Q, &x, &y);
+  dahead(*point, shaft, ht, wid, (lth / 72) * scale, &P, &L, &R, &Px, &Lx,
+	 &Rx, &Q, &x, &y);
   /*D if debuglevel > 0 then begin
       write(log,' dahead values: ');
       logpos('point',point); logpos('shaft',shaft); writeln(log);
@@ -3154,7 +3192,7 @@ void svgahead(int atyp, postype *point, postype shaft, nametype *sou,
 	  wstring(&output, sou);
 	  printf("\"\n");
       }
-      else if (fill >= 0.0 && fill <= 1.0) {
+      else if ((fill >= 0.0) && (fill <= 1.0)) {
 	  fillgray(fill);
       }
       else {
@@ -3177,7 +3215,7 @@ void svgahead(int atyp, postype *point, postype shaft, nametype *sou,
 	  wstring(&output, sou);
 	  printf("\"\n");
       }
-      else if (fill >= 0.0 && fill <= 1.0) {
+      else if ((fill >= 0.0) && (fill <= 1.0)) {
 	  fillgray(fill);
       }
       else {
@@ -3196,7 +3234,8 @@ void svgahead(int atyp, postype *point, postype shaft, nametype *sou,
 }
 
 
-void svgsplinesegment(primitive *tv, int splc, int splt)
+void
+svgsplinesegment(primitive *tv, int splc, int splt)
 { if (tv == NULL) {
       return;
   }
@@ -3250,7 +3289,7 @@ void svgsplinesegment(primitive *tv, int splc, int splt)
       /* last segment */
       return;
   }
-  if (splc == splt && splc > 1) {
+  if ((splc == splt) && (splc > 1)) {
       printf(" d=\"M ");
       svgwpos(tv->aat);
       printf("\n C ");
@@ -3260,13 +3299,13 @@ void svgsplinesegment(primitive *tv, int splc, int splt)
       return;
   }
   if (splc > 1) {
-      svgwprop(tv->aat, tv->Upr.Uline.endpos, 0.5 + tv->Upr.Uline.aradius / 2,
-	       0.5 - tv->Upr.Uline.aradius / 2, 1.0);
+      svgwprop(tv->aat, tv->Upr.Uline.endpos, 0.5 + (tv->Upr.Uline.aradius / 2),
+	       0.5 - (tv->Upr.Uline.aradius / 2), 1.0);
       space();
       svgwprop(tv->aat, tv->Upr.Uline.endpos, 1.0, 1.0, 2.0);
       space();
-      svgwprop(tv->aat, tv->Upr.Uline.endpos, 0.5 - tv->Upr.Uline.aradius / 2,
-	       0.5 + tv->Upr.Uline.aradius / 2, 1.0);
+      svgwprop(tv->aat, tv->Upr.Uline.endpos, 0.5 - (tv->Upr.Uline.aradius / 2),
+	       0.5 + (tv->Upr.Uline.aradius / 2), 1.0);
       space();
       return;
   }
@@ -3280,7 +3319,8 @@ void svgsplinesegment(primitive *tv, int splc, int splt)
 
 
 /* node is always <> nil */
-void svgdraw(primitive *node)
+void
+svgdraw(primitive *node)
 { int lsp;
   postype X1, X2;
   primitive *tn, *tx;
@@ -3309,8 +3349,9 @@ void svgdraw(primitive *node)
     nesw(node);
     if (drawn(node, lsp, node->Upr.Ubox.boxfill)) {
 	svgfilloptions(node, node->Upr.Ubox.boxfill, node->shadedp, lsp, false);
-	svgcoord("x", "y", node->aat.xpos - fabs(node->Upr.Ubox.boxwidth) / 2,
-		 node->aat.ypos + fabs(node->Upr.Ubox.boxheight) / 2);
+	svgcoord("x", "y",
+		 node->aat.xpos - (fabs(node->Upr.Ubox.boxwidth) / 2),
+		 node->aat.ypos + (fabs(node->Upr.Ubox.boxheight) / 2));
 	if (node->Upr.Ubox.boxradius > 0.0) {
 	    svgparam("rx", node->Upr.Ubox.boxradius);
 	    svgparam("ry", node->Upr.Ubox.boxradius);
@@ -3358,7 +3399,7 @@ void svgdraw(primitive *node)
 	    if (soutline != NULL) {
 		svgsoutline(soutline);
 	    }
-	    if (vfill >= 0 && vfill <= 1) {
+	    if ((vfill >= 0) && (vfill <= 1)) {
 		fillgray(vfill);
 	    }
 	    else {
@@ -3381,14 +3422,14 @@ void svgdraw(primitive *node)
 	if (lsp != XLinvis) {
 	    lth = qenv(tn, XLlinethick, tn->lthick);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		svgahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos, soutline,
 			 qenv(tn, XLarrowht, tn->Upr.Uline.height),
 			 qenv(tn, XLarrowwid, tn->Upr.Uline.width), lth, vfill);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		svgahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, soutline,
 			 qenv(tn, XLarrowht, tn->Upr.Uline.height),
@@ -3442,7 +3483,7 @@ void svgdraw(primitive *node)
 	    if (soutline != NULL) {
 		svgsoutline(soutline);
 	    }
-	    if (vfill >= 0 && vfill <= 1) {
+	    if ((vfill >= 0) && (vfill <= 1)) {
 		fillgray(vfill);
 	    }
 	    else {
@@ -3464,7 +3505,7 @@ void svgdraw(primitive *node)
 	if (lsp != XLinvis) {
 	    lth = qenv(tn, XLlinethick, tn->lthick);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		svgahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos, soutline,
 			 qenv(tn, XLarrowht, tn->Upr.Uline.height),
@@ -3472,7 +3513,7 @@ void svgdraw(primitive *node)
 			 node->Upr.Uline.lfill);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		svgahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, soutline,
 			 qenv(tn, XLarrowht, tn->Upr.Uline.height),
@@ -3496,7 +3537,7 @@ void svgdraw(primitive *node)
     getlinshade(node, &tn, &sshade, &soutline, &vfill, &bfill);
     if (bfill) {
 	printf("<path stroke-width=\"0\"");
-	if (vfill >= 0 && vfill <= 1) {
+	if ((vfill >= 0) && (vfill <= 1)) {
 	    fillgray(vfill);
 	}
 	else {
@@ -3517,14 +3558,14 @@ void svgdraw(primitive *node)
     if (lsp != XLinvis) {
 	lth = qenv(tn, XLlinethick, tn->lthick);
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 	    startarc(node, X1, lth, &h, &w);
 	    svgarcahead(node->aat, ahnum(node->Upr.Uline.atype), &X1, soutline,
 			h, w, lth, fabs(node->Upr.Uline.aradius),
 			node->Upr.Uline.endpos.ypos);
 	}
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 	    endarc(node, X2, lth, &h, &w);
 	    svgarcahead(node->aat, ahnum(node->Upr.Uline.atype), &X2, soutline,
 			h, w, lth, -fabs(node->Upr.Uline.aradius),
@@ -3561,23 +3602,26 @@ void svgdraw(primitive *node)
 /* include pst.h */
 /* pst.x */
 /* Output routines for PSTricks */
-void pstprelude(double n, double s, double e, double w)
+void
+pstprelude(double n, double s, double e, double w)
 { printf("\\psset{unit=1in,cornersize=absolute,dimen=middle}%%\n");
   printf("\\begin{pspicture}");
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2017.08.01 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2018.03.01 option -p for PSTricks 0.93a or later\n");
 }
 
 
-void pstpostlude(void)
+void
+pstpostlude(void)
 { printf("\\end{pspicture}%%\n");
   /*D if debuglevel > 0 then writeln(log,'pstpostlude done'); D*/
 }
 
 
-void pstwrtext(primitive *np, nametype *tp, double x, double y)
+void
+pstwrtext(primitive *np, nametype *tp, double x, double y)
 { boolean A, B, L, R;
 
   if (tp == NULL) {
@@ -3594,7 +3638,7 @@ void pstwrtext(primitive *np, nametype *tp, double x, double y)
   checkjust(tp, &A, &B, &L, &R);
   if (A || B || L || R) {
       printf("\\uput{");
-      wfloat(&output, venv(np, XLtextoffset) / scale * 72);
+      wfloat(&output, (venv(np, XLtextoffset) / scale) * 72);
       printf("bp}[");
       if (B) {
 	  putchar('d');
@@ -3620,7 +3664,8 @@ void pstwrtext(primitive *np, nametype *tp, double x, double y)
 }
 
 
-void pstlineoptions(primitive *node, int lsp, Char sep)
+void
+pstlineoptions(primitive *node, int lsp, Char sep)
 { if (node->lthick >= 0.0) {
       printf("%clinewidth=", sep);
       wfloat(&output, node->lthick);
@@ -3635,7 +3680,8 @@ void pstlineoptions(primitive *node, int lsp, Char sep)
   if (node->ptype == XBLOCK) {
       lsp = XLinvis;
   }
-  if (lsp == XLinvis || lsp == XLdotted || lsp == XLdashed) {      /* XLsolid,*/
+  if ((lsp == XLinvis) || (lsp == XLdotted) || (lsp == XLdashed))
+  {                                                                /* XLsolid,*/
       printf("%c%%\n", sep);
       printf("linestyle=");
       switch (lsp) {
@@ -3666,8 +3712,8 @@ void pstlineoptions(primitive *node, int lsp, Char sep)
       }
       sep = ',';
   }
-  if (node->ptype == XLspline || node->ptype == XLline ||
-       node->ptype == XLarrow) {
+  if ((node->ptype == XLspline) || (node->ptype == XLline) ||
+      (node->ptype == XLarrow)) {
       if ((ahlex(node->Upr.Uline.atype) != XEMPTY) &
 	  (ahnum(node->Upr.Uline.atype) != 0) & (ahnum(node->Upr.Uline.atype) != 3)) {
 	  printf("%c%%\n", sep);
@@ -3690,7 +3736,8 @@ void pstlineoptions(primitive *node, int lsp, Char sep)
 }
 
 
-void pstfilloptions(primitive *node, int lsp, double a)
+void
+pstfilloptions(primitive *node, int lsp, double a)
 { Char sep;
   double fill = -1.0;
 
@@ -3720,9 +3767,9 @@ void pstfilloptions(primitive *node, int lsp, double a)
     fill = node->Upr.Uline.lfill;
     break;
   }
-  fill = (long)floor(fill * 1000000L + 0.5) / 1000000.0;
-  if (fill > 0.0 && fill < 1.0 && fill != lastfillval && fill != 0.25 &&
-       fill != 0.5 && fill != 0.75) {
+  fill = ((long)floor((fill * 1000000L) + 0.5)) / 1000000.0;
+  if ((fill > 0.0) && (fill < 1.0) && (fill != lastfillval) &&
+      (fill != 0.25) && (fill != 0.5) && (fill != 0.75)) {
       lastfillval = fill;
       printf("\\newgray{fillval}");
       wbrace(fill);
@@ -3766,7 +3813,7 @@ void pstfilloptions(primitive *node, int lsp, double a)
       wstring(&output, sshade);
       sep = ',';
   }
-  else if (fill >= 0.0 && fill <= 1.0) {
+  else if ((fill >= 0.0) && (fill <= 1.0)) {
       printf("[fillstyle=solid,fillcolor=");
       if (fill == 0.0) {
 	  printf("black");
@@ -3802,13 +3849,14 @@ void pstfilloptions(primitive *node, int lsp, double a)
 }
 
 
-void pstahead(postype *point, postype shaft, double ht, double wid,
-		     double lth, int typ, nametype *sou)
+void
+pstahead(postype *point, postype shaft, double ht, double wid, double lth,
+	 int typ, nametype *sou)
 { postype P, L, R, Px, Lx, Rx, Q;
   double x, y;
 
-  dahead(*point, shaft, ht, wid, lth / 72 * scale, &P, &L, &R, &Px, &Lx, &Rx,
-	 &Q, &x, &y);
+  dahead(*point, shaft, ht, wid, (lth / 72) * scale, &P, &L, &R, &Px, &Lx,
+	 &Rx, &Q, &x, &y);
   /*D if debuglevel > 0 then begin
       write(log,' dahead out: point:');
       wcoord(log,point.xpos,point.ypos);
@@ -3871,18 +3919,18 @@ void pstahead(postype *point, postype shaft, double ht, double wid,
 }
 
 
-void pstwarc(postype C, double r, double startangle, double endangle,
-		    double ccw)
+void
+pstwarc(postype C, double r, double startangle, double endangle, double ccw)
 { wpos(C);
-  if (ccw > 0 && endangle < startangle) {
+  if ((ccw > 0) && (endangle < startangle)) {
       endangle += 2 * pi;
   }
-  else if (ccw < 0 && endangle > startangle) {
+  else if ((ccw < 0) && (endangle > startangle)) {
       endangle -= 2 * pi;
   }
   wbrace(r / fsc);
-  wbrace(180.0 / pi * startangle);
-  wbrace(180.0 / pi * endangle);
+  wbrace((180.0 / pi) * startangle);
+  wbrace((180.0 / pi) * endangle);
   /*D; if debuglevel > 0 then begin
      write(log,' pstwarc:');
      logpos(' C',C);
@@ -3896,7 +3944,8 @@ void pstwarc(postype C, double r, double startangle, double endangle,
 }
 
 
-void pstarc(double ccw)
+void
+pstarc(double ccw)
 { if (ccw >= 0.0) {
       printf("\\psarc");
   }
@@ -3906,9 +3955,10 @@ void pstarc(double ccw)
 }
 
 
-void pstarcahead(postype C, postype point, int atyp, nametype *sou,
-			double ht, double wid, double lth, double radius,
-			double arcangle, postype *P)
+void
+pstarcahead(postype C, postype point, int atyp, nametype *sou, double ht,
+	    double wid, double lth, double radius, double arcangle,
+	    postype *P)
 { postype Co, Ci, Px, Cox, Cix, Ao, Ai;
   double ccw, lwi;
   boolean startarrow;
@@ -3936,13 +3986,13 @@ void pstarcahead(postype C, postype point, int atyp, nametype *sou,
   pstwarc(Ci, radius, posangle(Ai, Ci), posangle(point, Ci), -ccw);
   pstarc(ccw);
   pstwarc(Co, radius, posangle(point, Co), posangle(Ao, Co), ccw);
-  if (atyp == 0 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 0) && (lwi < ((wid - lwi) / 2))) {
       pstarc(-ccw);
       pstwarc(Co, radius - lwi, posangle(Ao, Co), posangle(*P, Co), -ccw);
       pstarc(ccw);
       pstwarc(Ci, radius + lwi, posangle(*P, Ci), posangle(Ai, Ci), ccw);
   }
-  else if (atyp == 3 && lwi < (wid - lwi) / 2) {
+  else if ((atyp == 3) && (lwi < ((wid - lwi) / 2))) {
       pstarc(-ccw);
       pstwarc(Cox, radius, posangle(Ao, Cox), posangle(Px, Cox), -ccw);
       pstarc(ccw);
@@ -3965,10 +4015,11 @@ void pstarcahead(postype C, postype point, int atyp, nametype *sou,
 }
 
 
-void pstsplinesegment(primitive *tv, int splc, int splt)
+void
+pstsplinesegment(primitive *tv, int splc, int splt)
 { if (tv != NULL) {
       if (ismdistmax(tv->Upr.Uline.aradius)) {
-	  if (splc == splt && splc > 1) {  /* 1st seg */
+	  if ((splc == splt) && (splc > 1)) {  /* 1st seg */
 	      wpos(tv->aat);
 	      wprop(tv->aat, tv->Upr.Uline.endpos, 5.0, 1.0, 6.0);
 		  /* 1/6 from 1st to 2nd */
@@ -3999,7 +4050,7 @@ void pstsplinesegment(primitive *tv, int splc, int splt)
 	      /* last segment */
 	  }
       }
-      else if (splc == splt && splc > 1) {
+      else if ((splc == splt) && (splc > 1)) {
 	  wpos(tv->aat);
 	  wprop(tv->aat, tv->Upr.Uline.endpos, 1 - tv->Upr.Uline.aradius,
 		tv->Upr.Uline.aradius, 1.0);
@@ -4028,7 +4079,8 @@ void pstsplinesegment(primitive *tv, int splc, int splt)
 }
 
 
-void pstdraw(primitive *node)
+void
+pstdraw(primitive *node)
 { int lsp, ahn;
   postype X0, X1;
   boolean v;
@@ -4092,7 +4144,7 @@ void pstdraw(primitive *node)
   case XLarc:
     if (drawn(node, lsp, node->Upr.Uline.lfill)) {
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &bfill);
-	if (bfill && vfill >= 0.0) {
+	if (bfill && (vfill >= 0.0)) {
 	    node->Upr.Uline.lfill = vfill;
 	}
 	X0 = arcstart(node);
@@ -4107,7 +4159,7 @@ void pstdraw(primitive *node)
 	    node->lthick = s;
 	}
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 	    pstarcahead(node->aat, X0, ahnum(node->Upr.Uline.atype), soutline,
 			qenv(node, XLarrowht, node->Upr.Uline.height),
 			qenv(node, XLarrowwid, node->Upr.Uline.width), lth,
@@ -4115,7 +4167,7 @@ void pstdraw(primitive *node)
 			node->Upr.Uline.endpos.ypos, &X0);
 	}
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 	    pstarcahead(node->aat, X1, ahnum(node->Upr.Uline.atype), soutline,
 			qenv(node, XLarrowht, node->Upr.Uline.height),
 			qenv(node, XLarrowwid, node->Upr.Uline.width), lth,
@@ -4144,7 +4196,7 @@ void pstdraw(primitive *node)
     if (drawn(node, lsp, node->Upr.Uline.lfill)) {
 	if (firstsegment(node)) {
 	    getlinshade(node, &tn, &sshade, &soutline, &vfill, &bfill);
-	    if (bfill && vfill >= 0.0) {
+	    if (bfill && (vfill >= 0.0)) {
 		node->Upr.Uline.lfill = vfill;
 	    }
 	    if (bfill) {
@@ -4161,9 +4213,9 @@ void pstdraw(primitive *node)
 		}
 	    }
 	    ahn = ahnum(tn->Upr.Uline.atype);
-	    if (ahn == 0 || ahn == 3) {
+	    if ((ahn == 0) || (ahn == 3)) {
 		TEMP = ahlex(tn->Upr.Uline.atype);
-		if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+		if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		    pstahead(&node->aat, node->Upr.Uline.endpos,
 			     qenv(node, XLarrowht, tn->Upr.Uline.height),
 			     qenv(node, XLarrowwid, tn->Upr.Uline.width),
@@ -4171,7 +4223,7 @@ void pstdraw(primitive *node)
 			     ahnum(tn->Upr.Uline.atype), soutline);
 		}
 		TEMP = ahlex(tn->Upr.Uline.atype);
-		if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+		if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		    pstahead(&tn->Upr.Uline.endpos, tn->aat,
 			     qenv(node, XLarrowht, tn->Upr.Uline.height),
 			     qenv(node, XLarrowwid, tn->Upr.Uline.width),
@@ -4183,7 +4235,7 @@ void pstdraw(primitive *node)
 	    sshade = NULL;
 	    pstfilloptions(tn, lsp, 0.0);
 	    sshade = sx;
-	    if (ahn != 0 && ahn != 3) {
+	    if ((ahn != 0) && (ahn != 3)) {
 		switch (ahlex(tn->Upr.Uline.atype)) {
 
 		case XLEFTHEAD:
@@ -4238,7 +4290,7 @@ void pstdraw(primitive *node)
   case XLspline:
     if (firstsegment(node)) {  /* first spline */
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &bfill);
-	if (bfill && vfill >= 0.0) {
+	if (bfill && (vfill >= 0.0)) {
 	    node->Upr.Uline.lfill = vfill;
 	}
 	if (bfill) {
@@ -4260,9 +4312,9 @@ void pstdraw(primitive *node)
 	spltot = primdepth(node);
 	splcount = spltot;
 	ahn = ahnum(tn->Upr.Uline.atype);
-	if (ahn == 0 || ahn == 3) {
+	if ((ahn == 0) || (ahn == 3)) {
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		pstahead(&tn->Upr.Uline.endpos, tn->aat,
 			 qenv(node, XLarrowht, tn->Upr.Uline.height),
 			 qenv(node, XLarrowwid, tn->Upr.Uline.width),
@@ -4270,7 +4322,7 @@ void pstdraw(primitive *node)
 			 ahnum(tn->Upr.Uline.atype), soutline);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		pstahead(&node->aat, node->Upr.Uline.endpos,
 			 qenv(node, XLarrowht, tn->Upr.Uline.height),
 			 qenv(node, XLarrowwid, tn->Upr.Uline.width),
@@ -4283,7 +4335,7 @@ void pstdraw(primitive *node)
 	    sshade = NULL;
 	    pstfilloptions(tn, lsp, 0.0);
 	    sshade = sx;
-	    if (ahn != 0 && ahn != 3) {
+	    if ((ahn != 0) && (ahn != 3)) {
 		switch (ahlex(tn->Upr.Uline.atype)) {
 
 		case XLEFTHEAD:
@@ -4331,26 +4383,29 @@ void pstdraw(primitive *node)
 /* include mfp.h */
 /* mfp.x */
 /* Output routines for mfpic */
-void mfpprelude(double n, double s, double e, double w)
+void
+mfpprelude(double n, double s, double e, double w)
 { printf("\\begin{mfpic}[72]");
   wbrace(w / fsc);
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2017.08.01 option -m for mfpic\n");
+  printf("\n%% dpic version 2018.03.01 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
 }
 
 
-void mfppostlude(void)
+void
+mfppostlude(void)
 { printf("\\end{mfpic}\n");
   /*D if debuglevel > 0 then writeln(log,'mfpbpostlude done');D*/
 }
 
 
-void mfpwrtext(primitive *np, nametype *tp, double x, double y)
+void
+mfpwrtext(primitive *np, nametype *tp, double x, double y)
 { boolean A, B, L, R;
 
   if (tp == NULL) {
@@ -4390,13 +4445,13 @@ void mfpwrtext(primitive *np, nametype *tp, double x, double y)
   if (A) {
       printf("\\raisebox{");
       wfloat(&output,
-	     venv(np, XLtextoffset) / scale / 12 + 0.5 * venv(np, XLtextht));
+	(venv(np, XLtextoffset) / scale / 12) + (0.5 * venv(np, XLtextht)));
       printf("ex}{");
   }
   else if (B) {
       printf("\\raisebox{");
       wfloat(&output,
-	     venv(np, XLtextoffset) / scale / -12 - 0.5 * venv(np, XLtextht));
+	(venv(np, XLtextoffset) / scale / (-12)) - (0.5 * venv(np, XLtextht)));
       printf("ex}{");
   }
   wstring(&output, tp);
@@ -4407,17 +4462,20 @@ void mfpwrtext(primitive *np, nametype *tp, double x, double y)
 }
 
 
-void comma(void)
+void
+comma(void)
 { putchar(',');
 }
 
 
-void commacr(void)
+void
+commacr(void)
 { printf(",\n");
 }
 
 
-void mfpsetshade(double fill, nametype *shade)
+void
+mfpsetshade(double fill, nametype *shade)
 { if (shade != NULL) {
       printf("\\gfill[");
       wstring(&output, shade);
@@ -4437,7 +4495,8 @@ void mfpsetshade(double fill, nametype *shade)
 }
 
 
-void mfpellipse(postype aat, double elwidth, double elheight)
+void
+mfpellipse(postype aat, double elwidth, double elheight)
 { printf("\\ellipse{");
   wpos(aat);
   comma();
@@ -4448,7 +4507,8 @@ void mfpellipse(postype aat, double elwidth, double elheight)
 }
 
 
-void mfpcircle(postype aat, double radius)
+void
+mfpcircle(postype aat, double radius)
 { printf("\\circle{");
   wpos(aat);
   comma();
@@ -4457,7 +4517,8 @@ void mfpcircle(postype aat, double radius)
 }
 
 
-void mfpsetdash(double dash)
+void
+mfpsetdash(double dash)
 { if (dash < 0.0) {
       return;
   }
@@ -4470,8 +4531,9 @@ void mfpsetdash(double dash)
 }
 
 
-void mfsetthick(double lthk)
-{ if (lthk < 0.0 || lthk == gslinethick) {
+void
+mfsetthick(double lthk)
+{ if ((lthk < 0.0) || (lthk == gslinethick)) {
       return;
   }
   printf("\\pen{");
@@ -4481,7 +4543,8 @@ void mfsetthick(double lthk)
 }
 
 
-void mfpdashdot(int lsp, double param, double lth)
+void
+mfpdashdot(int lsp, double param, double lth)
 { if (lsp == XLdashed) {
       mfpsetdash(param / fsc);
       printf("\\dashed");
@@ -4504,7 +4567,8 @@ void mfpdashdot(int lsp, double param, double lth)
 }
 
 
-void mfplineopts(double lth, double param, int lsp, nametype *sou)
+void
+mfplineopts(double lth, double param, int lsp, nametype *sou)
 { if (sou != NULL) {
       printf("\\drawcolor{");
       wstring(&output, sou);
@@ -4515,12 +4579,13 @@ void mfplineopts(double lth, double param, int lsp, nametype *sou)
 }
 
 
-void mfpahead(int atyp, postype *point, postype shaft, double ht,
-		     double wid, double lth, nametype *sou)
+void
+mfpahead(int atyp, postype *point, postype shaft, double ht, double wid,
+	 double lth, nametype *sou)
 { postype P, L, R, Px, Lx, Rx, Q;
   double lwu, x, y, cs, ss, d;
 
-  lwu = lth / 72 * scale;
+  lwu = (lth / 72) * scale;
   dahead(*point, shaft, ht, wid, lwu, &P, &L, &R, &Px, &Lx, &Rx, &Q, &x, &y);
   mfsetthick(0.0);
   printf("\\draw\\gfill");
@@ -4530,7 +4595,7 @@ void mfpahead(int atyp, postype *point, postype shaft, double ht,
       putchar(']');
   }
   printf("\\polygon{");
-  d = sqrt(ht * ht + wid * wid / 4);
+  d = sqrt((ht * ht) + (wid * wid / 4));
   if (d == 0) {
       cs = 1.0;
       ss = 0.0;
@@ -4547,16 +4612,16 @@ void mfpahead(int atyp, postype *point, postype shaft, double ht,
   wpos(*point);
   comma();
   wpos(Lx);
-  if (atyp == 0 && lwu < (wid - lwu) / 2) {
+  if ((atyp == 0) && (lwu < ((wid - lwu) / 2))) {
       comma();
       putchar('\n');
       wpos(affine(ss * lwu, cs * lwu, Lx, Q));
       comma();
       wprop(*point, P, -1.0, 2.0, 1.0);
       comma();
-      wpos(affine(ss * lwu, -cs * lwu, Rx, Q));
+      wpos(affine(ss * lwu, (-cs) * lwu, Rx, Q));
   }
-  else if (atyp == 3 && lwu < (wid - lwu) / 2) {
+  else if ((atyp == 3) && (lwu < ((wid - lwu) / 2))) {
       comma();
       putchar('\n');
       wpos(Px);
@@ -4566,29 +4631,31 @@ void mfpahead(int atyp, postype *point, postype shaft, double ht,
 }
 
 
-void mfpwarc(postype Ctr, double radius, double startangle,
-		    double endangle, double ccw)
+void
+mfpwarc(postype Ctr, double radius, double startangle, double endangle,
+	double ccw)
 { printf("\\arc[p]{");
   wpos(Ctr);
   comma();
-  if (ccw > 0 && endangle < startangle) {
+  if ((ccw > 0) && (endangle < startangle)) {
       endangle += 2 * pi;
   }
-  else if (ccw < 0 && endangle > startangle) {
+  else if ((ccw < 0) && (endangle > startangle)) {
       endangle -= 2 * pi;
   }
-  wfloat(&output, 180.0 / pi * startangle);
+  wfloat(&output, (180.0 / pi) * startangle);
   comma();
-  wfloat(&output, 180.0 / pi * endangle);
+  wfloat(&output, (180.0 / pi) * endangle);
   comma();
   wfloat(&output, fabs(radius) / fsc);
   printf("}\n");
 }
 
 
-void mfparcahead(postype C, postype point, int atyp, nametype *sou,
-			double ht, double wid, double lth, double radius,
-			double arcangle, postype *P)
+void
+mfparcahead(postype C, postype point, int atyp, nametype *sou, double ht,
+	    double wid, double lth, double radius, double arcangle,
+	    postype *P)
 { postype Co, Ci, Px, Cox, Cix, Ao, Ai;
   double ccw, lwi;
   boolean startarrow;
@@ -4607,11 +4674,11 @@ void mfparcahead(postype C, postype point, int atyp, nametype *sou,
   printf("\\lclosed\\begin{connect}\n");
   mfpwarc(Ci, radius, posangle(Ai, Ci), posangle(point, Ci), -ccw);
   mfpwarc(Co, radius, posangle(point, Co), posangle(Ao, Co), ccw);
-  if (atyp == 0 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 0) && (lwi < ((wid - lwi) / 2))) {
       mfpwarc(Co, radius - lwi, posangle(Ao, Co), posangle(*P, Co), -ccw);
       mfpwarc(Ci, radius + lwi, posangle(*P, Ci), posangle(Ai, Ci), ccw);
   }
-  else if (atyp == 3 && lwi < (wid - lwi) / 2) {
+  else if ((atyp == 3) && (lwi < ((wid - lwi) / 2))) {
       mfpwarc(Cox, radius, posangle(Ao, Cox), posangle(Px, Cox), -ccw);
       mfpwarc(Cix, radius, posangle(Px, Cix), posangle(Ai, Cix), ccw);
   }
@@ -4627,7 +4694,8 @@ void mfparcahead(postype C, postype point, int atyp, nametype *sou,
 }
 
 
-void mfpsplinesegment(primitive *tv, int splc, int splt)
+void
+mfpsplinesegment(primitive *tv, int splc, int splt)
 { if (tv == NULL) {
       return;
   }
@@ -4676,7 +4744,7 @@ void mfpsplinesegment(primitive *tv, int splc, int splt)
       /* last segment */
       return;
   }
-  if (splc == splt && splc > 1) {
+  if ((splc == splt) && (splc > 1)) {
       printf("\\cbeziers{");
       wpos(tv->aat);
       comma();
@@ -4686,13 +4754,13 @@ void mfpsplinesegment(primitive *tv, int splc, int splt)
       return;
   }
   if (splc > 1) {
-      wprop(tv->aat, tv->Upr.Uline.endpos, 0.5 + tv->Upr.Uline.aradius / 2,
-	    0.5 - tv->Upr.Uline.aradius / 2, 1.0);
+      wprop(tv->aat, tv->Upr.Uline.endpos, 0.5 + (tv->Upr.Uline.aradius / 2),
+	    0.5 - (tv->Upr.Uline.aradius / 2), 1.0);
       comma();
       wprop(tv->aat, tv->Upr.Uline.endpos, 1.0, 1.0, 2.0);
       comma();
-      wprop(tv->aat, tv->Upr.Uline.endpos, 0.5 - tv->Upr.Uline.aradius / 2,
-	    0.5 + tv->Upr.Uline.aradius / 2, 1.0);
+      wprop(tv->aat, tv->Upr.Uline.endpos, 0.5 - (tv->Upr.Uline.aradius / 2),
+	    0.5 + (tv->Upr.Uline.aradius / 2), 1.0);
       commacr();
       return;
   }
@@ -4704,8 +4772,8 @@ void mfpsplinesegment(primitive *tv, int splc, int splt)
 }
 
 
-void mfpbox(double x, double y, double n, double s, double e, double w,
-		   double rad)
+void
+mfpbox(double x, double y, double n, double s, double e, double w, double rad)
 { double h, v, rr;
 
   rad = Min(Min(fabs(rad), fabs((n - s) / 2)), fabs((e - w) / 2));
@@ -4717,8 +4785,8 @@ void mfpbox(double x, double y, double n, double s, double e, double w,
   }
   else {
       rr = (1 - SPLT) * rad;
-      h = (e - w) / 2 - rad;
-      v = (n - s) / 2 - rad;
+      h = ((e - w) / 2) - rad;
+      v = ((n - s) / 2) - rad;
       printf("\\lclosed\\cbeziers{");
       wcoord(&output, e, y + v);
       comma();
@@ -4728,9 +4796,9 @@ void mfpbox(double x, double y, double n, double s, double e, double w,
       comma();
       wcoord(&output, x + h, n);
       commacr();
-      wcoord(&output, x + h / 3, n);
+      wcoord(&output, x + (h / 3), n);
       comma();
-      wcoord(&output, x - h / 3, n);
+      wcoord(&output, x - (h / 3), n);
       comma();
       wcoord(&output, x - h, n);
       comma();
@@ -4740,9 +4808,9 @@ void mfpbox(double x, double y, double n, double s, double e, double w,
       comma();
       wcoord(&output, w, y + v);
       commacr();
-      wcoord(&output, w, y + v / 3);
+      wcoord(&output, w, y + (v / 3));
       comma();
-      wcoord(&output, w, y - v / 3);
+      wcoord(&output, w, y - (v / 3));
       comma();
       wcoord(&output, w, y - v);
       comma();
@@ -4752,9 +4820,9 @@ void mfpbox(double x, double y, double n, double s, double e, double w,
       comma();
       wcoord(&output, x - h, s);
       commacr();
-      wcoord(&output, x - h / 3, s);
+      wcoord(&output, x - (h / 3), s);
       comma();
-      wcoord(&output, x + h / 3, s);
+      wcoord(&output, x + (h / 3), s);
       comma();
       wcoord(&output, x + h, s);
       comma();
@@ -4764,16 +4832,17 @@ void mfpbox(double x, double y, double n, double s, double e, double w,
       comma();
       wcoord(&output, e, y - v);
       commacr();
-      wcoord(&output, e, y - v / 3);
+      wcoord(&output, e, y - (v / 3));
       comma();
-      wcoord(&output, e, y + v / 3);
+      wcoord(&output, e, y + (v / 3));
   }
   printf("}\n");
 }
 
 
 /* node is always <> nil: */
-void mfpdraw(primitive *node)
+void
+mfpdraw(primitive *node)
 { int lsp;
   postype X0, X1;
   primitive *tn, *tx;
@@ -4793,8 +4862,8 @@ void mfpdraw(primitive *node)
     initnesw();
     nesw(node);
     if (node->ptype == XLbox) {
-	if (node->Upr.Ubox.boxfill >= 0.0 && node->Upr.Ubox.boxfill <= 1.0 ||
-	     node->shadedp != NULL) {
+	if (((node->Upr.Ubox.boxfill >= 0.0) && (node->Upr.Ubox.boxfill <= 1.0)) ||
+	    (node->shadedp != NULL)) {
 	    mfpsetshade(node->Upr.Ubox.boxfill, node->shadedp);
 	    mfpbox(node->aat.xpos, node->aat.ypos, north, south, east, west,
 		   node->Upr.Ubox.boxradius);
@@ -4812,8 +4881,8 @@ void mfpdraw(primitive *node)
     break;
 
   case XLellipse:
-    if (node->Upr.Uellipse.efill >= 0.0 && node->Upr.Uellipse.efill <= 1.0 ||
-	 node->shadedp != NULL) {
+    if (((node->Upr.Uellipse.efill >= 0.0) && (node->Upr.Uellipse.efill <= 1.0)) ||
+	(node->shadedp != NULL)) {
 	mfpsetshade(node->Upr.Uellipse.efill, node->shadedp);
 	mfpellipse(node->aat, node->Upr.Uellipse.elwidth, node->Upr.Uellipse.elheight);
     }
@@ -4828,8 +4897,8 @@ void mfpdraw(primitive *node)
     break;
 
   case XLcircle:
-    if (node->Upr.Ucircle.cfill >= 0.0 && node->Upr.Ucircle.cfill <= 1.0 ||
-	 node->shadedp != NULL) {
+    if (((node->Upr.Ucircle.cfill >= 0.0) && (node->Upr.Ucircle.cfill <= 1.0)) ||
+	(node->shadedp != NULL)) {
 	mfpsetshade(node->Upr.Ucircle.cfill, node->shadedp);
 	mfpcircle(node->aat, node->Upr.Ucircle.radius);
     }
@@ -4866,7 +4935,7 @@ void mfpdraw(primitive *node)
 	if (lsp != XLinvis) {
 	    lth = qenv(tn, XLlinethick, tn->lthick);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		mfpahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos,
 			 qenv(tn, XLarrowht, tn->Upr.Uline.height),
@@ -4874,7 +4943,7 @@ void mfpdraw(primitive *node)
 			 soutline);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		mfpahead(ahnum(node->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, qenv(tn, XLarrowht, tn->Upr.Uline.height),
 			 qenv(tn, XLarrowwid, tn->Upr.Uline.width), lth,
@@ -4889,7 +4958,7 @@ void mfpdraw(primitive *node)
 	mfpsplinesegment(node, splcount, spltot);
     }
     splcount--;
-    if (node->son == NULL && node->outlinep != NULL) {
+    if ((node->son == NULL) && (node->outlinep != NULL)) {
 	printf("\\drawcolor{\\mfpdefaultcolor}\n");
     }
     break;
@@ -4920,7 +4989,7 @@ void mfpdraw(primitive *node)
 	if (lsp != XLinvis) {
 	    lth = qenv(tn, XLlinethick, tn->lthick);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		mfpahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos,
 			 qenv(node, XLarrowht, tn->Upr.Uline.height),
@@ -4928,7 +4997,7 @@ void mfpdraw(primitive *node)
 			 soutline);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		mfpahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, qenv(node, XLarrowht, tn->Upr.Uline.height),
 			 qenv(node, XLarrowwid, tn->Upr.Uline.width), lth,
@@ -4979,7 +5048,7 @@ void mfpdraw(primitive *node)
     }
     if (lsp != XLinvis) {
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 	    mfparcahead(node->aat, X0, ahnum(node->Upr.Uline.atype), soutline,
 			qenv(node, XLarrowht, node->Upr.Uline.height),
 			qenv(node, XLarrowwid, node->Upr.Uline.width), lth,
@@ -4987,7 +5056,7 @@ void mfpdraw(primitive *node)
 			node->Upr.Uline.endpos.ypos, &X0);
 	}
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 	    mfparcahead(node->aat, X1, ahnum(node->Upr.Uline.atype), soutline,
 			qenv(node, XLarrowht, node->Upr.Uline.height),
 			qenv(node, XLarrowwid, node->Upr.Uline.width), lth,
@@ -5030,9 +5099,10 @@ void mfpdraw(primitive *node)
 /* include mpo.h */
 /* mpo.x */
 /* Output routines for MetaPost */
-void mpoprelude(void)
+void
+mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2017.08.01 option -s for MetaPost\n");
+  printf("%% dpic version 2018.03.01 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -5043,13 +5113,15 @@ void mpoprelude(void)
 }
 
 
-void mpopostlude(void)
+void
+mpopostlude(void)
 { printf("endfig;\n");
   /*D; if debuglevel > 0 then writeln(log,'mpobpostlude done');D*/
 }
 
 
-void mpowrtext(primitive *np, nametype *tp, double x, double y)
+void
+mpowrtext(primitive *np, nametype *tp, double x, double y)
 { boolean A, B, L, R;
 
   if (tp == NULL) {
@@ -5098,7 +5170,8 @@ void mpowrtext(primitive *np, nametype *tp, double x, double y)
 }
 
 
-void mposetthick(double lthick)
+void
+mposetthick(double lthick)
 { if (ismdistmax(lthick)) {
       if (!ismdistmax(gslinethick)) {
 	  lthick = gslinethick;
@@ -5107,7 +5180,7 @@ void mposetthick(double lthick)
 	  lthick = 0.8;
       }
   }
-  if (lthick < 0.0 || lthick == gslinethick) {
+  if ((lthick < 0.0) || (lthick == gslinethick)) {
       return;
   }
   /*D; if debuglevel > 0 then begin writeln(log,' mposetthick:');
@@ -5122,7 +5195,8 @@ void mposetthick(double lthick)
 }
 
 
-void mpolinecap(int lsp)
+void
+mpolinecap(int lsp)
 { switch (lsp) {
 
   case XLdashed:
@@ -5136,7 +5210,8 @@ void mpolinecap(int lsp)
 }
 
 
-void addcolor(nametype *sp, double fillv)
+void
+addcolor(nametype *sp, double fillv)
 { printf(" withcolor ");
   if (sp != NULL) {
       wstring(&output, sp);
@@ -5148,7 +5223,8 @@ void addcolor(nametype *sp, double fillv)
 }
 
 
-void mpodashdot(int lsp, double param, nametype *op)
+void
+mpodashdot(int lsp, double param, nametype *op)
 { if (lsp == XLdashed) {
       printf(" dashed evenly");
       if (param > 0) {
@@ -5185,23 +5261,23 @@ void mpodashdot(int lsp, double param, nametype *op)
 }
 
 
-void mpocorner(postype ctr, double x, double y, double r, double ct,
-		      double st)
-{ wcoord(&output, ctr.xpos + x + ct * r, ctr.ypos + y + st * r);
+void
+mpocorner(postype ctr, double x, double y, double r, double ct, double st)
+{ wcoord(&output, ctr.xpos + x + (ct * r), ctr.ypos + y + (st * r));
   controls();
-  wcoord(&output, ctr.xpos + x + ct * r - st * r * SPLT,
-	 ctr.ypos + y + st * r + ct * r * SPLT);
+  wcoord(&output, ctr.xpos + x + (ct * r) - (st * r * SPLT),
+	 ctr.ypos + y + (st * r) + (ct * r * SPLT));
   wrand();
-  wcoord(&output, ctr.xpos + x + ct * r * SPLT - st * r,
-	 ctr.ypos + y + st * r * SPLT + ct * r);
+  wcoord(&output, ctr.xpos + x + (ct * r * SPLT) - (st * r),
+	 ctr.ypos + y + (st * r * SPLT) + (ct * r));
   ddot();
-  wcoord(&output, ctr.xpos + x - st * r, ctr.ypos + y + ct * r);
+  wcoord(&output, ctr.xpos + x - (st * r), ctr.ypos + y + (ct * r));
   ddash();
 }
 
 
-void mpobox(Char *initial, postype ctr, double halfwid, double halfht,
-		   double rad)
+void
+mpobox(Char *initial, postype ctr, double halfwid, double halfht, double rad)
 { double r, h, v;
 
   fputs(initial, stdout);
@@ -5228,44 +5304,45 @@ void mpobox(Char *initial, postype ctr, double halfwid, double halfht,
 }
 
 
-void mpoellipse(Char *initial, postype ctr, double halfwid,
-		       double halfht)
+void
+mpoellipse(Char *initial, postype ctr, double halfwid, double halfht)
 { fputs(initial, stdout);
   wcoord(&output, ctr.xpos + halfwid, ctr.ypos);
   controls();
-  wcoord(&output, ctr.xpos + halfwid, ctr.ypos + halfht * SPLT);
+  wcoord(&output, ctr.xpos + halfwid, ctr.ypos + (halfht * SPLT));
   wrand();
-  wcoord(&output, ctr.xpos + halfwid * SPLT, ctr.ypos + halfht);
+  wcoord(&output, ctr.xpos + (halfwid * SPLT), ctr.ypos + halfht);
   ddot();
   wcoord(&output, ctr.xpos, ctr.ypos + halfht);
   controls();
-  wcoord(&output, ctr.xpos - halfwid * SPLT, ctr.ypos + halfht);
+  wcoord(&output, ctr.xpos - (halfwid * SPLT), ctr.ypos + halfht);
   wrand();
-  wcoord(&output, ctr.xpos - halfwid, ctr.ypos + halfht * SPLT);
+  wcoord(&output, ctr.xpos - halfwid, ctr.ypos + (halfht * SPLT));
   ddot();
   wcoord(&output, ctr.xpos - halfwid, ctr.ypos);
   controls();
-  wcoord(&output, ctr.xpos - halfwid, ctr.ypos - halfht * SPLT);
+  wcoord(&output, ctr.xpos - halfwid, ctr.ypos - (halfht * SPLT));
   wrand();
-  wcoord(&output, ctr.xpos - halfwid * SPLT, ctr.ypos - halfht);
+  wcoord(&output, ctr.xpos - (halfwid * SPLT), ctr.ypos - halfht);
   ddot();
   wcoord(&output, ctr.xpos, ctr.ypos - halfht);
   controls();
-  wcoord(&output, ctr.xpos + halfwid * SPLT, ctr.ypos - halfht);
+  wcoord(&output, ctr.xpos + (halfwid * SPLT), ctr.ypos - halfht);
   wrand();
-  wcoord(&output, ctr.xpos + halfwid, ctr.ypos - halfht * SPLT);
+  wcoord(&output, ctr.xpos + halfwid, ctr.ypos - (halfht * SPLT));
   ddot();
   printf("cycle");
 }
 
 
-void mpoahead(int atyp, postype *point, postype shaft, double ht,
-		     double wid, double lth, nametype *sou)
+void
+mpoahead(int atyp, postype *point, postype shaft, double ht, double wid,
+	 double lth, nametype *sou)
 { postype P, L, R, Px, Lx, Rx, Q;
   double x, y;
 
-  dahead(*point, shaft, ht, wid, lth / 72 * scale, &P, &L, &R, &Px, &Lx, &Rx,
-	 &Q, &x, &y);
+  dahead(*point, shaft, ht, wid, (lth / 72) * scale, &P, &L, &R, &Px, &Lx,
+	 &Rx, &Q, &x, &y);
   if (atyp == 0) {
       printf("drw ");
       wprop(P, L, x - y, y, x);
@@ -5299,9 +5376,10 @@ void mpoahead(int atyp, postype *point, postype shaft, double ht,
 }
 
 
-void mpoarcahead(postype C, postype point, int atyp, nametype *sou,
-			double ht, double wid, double lth, double radius,
-			double arcangle, postype *P)
+void
+mpoarcahead(postype C, postype point, int atyp, nametype *sou, double ht,
+	    double wid, double lth, double radius, double arcangle,
+	    postype *P)
 { postype Co, Ci, Px, Cox, Cix, Ao, Ai;
   double ccw, lwi;
   boolean startarrow;
@@ -5314,13 +5392,13 @@ void mpoarcahead(postype C, postype point, int atyp, nametype *sou,
   wpos(Ai);
   popgwarc(Ci, radius, posangle(Ai, Ci), posangle(point, Ci), -ccw);
   popgwarc(Co, radius, posangle(point, Co), posangle(Ao, Co), ccw);
-  if (atyp == 0 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 0) && (lwi < ((wid - lwi) / 2))) {
       ddash();
       wprop(Ao, Co, radius - lwi, lwi, radius);
       popgwarc(Co, radius - lwi, posangle(Ao, Co), posangle(*P, Co), -ccw);
       popgwarc(Ci, radius + lwi, posangle(*P, Ci), posangle(Ai, Ci), ccw);
   }
-  else if (atyp == 3 && lwi < (wid - lwi) / 2) {
+  else if ((atyp == 3) && (lwi < ((wid - lwi) / 2))) {
       popgwarc(Cox, radius, posangle(Ao, Cox), posangle(Px, Cox), -ccw);
       popgwarc(Cix, radius, posangle(Px, Cix), posangle(Ai, Cix), ccw);
   }
@@ -5343,7 +5421,8 @@ void mpoarcahead(postype C, postype point, int atyp, nametype *sou,
 }
 
 
-void splinesegment(primitive *tv, int splc, int splt)
+void
+splinesegment(primitive *tv, int splc, int splt)
 { if (tv == NULL) {
       return;
   }
@@ -5380,7 +5459,7 @@ void splinesegment(primitive *tv, int splc, int splt)
       /* last segment */
       return;
   }
-  if (splc == splt && splc > 1) {
+  if ((splc == splt) && (splc > 1)) {
       wpos(tv->aat);
       controls();
       wprop(tv->aat, tv->Upr.Uline.endpos, 1 - tv->Upr.Uline.aradius,
@@ -5407,7 +5486,8 @@ void splinesegment(primitive *tv, int splc, int splt)
 
 
 /* node is always <> nil: */
-void mpodraw(primitive *node)
+void
+mpodraw(primitive *node)
 { int lsp;
   postype X0, X1;
   primitive *tn, *tx;
@@ -5422,8 +5502,8 @@ void mpodraw(primitive *node)
   case XLbox:
   case XBLOCK:
     if (node->ptype == XLbox) {
-	if (node->shadedp != NULL ||
-	     node->Upr.Ubox.boxfill >= 0.0 && node->Upr.Ubox.boxfill <= 1.0) {
+	if ((node->shadedp != NULL) || ((node->Upr.Ubox.boxfill >= 0.0) &&
+					(node->Upr.Ubox.boxfill <= 1.0))) {
 	    mpobox("fill ", node->aat, node->Upr.Ubox.boxwidth / 2,
 		   node->Upr.Ubox.boxheight / 2, node->Upr.Ubox.boxradius);
 	    addcolor(node->shadedp, node->Upr.Ubox.boxfill);
@@ -5441,8 +5521,8 @@ void mpodraw(primitive *node)
     break;
 
   case XLellipse:
-    if (node->shadedp != NULL ||
-	 node->Upr.Uellipse.efill >= 0.0 && node->Upr.Uellipse.efill <= 1.0) {
+    if ((node->shadedp != NULL) ||
+	((node->Upr.Uellipse.efill >= 0.0) && (node->Upr.Uellipse.efill <= 1.0))) {
 	mpoellipse("fill ", node->aat, node->Upr.Uellipse.elwidth / 2,
 		   node->Upr.Uellipse.elheight / 2);
 	addcolor(node->shadedp, node->Upr.Uellipse.efill);
@@ -5459,8 +5539,8 @@ void mpodraw(primitive *node)
     break;
 
   case XLcircle:
-    if (node->shadedp != NULL ||
-	 node->Upr.Ucircle.cfill >= 0.0 && node->Upr.Ucircle.cfill <= 1.0) {
+    if ((node->shadedp != NULL) ||
+	((node->Upr.Ucircle.cfill >= 0.0) && (node->Upr.Ucircle.cfill <= 1.0))) {
 	printf("fill fullcircle scaled ");
 	wfloat(&output, node->Upr.Ucircle.radius * 2 / fsc);
 	printf(" shifted ");
@@ -5500,7 +5580,7 @@ void mpodraw(primitive *node)
     if (lsp != XLinvis) {
 	mposetthick(lth);
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 	    mpoarcahead(node->aat, X0, ahnum(node->Upr.Uline.atype), soutline,
 			qenv(node, XLarrowht, node->Upr.Uline.height),
 			qenv(node, XLarrowwid, node->Upr.Uline.width), lth,
@@ -5508,7 +5588,7 @@ void mpodraw(primitive *node)
 			node->Upr.Uline.endpos.ypos, &X0);
 	}
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 	    mpoarcahead(node->aat, X1, ahnum(node->Upr.Uline.atype), soutline,
 			qenv(node, XLarrowht, node->Upr.Uline.height),
 			qenv(node, XLarrowwid, node->Upr.Uline.width), lth,
@@ -5551,7 +5631,7 @@ void mpodraw(primitive *node)
 	if (lsp != XLinvis) {
 	    mposetthick(lth);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		mpoahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos,
 			 qenv(node, XLarrowht, tn->Upr.Uline.height),
@@ -5559,7 +5639,7 @@ void mpodraw(primitive *node)
 			 soutline);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		mpoahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, qenv(node, XLarrowht, tn->Upr.Uline.height),
 			 qenv(node, XLarrowwid, tn->Upr.Uline.width), lth,
@@ -5634,7 +5714,7 @@ void mpodraw(primitive *node)
 	    splcount = spltot;
 	    mposetthick(lth);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		mpoahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos,
 			 qenv(node, XLarrowht, tn->Upr.Uline.height),
@@ -5642,7 +5722,7 @@ void mpodraw(primitive *node)
 			 soutline);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		mpoahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, qenv(node, XLarrowht, tn->Upr.Uline.height),
 			 qenv(node, XLarrowwid, tn->Upr.Uline.width), lth,
@@ -5696,9 +5776,10 @@ void mpodraw(primitive *node)
 /* include pgf.h */
 /* pgf.x */
 /* pgf output routines */
-void pgfprelude(void)
+void
+pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2017.08.01 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2018.03.01 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -5706,14 +5787,16 @@ void pgfprelude(void)
 }
 
 
-void pgfpostlude(void)
+void
+pgfpostlude(void)
 { printf("\\end{tikzpicture}\n");
   /*D; if debuglevel > 0 then writeln(log,'pgfpostlude done') D*/
 }
 
 
 /* np is always <> nil: */
-void pgfwrtext(primitive *np, nametype *tp, double x, double y)
+void
+pgfwrtext(primitive *np, nametype *tp, double x, double y)
 { boolean A, B, L, R;
 
   if (tp == NULL) {
@@ -5722,7 +5805,7 @@ void pgfwrtext(primitive *np, nametype *tp, double x, double y)
   printf("\\draw ");
   wcoord(&output, x, y);
   printf(" node");
-  if (np->ptype == XLstring && np->name != NULL) {
+  if ((np->ptype == XLstring) && (np->name != NULL)) {
       putchar('(');
       wstring(&output, np->name);
       putchar(')');
@@ -5761,7 +5844,7 @@ void pgfwrtext(primitive *np, nametype *tp, double x, double y)
 	  }
 	  putchar('=');
 	  /* Assume pgf built-in text offset = 4 bp */
-	  wfloat(&output, (venv(np, XLtextoffset) * 72 / scale - 4.0) / fsc);
+	  wfloat(&output, ((venv(np, XLtextoffset) * 72 / scale) - 4.0) / fsc);
 	  printf("bp]");
       }
       putchar('{');
@@ -5771,12 +5854,14 @@ void pgfwrtext(primitive *np, nametype *tp, double x, double y)
 }
 
 
-void pgfendpath(void)
+void
+pgfendpath(void)
 { printf("\\dpicstop\n");
 }
 
 
-void pgfsetthick(double lthick)
+void
+pgfsetthick(double lthick)
 { if (ismdistmax(lthick)) {
       if (!ismdistmax(gslinethick)) {
 	  lthick = gslinethick;
@@ -5790,7 +5875,7 @@ void pgfsetthick(double lthick)
      write(log,'lthick='); wfloat(log,lthick);
      write(log,' gslinethick='); wfloat(log,gslinethick); writeln(log)
      end;D*/
-  if (lthick < 0.0 || lthick == gslinethick) {
+  if ((lthick < 0.0) || (lthick == gslinethick)) {
       return;
   }
   printf("\\dpiclw=");
@@ -5800,7 +5885,8 @@ void pgfsetthick(double lthick)
 }
 
 
-void pgfbox(postype ctr, double halfwid, double halfht, double rad)
+void
+pgfbox(postype ctr, double halfwid, double halfht, double rad)
 { double r, h, v;
 
   if (rad == 0.0) {
@@ -5822,13 +5908,14 @@ void pgfbox(postype ctr, double halfwid, double halfht, double rad)
 }
 
 
-void pgfahead(int atyp, postype *point, postype shaft, double ht,
-		     double wid, double lth)
+void
+pgfahead(int atyp, postype *point, postype shaft, double ht, double wid,
+	 double lth)
 { postype P, L, R, Px, Lx, Rx, Q;
   double x, y;
 
-  dahead(*point, shaft, ht, wid, lth / 72 * scale, &P, &L, &R, &Px, &Lx, &Rx,
-	 &Q, &x, &y);
+  dahead(*point, shaft, ht, wid, (lth / 72) * scale, &P, &L, &R, &Px, &Lx,
+	 &Rx, &Q, &x, &y);
       /* write(log,' ;Q:'); wcoord(log,Q.xpos,Q.ypos); */
   /*D if debuglevel > 0 then begin
       write(log,' dahead values: point:');
@@ -5880,7 +5967,8 @@ void pgfahead(int atyp, postype *point, postype shaft, double ht,
 }
 
 
-void pgfstartdraw(int initial, primitive *node, int lsp)
+void
+pgfstartdraw(int initial, primitive *node, int lsp)
 { Char sep;
   double fill = -1.0;
 
@@ -5920,8 +6008,8 @@ void pgfstartdraw(int initial, primitive *node, int lsp)
     fill = node->Upr.Uline.lfill;
     break;
   }
-  fill = (long)floor(fill * 1000000L + 0.5) / 1000000.0;
-  if (node->shadedp != NULL || sshade != NULL) {
+  fill = ((long)floor((fill * 1000000L) + 0.5)) / 1000000.0;
+  if ((node->shadedp != NULL) || (sshade != NULL)) {
       printf("[fill=");
       if (node->shadedp != NULL) {
 	  wstring(&output, node->shadedp);
@@ -5931,7 +6019,7 @@ void pgfstartdraw(int initial, primitive *node, int lsp)
       }
       sep = ',';
   }
-  else if (fill >= 0.0 && fill <= 1.0) {
+  else if ((fill >= 0.0) && (fill <= 1.0)) {
       printf("[fill=");
       if (fill == 0.0) {
 	  printf("black");
@@ -5958,17 +6046,17 @@ void pgfstartdraw(int initial, primitive *node, int lsp)
   else {
       sep = '[';
   }
-  if (initial == 1 || initial == 3) {
+  if ((initial == 1) || (initial == 3)) {
       printf("%cline width=0bp", sep);
       sep = ',';
   }
-  else if (node->lthick >= 0.0 && node->lthick != gslinethick) {
+  else if ((node->lthick >= 0.0) && (node->lthick != gslinethick)) {
       printf("%cline width=", sep);
       wfloat(&output, node->lthick);
       printf("bp");
       sep = ',';
   }
-  if ((node->outlinep != NULL || soutline != NULL) && lsp != XLinvis) {
+  if (((node->outlinep != NULL) || (soutline != NULL)) && (lsp != XLinvis)) {
       printf("%cdraw=", sep);
       if (node->outlinep != NULL) {
 	  wstring(&output, node->outlinep);
@@ -5976,7 +6064,7 @@ void pgfstartdraw(int initial, primitive *node, int lsp)
       else {
 	  wstring(&output, soutline);
       }
-      if (initial == 1 || initial == 3) {
+      if ((initial == 1) || (initial == 3)) {
 	  printf(",fill=");
 	  if (node->outlinep != NULL) {
 	      wstring(&output, node->outlinep);
@@ -5987,7 +6075,7 @@ void pgfstartdraw(int initial, primitive *node, int lsp)
       }
       sep = ',';
   }
-  if (lsp == XLdashed && initial != 1 && initial != 3) {
+  if ((lsp == XLdashed) && (initial != 1) && (initial != 3)) {
       if (node->lparam <= 0) {
 	  printf("%cdashed", sep);
       }
@@ -6021,9 +6109,10 @@ void pgfstartdraw(int initial, primitive *node, int lsp)
 }
 
 
-void pgfarcahead(postype C, postype point, int atyp, nametype *sou,
-			double ht, double wid, double lth, double radius,
-			double arcangle, postype *P)
+void
+pgfarcahead(postype C, postype point, int atyp, nametype *sou, double ht,
+	    double wid, double lth, double radius, double arcangle,
+	    postype *P)
 { postype Q, Co, Ci, Px, Cox, Cix, Ao, Ai;
   double ccw, lwi;
   boolean startarrow;
@@ -6041,7 +6130,7 @@ void pgfarcahead(postype C, postype point, int atyp, nametype *sou,
   }
   putchar(']');
   /* Trace arrowhead outline */
-  if (atyp == 0 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 0) && (lwi < ((wid - lwi) / 2))) {
       wpos(*P);
       popgwarc(Ci, radius + lwi, posangle(*P, Ci), posangle(Ai, Ci), ccw);
       ddash();
@@ -6052,7 +6141,7 @@ void pgfarcahead(postype C, postype point, int atyp, nametype *sou,
       wprop(Ao, Co, radius - lwi, lwi, radius);
       popgwarc(Co, radius - lwi, posangle(Ao, Co), posangle(*P, Co), -ccw);
   }
-  else if (atyp == 3 && lwi < (wid - lwi) / 2) {
+  else if ((atyp == 3) && (lwi < ((wid - lwi) / 2))) {
       wpos(Px);
       popgwarc(Cix, radius, posangle(Px, Cix), posangle(Ai, Cix), ccw);
       popgwarc(Ci, radius, posangle(Ai, Ci), posangle(point, Ci), -ccw);
@@ -6075,7 +6164,8 @@ void pgfarcahead(postype C, postype point, int atyp, nametype *sou,
 
 
 /* node is always <> nil: */
-void pgfdraw(primitive *node)
+void
+pgfdraw(primitive *node)
 { int lsp;
   postype X0, X1;
   primitive *tn, *tx;
@@ -6134,7 +6224,7 @@ void pgfdraw(primitive *node)
   case XLarc:
     if (drawn(node, lsp, -1.0)) {
 	getlinshade(node, &tn, &sshade, &soutline, &vfill, &bfill);
-	if (bfill && vfill >= 0.0) {
+	if (bfill && (vfill >= 0.0)) {
 	    node->Upr.Uline.lfill = vfill;
 	}
 	X0 = arcstart(node);
@@ -6153,7 +6243,7 @@ void pgfdraw(primitive *node)
 	}
 	if (lsp != XLinvis) {
 	    TEMP = ahlex(node->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		sf = node->shadedp;
 		node->shadedp = NULL;
 		sg = sshade;
@@ -6168,7 +6258,7 @@ void pgfdraw(primitive *node)
 		sshade = sg;
 	    }
 	    TEMP = ahlex(node->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		sf = node->shadedp;
 		node->shadedp = NULL;
 		sg = sshade;
@@ -6226,7 +6316,7 @@ void pgfdraw(primitive *node)
 	}
 	if (lsp != XLinvis) {
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		sf = node->shadedp;
 		node->shadedp = NULL;
 		sg = sshade;
@@ -6240,7 +6330,7 @@ void pgfdraw(primitive *node)
 		sshade = sg;
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		sf = node->shadedp;
 		node->shadedp = NULL;
 		sg = sshade;
@@ -6316,7 +6406,7 @@ void pgfdraw(primitive *node)
 	    spltot = primdepth(node);
 	    splcount = spltot;
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		sf = node->shadedp;
 		node->shadedp = NULL;
 		sg = sshade;
@@ -6331,7 +6421,7 @@ void pgfdraw(primitive *node)
 		sshade = sg;
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		sf = tn->shadedp;
 		tn->shadedp = NULL;
 		sg = sshade;
@@ -6382,28 +6472,30 @@ void pgfdraw(primitive *node)
 /* include ps.h */
 /* ps.x */
 /* Output routines for Postscript, PSfrag */
-void pswfloat(FILE **iou, double x)
+void
+pswfloat(FILE **iou, double x)
 { putc(' ', *iou);
   wfloat(iou, x);
   /*DGHMF ;flush(iou) FMHGD*/
 }
 
 
-void psprelude(double n, double s, double e, double w, double lth)
+void
+psprelude(double n, double s, double e, double w, double lth)
 { double wx, ex, nx, sx;
 
   /* writeln('%!PS'); */
   /* writeln('%!PS-Adobe-3.0 EPSF-3.0'); */
   printf("%%!PS-Adobe-3.0\n");
-  wx = w / fsc - lth / 2;
-  ex = e / fsc + lth / 2;
-  nx = n / fsc + lth / 2;
-  sx = s / fsc - lth / 2;
+  wx = (w / fsc) - (lth / 2);
+  ex = (e / fsc) + (lth / 2);
+  nx = (n / fsc) + (lth / 2);
+  sx = (s / fsc) - (lth / 2);
   printf("%%%%BoundingBox: %d %d %d %d\n",
-	 Floor((long)floor(wx * 1000000L + 0.5) / 1000000.0),
-	 Floor((long)floor(sx * 1000000L + 0.5) / 1000000.0),
-	 Ceil((long)floor(ex * 1000000L + 0.5) / 1000000.0),
-	 Ceil((long)floor(nx * 1000000L + 0.5) / 1000000.0));
+	 Floor(((long)floor((wx * 1000000L) + 0.5)) / 1000000.0),
+	 Floor(((long)floor((sx * 1000000L) + 0.5)) / 1000000.0),
+	 Ceil(((long)floor((ex * 1000000L) + 0.5)) / 1000000.0),
+	 Ceil(((long)floor((nx * 1000000L) + 0.5)) / 1000000.0));
   /*D; if debuglevel > 0 then begin write(log,'lth= '); wfloat(log,lth);
      write(log,' wx='); wfloat(log,wx);
      write(log,' Floor wx='); wfloat(log,Floor(round(wx*1000000)/1000000.0));
@@ -6414,7 +6506,7 @@ void psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2017.08.01 option ");
+  printf("\n%%%%Creator: dpic version 2018.03.01 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -6472,31 +6564,36 @@ void psprelude(double n, double s, double e, double w, double lth)
 }
 
 
-void pspostlude(void)
+void
+pspostlude(void)
 { printf("showpage end\n");
   printf("%%%%EOF\n");
   /*D; if debuglevel > 0 then writeln(log,'pspostlude done');D*/
 }
 
 
-void psnewpath(void)
+void
+psnewpath(void)
 { printf("npath\n");
 }
 
 
-void pswcoord(FILE **iou, double x, double y)
+void
+pswcoord(FILE **iou, double x, double y)
 { pswfloat(iou, x / fsc);
   /*DGHMF ;flush(iou) FMHGD*/
   pswfloat(iou, y / fsc);
 }
 
 
-void pswpos(postype pos)
+void
+pswpos(postype pos)
 { pswcoord(&output, pos.xpos, pos.ypos);
 }
 
 
-void pswstring(nametype *p)
+void
+pswstring(nametype *p)
 { int i;
   Char c;
   boolean waswhite = false;
@@ -6512,9 +6609,9 @@ void pswstring(nametype *p)
   FORLIM = p->len;
   for (i = 0; i < FORLIM; i++) {
       c = p->segmnt[p->seginx + i];
-      iswhite = (c == etxch || c == nlch || c == tabch || c == ' ');
-      if (!iswhite || !waswhite) {
-	  if (c == bslch || c == ')' || c == '(') {
+      iswhite = ((c == etxch) || (c == nlch) || (c == tabch) || (c == ' '));
+      if ((!iswhite) || (!waswhite)) {
+	  if ((c == bslch) || (c == ')') || (c == '(')) {
 	      putchar(bslch);
 	  }
 	  putchar(c);
@@ -6524,13 +6621,14 @@ void pswstring(nametype *p)
 }
 
 
-void pswtext(primitive *np, nametype *tp, double x, double y)
+void
+pswtext(primitive *np, nametype *tp, double x, double y)
 { int i;
   nametype *tx;
   boolean L, R, A, B;
   double toff, theight;
 
-  if (tp != NULL && drawmode == PS) {
+  if ((tp != NULL) && (drawmode == PS)) {
       tx = tp;
       i = 0;
       do {
@@ -6571,8 +6669,8 @@ void pswtext(primitive *np, nametype *tp, double x, double y)
   if (tp == NULL) {
       return;
   }
-  toff = venv(np, XLtextoffset) / scale * 72;
-  theight = venv(np, XLtextht) / scale * 72;
+  toff = (venv(np, XLtextoffset) / scale) * 72;
+  theight = (venv(np, XLtextht) / scale) * 72;
   printf("(\\\\tex[");
   checkjust(tp, &A, &B, &L, &R);
   if (L) {
@@ -6659,14 +6757,16 @@ void pswtext(primitive *np, nametype *tp, double x, double y)
 }
 
 
-void pswprop(postype p1, postype p2, double a, double b, double c)
+void
+pswprop(postype p1, postype p2, double a, double b, double c)
 { pprop(p1, &p2, a, b, c);
   pswpos(p2);
 }
 
 
-void pssetthick(double lthk)
-{ if (lthk < 0.0 || lthk == gslinethick) {
+void
+pssetthick(double lthk)
+{ if ((lthk < 0.0) || (lthk == gslinethick)) {
       return;
   }
   pswfloat(&output, lthk);
@@ -6675,8 +6775,9 @@ void pssetthick(double lthk)
 }
 
 
-void pslinearfill(double f, nametype *ss)
-{ if (f >= 0.0 && f <= 1.0) {
+void
+pslinearfill(double f, nametype *ss)
+{ if ((f >= 0.0) && (f <= 1.0)) {
       printf(" currentrgbcolor");
       pswfloat(&output, f);
       printf(" setgray fill setrgbcolor\n");
@@ -6692,7 +6793,8 @@ void pslinearfill(double f, nametype *ss)
 }
 
 
-void pssetcolor(nametype *op)
+void
+pssetcolor(nametype *op)
 { if (op == NULL) {
       return;
   }
@@ -6702,7 +6804,8 @@ void pssetcolor(nametype *op)
 }
 
 
-void psdashdot(int lspec, double param)
+void
+psdashdot(int lspec, double param)
 { if (lspec == XLdashed) {
       if (ismdistmax(param)) {
 	  param = 3 * fsc;
@@ -6725,7 +6828,8 @@ void psdashdot(int lspec, double param)
 }
 
 
-void psendline(nametype *op)
+void
+psendline(nametype *op)
 { printf(" endstroke");
   if (op != NULL) {
       printf(" setrgbcolor\n");
@@ -6736,15 +6840,16 @@ void psendline(nametype *op)
 }
 
 
-void pswarc(postype C, postype S, postype E, double r, double ccw)
+void
+pswarc(postype C, postype S, postype E, double r, double ccw)
 { double y;
 
   pswpos(C);
   pswfloat(&output, r / fsc);
   y = datan(S.ypos - C.ypos, S.xpos - C.xpos);
-  pswfloat(&output, 180.0 / pi * y);
+  pswfloat(&output, (180.0 / pi) * y);
   y = datan(E.ypos - C.ypos, E.xpos - C.xpos);
-  pswfloat(&output, 180.0 / pi * y);
+  pswfloat(&output, (180.0 / pi) * y);
   if (ccw >= 0.0) {
       printf(" arc\n");
   }
@@ -6754,8 +6859,9 @@ void pswarc(postype C, postype S, postype E, double r, double ccw)
 }
 
 
-void psarcahead(postype C, int atyp, postype *point, double ht,
-		       double wid, double lth, double radius, double angle)
+void
+psarcahead(postype C, int atyp, postype *point, double ht, double wid,
+	   double lth, double radius, double angle)
 { postype P, Q, Co, Ci, Px, Cox, Cix, Ao, Ai;
   double ccw, lwi;
   boolean startarrow;
@@ -6767,7 +6873,7 @@ void psarcahead(postype C, int atyp, postype *point, double ht,
   psnewpath();
   pswarc(Ci, Ai, *point, radius, -ccw);
   pswarc(Co, *point, Ao, radius, ccw);
-  if (atyp == 0 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 0) && (lwi < ((wid - lwi) / 2))) {
       Q = Co;
       pprop(Ao, &Q, radius - lwi, lwi, radius);
       pswpos(Q);
@@ -6777,7 +6883,7 @@ void psarcahead(postype C, int atyp, postype *point, double ht,
       pprop(Ai, &Q, radius + lwi, -lwi, radius);
       pswarc(Ci, P, Q, radius + lwi, ccw);
   }
-  if (atyp == 3 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 3) && (lwi < ((wid - lwi) / 2))) {
       pswarc(Cox, Ao, Px, radius, -ccw);
       pswarc(Cix, Px, Ai, radius, ccw);
   }
@@ -6790,13 +6896,14 @@ void psarcahead(postype C, int atyp, postype *point, double ht,
 }
 
 
-void psahead(int atyp, postype *point, postype shaft, double ht,
-		    double wid, double lth)
+void
+psahead(int atyp, postype *point, postype shaft, double ht, double wid,
+	double lth)
 { postype P, L, R, Px, Lx, Rx, Q;
   double x, y;
 
-  dahead(*point, shaft, ht, wid, lth / 72 * scale, &P, &L, &R, &Px, &Lx, &Rx,
-	 &Q, &x, &y);
+  dahead(*point, shaft, ht, wid, (lth / 72) * scale, &P, &L, &R, &Px, &Lx,
+	 &Rx, &Q, &x, &y);
   psnewpath();
   if (atyp == 0) {
       pswprop(P, R, x - y, y, x);
@@ -6824,7 +6931,8 @@ void psahead(int atyp, postype *point, postype shaft, double ht,
 }
 
 
-void psbox(postype aat, double halfwid, double halfht, double rad)
+void
+psbox(postype aat, double halfwid, double halfht, double rad)
 { int i;
   postype corner[4];
 
@@ -6844,7 +6952,7 @@ void psbox(postype aat, double halfwid, double halfht, double rad)
       for (i = 0; i <= 3; i++) {
 	  pswpos(corner[i]);
 	  printf(" lineto");
-	  if (i == 1 || i == 3) {
+	  if ((i == 1) || (i == 3)) {
 	      putchar('\n');
 	  }
       }
@@ -6861,7 +6969,8 @@ void psbox(postype aat, double halfwid, double halfht, double rad)
 }
 
 
-void pscircle(double rd)
+void
+pscircle(double rd)
 { psnewpath();
   printf(" 0 0");
   pswfloat(&output, fabs(rd) / fsc);
@@ -6869,7 +6978,8 @@ void pscircle(double rd)
 }
 
 
-void psellipse(double x, double y)
+void
+psellipse(double x, double y)
 { x = fabs(x) / 2;
   y = fabs(y) / 2;
   psnewpath();
@@ -6894,7 +7004,8 @@ void psellipse(double x, double y)
 }
 
 
-void pssplinesegment(primitive *tv, int splc, int splt)
+void
+pssplinesegment(primitive *tv, int splc, int splt)
 { if (tv == NULL) {
       return;
   }
@@ -6906,7 +7017,7 @@ void pssplinesegment(primitive *tv, int splc, int splt)
       return;
   }
   if (ismdistmax(tv->Upr.Uline.aradius)) {
-      if (splc == splt && splc > 1) {  /* 1st seg */
+      if ((splc == splt) && (splc > 1)) {  /* 1st seg */
 	  pswpos(tv->aat);
 	  printf(" moveto\n");
 	  pswprop(tv->aat, tv->Upr.Uline.endpos, 1.0, 1.0, 2.0);
@@ -6929,7 +7040,7 @@ void pssplinesegment(primitive *tv, int splc, int splt)
       /* last segment */
       return;
   }
-  if (splc == splt && splc > 1) {
+  if ((splc == splt) && (splc > 1)) {
       pswpos(tv->aat);
       printf(" moveto\n");
       pswprop(tv->aat, tv->Upr.Uline.endpos, 1 - tv->Upr.Uline.aradius,
@@ -6953,7 +7064,8 @@ void pssplinesegment(primitive *tv, int splc, int splt)
 
 
 /* node is always <> nil */
-void psdraw(primitive *node)
+void
+psdraw(primitive *node)
 { int lsp;
   postype X1, X2;
   primitive *tn, *tx;
@@ -6974,8 +7086,8 @@ void psdraw(primitive *node)
   switch (node->ptype) {
 
   case XLbox:
-    if (node->Upr.Ubox.boxfill >= 0.0 && node->Upr.Ubox.boxfill <= 1.0 ||
-	 node->shadedp != NULL) {
+    if (((node->Upr.Ubox.boxfill >= 0.0) && (node->Upr.Ubox.boxfill <= 1.0)) ||
+	(node->shadedp != NULL)) {
 	psbox(node->aat, node->Upr.Ubox.boxwidth / 2,
 	      node->Upr.Ubox.boxheight / 2, node->Upr.Ubox.boxradius);
 	pssetthick(lth);
@@ -7027,7 +7139,7 @@ void psdraw(primitive *node)
     else {
 	fill = node->Upr.Ucircle.cfill;
     }
-    if (fill >= 0.0 && fill <= 1.0 || node->shadedp != NULL) {
+    if (((fill >= 0.0) && (fill <= 1.0)) || (node->shadedp != NULL)) {
 	pssetthick(lth);
 	printf(" gsave ");
 	pswpos(node->aat);
@@ -7113,7 +7225,7 @@ void psdraw(primitive *node)
 	    splcount = spltot;
 	    pssetthick(lth);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		pssetcolor(soutline);
 		psahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			node->Upr.Uline.endpos,
@@ -7124,7 +7236,7 @@ void psdraw(primitive *node)
 		}
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		pssetcolor(soutline);
 		psahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			tn->aat, qenv(tn, XLarrowht, tn->Upr.Uline.height),
@@ -7205,7 +7317,7 @@ void psdraw(primitive *node)
 	if (lsp != XLinvis) {
 	    pssetthick(lth);
 	    TEMP = ahlex(node->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		pssetcolor(soutline);
 		startarc(node, X1, lth, &h, &w);
 		psarcahead(node->aat, ahnum(node->Upr.Uline.atype), &X1, h, w,
@@ -7216,7 +7328,7 @@ void psdraw(primitive *node)
 		}
 	    }
 	    TEMP = ahlex(node->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		pssetcolor(soutline);
 		endarc(node, X2, lth, &h, &w);
 		psarcahead(node->aat, ahnum(node->Upr.Uline.atype), &X2, h, w,
@@ -7259,7 +7371,8 @@ void psdraw(primitive *node)
 /* include pdf.h */
 /* pdf.x */
 /* Output routines for PDF */
-void pdfstream(Char *s, int ls, nametype **strm)
+void
+pdfstream(Char *s, int ls, nametype **strm)
 { int i, ll;
   int s0 = 1;
   nametype *ns, *With;
@@ -7289,13 +7402,15 @@ void pdfstream(Char *s, int ls, nametype **strm)
 }
 
 
-void pdfwln(Char *s, int ln, nametype **strm)
+void
+pdfwln(Char *s, int ln, nametype **strm)
 { pdfstream(s, ln, strm);
   pdfstream("\n", 1, strm);
 }
 
 
-void addbytes(int n)
+void
+addbytes(int n)
 { if (pdfobjcount == 0) {
       pdfoffs[0] = n;
   }
@@ -7306,12 +7421,13 @@ void addbytes(int n)
 }
 
 
-void pdfprelude(double n, double s, double e, double w, double lth)
+void
+pdfprelude(double n, double s, double e, double w, double lth)
 { double wx, ex, nx, sx;
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2017.08.01 option -d for PDF\n");
+  printf("%% Creator: dpic version 2018.03.01 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
   /* 1. 2. 3. 4. 5. 6. */
@@ -7321,16 +7437,16 @@ void pdfprelude(double n, double s, double e, double w, double lth)
 	 pdfobjcount);
   addbytes(59);
   printf("%d 0 obj << /Type /Page /Parent 2 0 R\n", pdfobjcount);
-  wx = w / fsc - lth / 2;
-  ex = e / fsc + lth / 2;
-  nx = n / fsc + lth / 2;
-  sx = s / fsc - lth / 2;
+  wx = (w / fsc) - (lth / 2);
+  ex = (e / fsc) + (lth / 2);
+  nx = (n / fsc) + (lth / 2);
+  sx = (s / fsc) - (lth / 2);
   printf(" /MediaBox [ ");
   printf("%5d %5d %5d %5d ]\n",
-	 Floor((long)floor(wx * 1000000L + 0.5) / 1000000.0),
-	 Floor((long)floor(sx * 1000000L + 0.5) / 1000000.0),
-	 Ceil((long)floor(ex * 1000000L + 0.5) / 1000000.0),
-	 Ceil((long)floor(nx * 1000000L + 0.5) / 1000000.0));
+	 Floor(((long)floor((wx * 1000000L) + 0.5)) / 1000000.0),
+	 Floor(((long)floor((sx * 1000000L) + 0.5)) / 1000000.0),
+	 Ceil(((long)floor((ex * 1000000L) + 0.5)) / 1000000.0),
+	 Ceil(((long)floor((nx * 1000000L) + 0.5)) / 1000000.0));
   /*D; if debuglevel > 0 then begin
      write(log,'lth= '); wfloat(log,lth);
      write(log,' wx='); wfloat(log,wx);
@@ -7373,7 +7489,8 @@ void pdfprelude(double n, double s, double e, double w, double lth)
 }
 
 
-void pdfwfloat(double y)
+void
+pdfwfloat(double y)
 { int ix, ixd, j, digit;
   int ln = 0;
   Char ts[10];
@@ -7385,21 +7502,21 @@ void pdfwfloat(double y)
       pdfstream("-", 1, &cx);
       y = -y;
   }
-  if (y == (long)y) {
+  if (y == ((long)y)) {
       j = 7;
       ix = (long)floor(y + 0.5);
       nz = true;
   }
   else {
       j = 0;
-      ix = (long)floor(y * 1000000L + 0.5);
+      ix = (long)floor((y * 1000000L) + 0.5);
       nz = false;
   }
   do {
       j++;
       ixd = ix / 10;
-      digit = ix - ixd * 10;
-      if (j == 7 && nz) {
+      digit = ix - (ixd * 10);
+      if ((j == 7) && nz) {
 	  ln++;
 	  ts[ln-1] = '.';
       }
@@ -7414,7 +7531,7 @@ void pdfwfloat(double y)
 	  ts[ln-1] = digit + '0';
       }
       ix = ixd;
-  } while (ix != 0 || j <= 6);
+  } while ((ix != 0) || (j <= 6));
   for (j = 1; j <= ln; j++) {
       sprintf(STR1, "%c", ts[ln - j]);
       pdfstream(STR1, 1, &cx);
@@ -7422,7 +7539,8 @@ void pdfwfloat(double y)
 }
 
 
-void resetgs(primitive *node)
+void
+resetgs(primitive *node)
 { double x;
 
   if (gsocolor) {
@@ -7451,7 +7569,7 @@ void resetgs(primitive *node)
       pdfwln(" 0 j", 4, &cx);
       gslinejoin = 0;
   }
-  if (gsdashw == 0 && gsdashs == 0) {
+  if ((gsdashw == 0) && (gsdashs == 0)) {
       return;
   }
   pdfwln(" [] 0 d", 7, &cx);
@@ -7460,7 +7578,8 @@ void resetgs(primitive *node)
 }
 
 
-void pdfwlz(int n)
+void
+pdfwlz(int n)
 { Char s[10];
   int i;
   int j = 10;
@@ -7468,7 +7587,7 @@ void pdfwlz(int n)
 
   while (n > 0) {
       k = n / 10;
-      s[j-1] = n - k * 10 + '0';
+      s[j-1] = n - (k * 10) + '0';
       j--;
       n = k;
   }
@@ -7482,7 +7601,8 @@ void pdfwlz(int n)
 }
 
 
-void pdfpostlude(void)
+void
+pdfpostlude(void)
 { nametype *s, *t;
   int i;
   int streamlen = 0;
@@ -7549,18 +7669,21 @@ void pdfpostlude(void)
 }
 
 
-void pdfwcoord(double x, double y)
+void
+pdfwcoord(double x, double y)
 { pdfwfloat(x / fsc);
   pdfwfloat(y / fsc);
 }
 
 
-void pdfwpos(postype pos)
+void
+pdfwpos(postype pos)
 { pdfwcoord(pos.xpos, pos.ypos);
 }
 
 
-void pdfwstring(nametype *p)
+void
+pdfwstring(nametype *p)
 { int i;
   Char c;
   boolean waswhite = false;
@@ -7577,9 +7700,9 @@ void pdfwstring(nametype *p)
   FORLIM = p->len;
   for (i = 0; i < FORLIM; i++) {
       c = p->segmnt[p->seginx + i];
-      iswhite = (c == etxch || c == nlch || c == tabch || c == ' ');
-      if (!iswhite || !waswhite) {
-	  if (c == bslch || c == ')' || c == '(') {
+      iswhite = ((c == etxch) || (c == nlch) || (c == tabch) || (c == ' '));
+      if ((!iswhite) || (!waswhite)) {
+	  if ((c == bslch) || (c == ')') || (c == '(')) {
 	      sprintf(STR1, "%c", bslch);
 	      pdfstream(STR1, 1, &cx);
 	  }
@@ -7591,7 +7714,8 @@ void pdfwstring(nametype *p)
 }
 
 
-void pdfwtext(primitive *node, nametype *tp, double x, double y)
+void
+pdfwtext(primitive *node, nametype *tp, double x, double y)
 { int nstr = 0;
   nametype *tx;
   boolean L, R, A, B;
@@ -7608,7 +7732,7 @@ void pdfwtext(primitive *node, nametype *tp, double x, double y)
   }
   textht = venv(node, XLtextht);
   textwid = venv(node, XLtextwid);
-  if (node->ptype == XLstring && nstr > 0) {
+  if ((node->ptype == XLstring) && (nstr > 0)) {
       textht = node->Upr.Ubox.boxheight / nstr;
       textwid = node->Upr.Ubox.boxwidth;
   }
@@ -7619,35 +7743,35 @@ void pdfwtext(primitive *node, nametype *tp, double x, double y)
     writeln(log,' textoff=',textoff:8:3,'[',textoff/fsc:8:3,']');
     writeln(log,' textht=',textht:8:3,'[',textht/fsc:8:3,']',
                 ' textwid=',textwid:8:3,'[',textwid/fsc:8:3,']') end; D*/
-  y += (nstr / 2.0 - 4.0 / 5) * textht;
+  y += ((nstr / 2.0) - (4.0 / 5)) * textht;
   nstr = 1;
   do {
-      if (textwid <= 0 || nstr > 1) {
+      if ((textwid <= 0) || (nstr > 1)) {
 	  textwid = tp->len * textht * 0.6;
       }
       checkjust(tp, &A, &B, &L, &R);
       pdfwln("BT", 2, &cx);
       pdfstream("/F1", 3, &cx);
-      pdfwfloat(textht / scale * 72);
+      pdfwfloat((textht / scale) * 72);
       pdfwln(" Tf", 3, &cx);
       if (L) {
 	  dx = textoff;
       }
       else if (R) {
-	  dx = -textoff - tp->len * textht * 0.6;
+	  dx = (-textoff) - (tp->len * textht * 0.6);
       }
       else if (node->ptype == XLstring) {
-	  dx = textwid / -2;
+	  dx = textwid / (-2);
       }
       else {
-	  dx = -tp->len * textht * 0.6 / 2;
+	  dx = (-tp->len) * textht * 0.6 / 2;
       }
       dy = textht / 10;
       if (A) {
-	  dy += textoff + textht * 0.3;
+	  dy += textoff + (textht * 0.3);
       }
       else if (B) {
-	  dy += textht * (1 - ratio) * 0.7 - textoff;
+	  dy += (textht * (1 - ratio) * 0.7) - textoff;
       }
       /*D if debuglevel>0 then begin
         writeln(log,' A=',A,' B=',B,' L=',L,' R=',R);
@@ -7670,14 +7794,16 @@ void pdfwtext(primitive *node, nametype *tp, double x, double y)
 }
 
 
-void pdfwprop(postype p1, postype p2, double a, double b, double c)
+void
+pdfwprop(postype p1, postype p2, double a, double b, double c)
 { pprop(p1, &p2, a, b, c);
   pdfwpos(p2);
 }
 
 
-void pdfsetthick(double lt)
-{ if (lt < 0.0 || lt == gslinethick) {
+void
+pdfsetthick(double lt)
+{ if ((lt < 0.0) || (lt == gslinethick)) {
       return;
   }
   pdfwfloat(lt);
@@ -7686,8 +7812,9 @@ void pdfsetthick(double lt)
 }
 
 
-void pdflinearfill(double f, nametype *ss)
-{ if (f >= 0.0 && f <= 1.0) {
+void
+pdflinearfill(double f, nametype *ss)
+{ if ((f >= 0.0) && (f <= 1.0)) {
       pdfwfloat(f);
       pdfwln(" g", 2, &cx);
       gsgcolor = true;
@@ -7703,7 +7830,8 @@ void pdflinearfill(double f, nametype *ss)
 }
 
 
-void pdfsetcolor(nametype *op, boolean f)
+void
+pdfsetcolor(nametype *op, boolean f)
 { if (op == NULL) {
       return;
   }
@@ -7720,7 +7848,8 @@ void pdfsetcolor(nametype *op, boolean f)
 }
 
 
-void pdflineopts(int lspec, double param, double thck, nametype *op)
+void
+pdflineopts(int lspec, double param, double thck, nametype *op)
 { pdfsetthick(thck);
   if (lspec == XLdashed) {
       if (ismdistmax(param)) {
@@ -7748,47 +7877,47 @@ void pdflineopts(int lspec, double param, double thck, nametype *op)
 }
 
 
-void pdfwarc(postype Ctr, postype St, postype En, double radius,
-		    double ccw)
+void
+pdfwarc(postype Ctr, postype St, postype En, double radius, double ccw)
 { int narcs, i;
   double c, s, cc, ss, startangle, endangle, arcangle;
   postype Q;
 
   startangle = datan(St.ypos - Ctr.ypos, St.xpos - Ctr.xpos);
   endangle = datan(En.ypos - Ctr.ypos, En.xpos - Ctr.xpos);
-  if (ccw > 0 && endangle < startangle) {
+  if ((ccw > 0) && (endangle < startangle)) {
       endangle += 2 * pi;
   }
-  else if (ccw < 0 && endangle > startangle) {
+  else if ((ccw < 0) && (endangle > startangle)) {
       endangle -= 2 * pi;
   }
-  narcs = (long)(1.0 + fabs(endangle - startangle) / (pi / 2));
+  narcs = (long)(1.0 + (fabs(endangle - startangle) / (pi / 2)));
   arcangle = (endangle - startangle) / narcs;
   c = cos(arcangle / 2);
   s = sin(arcangle / 2);
   cc = (4 - c) / 3;
   if (s != 0.0) {
-      ss = (1.0 - c * cc) / s;
+      ss = (1.0 - (c * cc)) / s;
   }
   else {
       ss = 0.0;
   }
   for (i = 1; i <= narcs; i++) {
-      Q.xpos = cos(startangle + (i - 0.5) * arcangle);
-      Q.ypos = sin(startangle + (i - 0.5) * arcangle);
+      Q.xpos = cos(startangle + ((i - 0.5) * arcangle));
+      Q.ypos = sin(startangle + ((i - 0.5) * arcangle));
       pdfwpos(affine(radius * cc, -radius * ss, Ctr, Q));
       pdfwpos(affine(radius * cc, radius * ss, Ctr, Q));
-      Q.xpos = Ctr.xpos + radius * cos(startangle + i * arcangle);
-      Q.ypos = Ctr.ypos + radius * sin(startangle + i * arcangle);
+      Q.xpos = Ctr.xpos + (radius * cos(startangle + (i * arcangle)));
+      Q.ypos = Ctr.ypos + (radius * sin(startangle + (i * arcangle)));
       pdfwpos(Q);
       pdfwln(" c", 2, &cx);
   }
 }
 
 
-void pdfarcahead(postype C, int atyp, postype *point, double ht,
-			double wid, double lth, double radius, double angle,
-			nametype *sou)
+void
+pdfarcahead(postype C, int atyp, postype *point, double ht, double wid,
+	    double lth, double radius, double angle, nametype *sou)
 { postype P, Q, Co, Ci, Px, Cox, Cix, Ao, Ai;
   double ccw, lwi;
   boolean startarrow;
@@ -7801,7 +7930,7 @@ void pdfarcahead(postype C, int atyp, postype *point, double ht,
   pdfwln(" m", 2, &cx);
   pdfwarc(Ci, Ai, *point, radius, -ccw);
   pdfwarc(Co, *point, Ao, radius, ccw);
-  if (atyp == 0 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 0) && (lwi < ((wid - lwi) / 2))) {
       Q = Co;
       pprop(Ao, &Q, radius - lwi, lwi, radius);
       pdfwpos(Q);
@@ -7811,7 +7940,7 @@ void pdfarcahead(postype C, int atyp, postype *point, double ht,
       pprop(Ai, &Q, radius + lwi, -lwi, radius);
       pdfwarc(Ci, P, Q, radius + lwi, ccw);
   }
-  if (atyp == 3 && lwi < (wid - lwi) / 2) {
+  if ((atyp == 3) && (lwi < ((wid - lwi) / 2))) {
       pdfwarc(Cox, Ao, Px, radius, -ccw);
       pdfwarc(Cix, Px, Ai, radius, ccw);
   }
@@ -7824,13 +7953,14 @@ void pdfarcahead(postype C, int atyp, postype *point, double ht,
 }
 
 
-void pdfahead(int atyp, postype *point, postype shaft, double ht,
-		     double wid, double lth, nametype *sou)
+void
+pdfahead(int atyp, postype *point, postype shaft, double ht, double wid,
+	 double lth, nametype *sou)
 { postype P, L, R, Px, Lx, Rx, Q;
   double x, y;
 
-  dahead(*point, shaft, ht, wid, lth / 72 * scale, &P, &L, &R, &Px, &Lx, &Rx,
-	 &Q, &x, &y);
+  dahead(*point, shaft, ht, wid, (lth / 72) * scale, &P, &L, &R, &Px, &Lx,
+	 &Rx, &Q, &x, &y);
   if (atyp == 0) {
       pdfsetthick(lth);
       pdfsetcolor(sou, false);
@@ -7867,7 +7997,8 @@ begin
    Q.xpos := x; Q.ypos := y;
    pdfpos := Q
    end; */
-void pdfbox(postype aat, double halfwid, double halfht, double rad)
+void
+pdfbox(postype aat, double halfwid, double halfht, double rad)
 { double r = 1 - SPLT;
   double n, s, e, w;
 
@@ -7884,56 +8015,58 @@ void pdfbox(postype aat, double halfwid, double halfht, double rad)
   }
   pdfwcoord(e, n - rad);
   pdfwln(" m", 2, &cx);
-  pdfwcoord(e, n - rad * r);
-  pdfwcoord(e - rad * r, n);
+  pdfwcoord(e, n - (rad * r));
+  pdfwcoord(e - (rad * r), n);
   pdfwcoord(e - rad, n);
   pdfwln(" c", 2, &cx);
   pdfwcoord(w + rad, n);
   pdfwln(" l", 2, &cx);
-  pdfwcoord(w + rad * r, n);
-  pdfwcoord(w, n - rad * r);
+  pdfwcoord(w + (rad * r), n);
+  pdfwcoord(w, n - (rad * r));
   pdfwcoord(w, n - rad);
   pdfwln(" c", 2, &cx);
   pdfwcoord(w, s + rad);
   pdfwln(" l", 2, &cx);
-  pdfwcoord(w, s + rad * r);
-  pdfwcoord(w + rad * r, s);
+  pdfwcoord(w, s + (rad * r));
+  pdfwcoord(w + (rad * r), s);
   pdfwcoord(w + rad, s);
   pdfwln(" c", 2, &cx);
   pdfwcoord(e - rad, s);
   pdfwln(" l", 2, &cx);
-  pdfwcoord(e - rad * r, s);
-  pdfwcoord(e, s + rad * r);
+  pdfwcoord(e - (rad * r), s);
+  pdfwcoord(e, s + (rad * r));
   pdfwcoord(e, s + rad);
   pdfstream(" c h", 4, &cx);
 }
 
 
-void pdfellipse(postype Ctr, double x, double y)
+void
+pdfellipse(postype Ctr, double x, double y)
 { x = fabs(x) / 2;
   y = fabs(y) / 2;
   pdfwcoord(Ctr.xpos + x, Ctr.ypos);
   pdfwln(" m", 2, &cx);
-  pdfwcoord(Ctr.xpos + x, Ctr.ypos + y * SPLT);
-  pdfwcoord(Ctr.xpos + x * SPLT, Ctr.ypos + y);
+  pdfwcoord(Ctr.xpos + x, Ctr.ypos + (y * SPLT));
+  pdfwcoord(Ctr.xpos + (x * SPLT), Ctr.ypos + y);
   pdfwcoord(Ctr.xpos, Ctr.ypos + y);
   pdfwln(" c", 2, &cx);
-  pdfwcoord(Ctr.xpos - x * SPLT, Ctr.ypos + y);
-  pdfwcoord(Ctr.xpos - x, Ctr.ypos + y * SPLT);
+  pdfwcoord(Ctr.xpos - (x * SPLT), Ctr.ypos + y);
+  pdfwcoord(Ctr.xpos - x, Ctr.ypos + (y * SPLT));
   pdfwcoord(Ctr.xpos - x, Ctr.ypos);
   pdfwln(" c", 2, &cx);
-  pdfwcoord(Ctr.xpos - x, Ctr.ypos - y * SPLT);
-  pdfwcoord(Ctr.xpos - x * SPLT, Ctr.ypos - y);
+  pdfwcoord(Ctr.xpos - x, Ctr.ypos - (y * SPLT));
+  pdfwcoord(Ctr.xpos - (x * SPLT), Ctr.ypos - y);
   pdfwcoord(Ctr.xpos, Ctr.ypos - y);
   pdfwln(" c", 2, &cx);
-  pdfwcoord(Ctr.xpos + x * SPLT, Ctr.ypos - y);
-  pdfwcoord(Ctr.xpos + x, Ctr.ypos - y * SPLT);
+  pdfwcoord(Ctr.xpos + (x * SPLT), Ctr.ypos - y);
+  pdfwcoord(Ctr.xpos + x, Ctr.ypos - (y * SPLT));
   pdfwcoord(Ctr.xpos + x, Ctr.ypos);
   pdfstream(" c h", 4, &cx);
 }
 
 
-void pdfsplinesegment(primitive *tv, int splc, int splt)
+void
+pdfsplinesegment(primitive *tv, int splc, int splt)
 { if (tv == NULL) {
       return;
   }
@@ -7992,7 +8125,8 @@ void pdfsplinesegment(primitive *tv, int splc, int splt)
 
 
 /* node is always <> nil */
-void pdfdraw(primitive *node)
+void
+pdfdraw(primitive *node)
 { int lsp;
   postype X1, X2;
   primitive *tn, *tx;
@@ -8020,13 +8154,13 @@ void pdfdraw(primitive *node)
 
   case XLbox:
     if (drawn(node, lsp, node->Upr.Ubox.boxfill)) {
-	fll = (node->Upr.Ubox.boxfill >= 0.0 && node->Upr.Ubox.boxfill <= 1.0 ||
-	       node->shadedp != NULL);
+	fll = (((node->Upr.Ubox.boxfill >= 0.0) &&
+		(node->Upr.Ubox.boxfill <= 1.0)) || (node->shadedp != NULL));
 	pdflinearfill(node->Upr.Ubox.boxfill, node->shadedp);
 	pdflineopts(lsp, node->lparam, lth, node->outlinep);
 	pdfbox(node->aat, node->Upr.Ubox.boxwidth / 2,
 	       node->Upr.Ubox.boxheight / 2, node->Upr.Ubox.boxradius);
-	if (fll && lsp != XLinvis) {
+	if (fll && (lsp != XLinvis)) {
 	    pdfwln(" B", 2, &cx);
 	}
 	else if (fll) {
@@ -8052,11 +8186,11 @@ void pdfdraw(primitive *node)
 	fill = node->Upr.Ucircle.cfill;
     }
     if (drawn(node, lsp, fill)) {
-	fll = (fill >= 0.0 && fill <= 1.0 || node->shadedp != NULL);
+	fll = (((fill >= 0.0) && (fill <= 1.0)) || (node->shadedp != NULL));
 	pdflinearfill(fill, node->shadedp);
 	pdflineopts(lsp, node->lparam, lth, node->outlinep);
 	pdfellipse(node->aat, x, y);
-	if (fll && lsp != XLinvis) {
+	if (fll && (lsp != XLinvis)) {
 	    pdfwln(" B", 2, &cx);
 	}
 	else if (fll) {
@@ -8084,7 +8218,7 @@ void pdfdraw(primitive *node)
     }
     if (lsp != XLinvis) {
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 	    pdfsetcolor(soutline, true);
 	    startarc(node, X1, lth, &h, &w);
 	    pdfarcahead(node->aat, ahnum(node->Upr.Uline.atype), &X1, h, w, lth,
@@ -8093,7 +8227,7 @@ void pdfdraw(primitive *node)
 	    resetgs(node);
 	}
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 	    pdfsetcolor(soutline, true);
 	    endarc(node, X2, lth, &h, &w);
 	    pdfarcahead(node->aat, ahnum(node->Upr.Uline.atype), &X2, h, w, lth,
@@ -8133,7 +8267,7 @@ void pdfdraw(primitive *node)
 	lth = qenv(tn, XLlinethick, tn->lthick);
 	if (lsp != XLinvis) {
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		pdfsetcolor(soutline, true);
 		pdfahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos,
@@ -8143,7 +8277,7 @@ void pdfdraw(primitive *node)
 		resetgs(node);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		pdfsetcolor(soutline, true);
 		pdfahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, qenv(tn, XLarrowht, tn->Upr.Uline.height),
@@ -8202,7 +8336,7 @@ void pdfdraw(primitive *node)
 	    splcount = spltot;
 	    lth = qenv(tn, XLlinethick, tn->lthick);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		pdfsetcolor(soutline, true);
 		pdfahead(ahnum(tn->Upr.Uline.atype), &node->aat,
 			 node->Upr.Uline.endpos,
@@ -8212,7 +8346,7 @@ void pdfdraw(primitive *node)
 		resetgs(node);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		pdfsetcolor(soutline, true);
 		pdfahead(ahnum(tn->Upr.Uline.atype), &tn->Upr.Uline.endpos,
 			 tn->aat, qenv(tn, XLarrowht, tn->Upr.Uline.height),
@@ -8254,7 +8388,8 @@ void pdfdraw(primitive *node)
 /* include tex.h */
 /* tex.x */
 /* Output routines for TeX, tTeX (eepicemu), Pict2e */
-void texprelude(double n, double s, double e, double w)
+void
+texprelude(double n, double s, double e, double w)
 { printf("\\setlength{\\unitlength}{1in}\n");
   if (!isdistmax(s)) {
       printf("\\begin{picture}");
@@ -8262,7 +8397,7 @@ void texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2017.08.01 option ");
+  printf("%% dpic version 2018.03.01 option ");
   switch (drawmode) {
 
   case TeX:
@@ -8281,14 +8416,15 @@ void texprelude(double n, double s, double e, double w)
 }
 
 
-void texpostlude(void)
+void
+texpostlude(void)
 { printf("\\end{picture}\n");
   /*D if debuglevel > 0 then writeln(log,'texpostlude done');D*/
 }
 
 
-void arrowhead(double pointx, double pointy, double tailx,
-		      double taily)
+void
+arrowhead(double pointx, double pointy, double tailx, double taily)
 { double x, y, r, ct;
 
   r = linlen(pointx - tailx, pointy - taily);
@@ -8296,8 +8432,8 @@ void arrowhead(double pointx, double pointy, double tailx,
       return;
   }
   ct = Min(0.05, 0.5 * r) / r;
-  x = pointx + ct * (tailx - pointx);
-  y = pointy + ct * (taily - pointy);
+  x = pointx + (ct * (tailx - pointx));
+  y = pointy + (ct * (taily - pointy));
   printf("\n\\put");
   wcoord(&output, x, y);
   printf("{\\vector");
@@ -8306,7 +8442,8 @@ void arrowhead(double pointx, double pointy, double tailx,
 }
 
 
-void texwrtext(primitive *np, nametype *tp, double x, double y)
+void
+texwrtext(primitive *np, nametype *tp, double x, double y)
 { boolean A, B, L, R;
 
   if (tp == NULL) {
@@ -8338,7 +8475,8 @@ void texwrtext(primitive *np, nametype *tp, double x, double y)
 }
 
 
-void p2ahead(postype *point, postype shaft, double ht)
+void
+p2ahead(postype *point, postype shaft, double ht)
 { postype butx;
 
   /*D; if debuglevel > 0 then begin
@@ -8361,8 +8499,9 @@ void p2ahead(postype *point, postype shaft, double ht)
 }
 
 
-void p2setthick(double lt)
-{ if (lt < 0.0 || lt == gslinethick) {
+void
+p2setthick(double lt)
+{ if ((lt < 0.0) || (lt == gslinethick)) {
       return;
   }
   printf("\\linethickness{");
@@ -8372,7 +8511,8 @@ void p2setthick(double lt)
 }
 
 
-void texdraw(primitive *node)
+void
+texdraw(primitive *node)
 { int i, npts, lsp;
   double r, x, y, x1, y1, ct, st, lgth, lth;
   primitive *tn, *p;
@@ -8385,7 +8525,7 @@ void texdraw(primitive *node)
 
   case XLbox:
   case XBLOCK:
-    if (drawn(node, lsp, -1.0) || node->textp != NULL) {
+    if (drawn(node, lsp, -1.0) || (node->textp != NULL)) {
 	initnesw();
 	nesw(node);
 	if (drawmode == Pict2e) {
@@ -8435,20 +8575,21 @@ void texdraw(primitive *node)
 		p2setthick(lth);
 	    }
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		p2ahead(&node->aat, node->Upr.Uline.endpos,
 			qenv(node, XLarrowht, tn->Upr.Uline.height));
 	    }
 	}
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if ((node->son == NULL) & (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD)) {
+	if ((node->son == NULL) & ((TEMP == XDOUBLEHEAD) ||
+				   (TEMP == XRIGHTHEAD))) {
 	    p2ahead(&node->Upr.Uline.endpos, node->aat,
 		    qenv(node, XLarrowht, tn->Upr.Uline.height));
 	}
 	lgth = linlen(node->Upr.Uline.endpos.xpos - node->aat.xpos,
 		      node->Upr.Uline.endpos.ypos - node->aat.ypos);
-	if (drawmode == Pict2e ||
-	     lsp == XLsolid && (lgth > 0.18 || drawmode == tTeX)) {
+	if ((drawmode == Pict2e) ||
+	    ((lsp == XLsolid) && ((lgth > 0.18) || (drawmode == tTeX)))) {
 	    if (lgth > 0) {
 		printf("\\put");
 		wpos(node->aat);
@@ -8459,7 +8600,7 @@ void texdraw(primitive *node)
 	    }
 	}
 	else if (lsp == XLsolid) {
-	    npts = (long)floor(lgth / 0.005 + 0.5);
+	    npts = (long)floor((lgth / 0.005) + 0.5);
 	    if (npts == 0) {
 		npts = 1;
 	    }
@@ -8508,7 +8649,7 @@ void texdraw(primitive *node)
 	    tmpat = node->aat;
 	    p2setthick(lth);
 	    TEMP = ahlex(tn->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 		p2ahead(&node->aat, node->Upr.Uline.endpos,
 			qenv(node, XLarrowht, tn->Upr.Uline.height));
 	    }
@@ -8543,20 +8684,20 @@ void texdraw(primitive *node)
 	}
 	else if (splcount > 1) {
 	    wprop(node->aat, node->Upr.Uline.endpos,
-		  0.5 + node->Upr.Uline.aradius / 2,
-		  0.5 - node->Upr.Uline.aradius / 2, 1.0);
+		  0.5 + (node->Upr.Uline.aradius / 2),
+		  0.5 - (node->Upr.Uline.aradius / 2), 1.0);
 	    wprop(node->aat, node->Upr.Uline.endpos, 1.0, 1.0, 2.0);
 	    printf("%%\n");
 	    printf("\\cbezier");
 	    wprop(node->aat, node->Upr.Uline.endpos, 1.0, 1.0, 2.0);
 	    wprop(node->aat, node->Upr.Uline.endpos,
-		  0.5 - node->Upr.Uline.aradius / 2,
-		  0.5 + node->Upr.Uline.aradius / 2, 1.0);
+		  0.5 - (node->Upr.Uline.aradius / 2),
+		  0.5 + (node->Upr.Uline.aradius / 2), 1.0);
 	}
 	if (splcount == 1) {
 	    tmpat = node->Upr.Uline.endpos;
 	    TEMP = ahlex(node->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		x = linlen(node->Upr.Uline.endpos.xpos - node->aat.xpos,
 			   node->Upr.Uline.endpos.ypos - node->aat.ypos);
 		y = qenv(node, XLarrowht, tn->Upr.Uline.height);
@@ -8581,7 +8722,7 @@ void texdraw(primitive *node)
 		printf("%%\n");
 	    }
 	    TEMP = ahlex(node->Upr.Uline.atype);
-	    if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	    if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 		p2ahead(&tmpat, node->aat,
 			qenv(node, XLarrowht, tn->Upr.Uline.height));
 	    }
@@ -8589,7 +8730,7 @@ void texdraw(primitive *node)
 	/*D if debuglevel > 0 then writeln(log,'node ',splcount:1) ;D*/
 	splcount--;
     }
-    else if (lsp == XLdotted || lsp == XLdashed || lsp == XLsolid) {
+    else if ((lsp == XLdotted) || (lsp == XLdashed) || (lsp == XLsolid)) {
 	if (firstsegment(node) & ((ahlex(node->Upr.Uline.atype) == XDOUBLEHEAD) |
 				  (ahlex(node->Upr.Uline.atype) == XLEFTHEAD)))
 	{                                                     /* first spline */
@@ -8669,7 +8810,7 @@ void texdraw(primitive *node)
 	p2setthick(node->lthick);                          /* p2linecap(lsp); */
 	X0 = arcstart(node);
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XLEFTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XLEFTHEAD)) {
 	    if (node->Upr.Uline.aradius == 0.0) {
 		x = 0.0;
 	    }
@@ -8691,7 +8832,7 @@ void texdraw(primitive *node)
 	}
 	X3 = arcend(node);
 	TEMP = ahlex(node->Upr.Uline.atype);
-	if (TEMP == XDOUBLEHEAD || TEMP == XRIGHTHEAD) {
+	if ((TEMP == XDOUBLEHEAD) || (TEMP == XRIGHTHEAD)) {
 	    if (node->Upr.Uline.aradius == 0.0) {
 		x = 0.0;
 	    }
@@ -8709,7 +8850,7 @@ void texdraw(primitive *node)
 	    X3 = arcend(node);
 	    p2ahead(&tmpat, X3, qenv(node, XLarrowht, node->Upr.Uline.height));
 	}
-	npts = (long)(1.0 + fabs(node->Upr.Uline.endpos.ypos) / pi);
+	npts = (long)(1.0 + (fabs(node->Upr.Uline.endpos.ypos) / pi));
 	node->Upr.Uline.endpos.ypos /= npts;
 	while (npts > 0) {
 	    printf("\\cbezier");
@@ -8718,15 +8859,15 @@ void texdraw(primitive *node)
 	    y = sin(node->Upr.Uline.endpos.ypos / 2);
 	    x1 = (4 - x) / 3;
 	    if (y != 0.0) {
-		y1 = (1.0 - x * x1) / y;
+		y1 = (1.0 - (x * x1)) / y;
 	    }
 	    else {
 		y1 = 0.0;
 	    }
-	    tmpat.xpos = cos(
-		node->Upr.Uline.endpos.xpos + node->Upr.Uline.endpos.ypos / 2.0);
-	    tmpat.ypos = sin(
-		node->Upr.Uline.endpos.xpos + node->Upr.Uline.endpos.ypos / 2.0);
+	    tmpat.xpos = cos(node->Upr.Uline.endpos.xpos +
+			     (node->Upr.Uline.endpos.ypos / 2.0));
+	    tmpat.ypos = sin(node->Upr.Uline.endpos.xpos +
+			     (node->Upr.Uline.endpos.ypos / 2.0));
 	    wpos(affine(node->Upr.Uline.aradius * x1,
 			-node->Upr.Uline.aradius * y1, node->aat, tmpat));
 	    wpos(affine(node->Upr.Uline.aradius * x1,
@@ -8743,7 +8884,7 @@ void texdraw(primitive *node)
 	printf("%%\n");                    /*; p2dashdot(lsp,lparam,outlinep) */
     }
     else if (iscorner(principal(node->Upr.Uline.endpos.xpos, 0.5 * pi)) &&
-	     fabs(fabs(node->Upr.Uline.endpos.ypos) - pi / 2.0) < 0.001) {
+	     (fabs(fabs(node->Upr.Uline.endpos.ypos) - (pi / 2.0)) < 0.001)) {
 	if (drawmode == Pict2e) {
 	    p2setthick(lth);
 	}
@@ -8752,23 +8893,28 @@ void texdraw(primitive *node)
 	printf("{\\oval");
 	wcoord(&output, 2 * node->Upr.Uline.aradius / fsc,
 	       2 * node->Upr.Uline.aradius / fsc);
-	if (node->direction != XLdown && node->direction != XLup &&
-	     node->direction != XLright && node->direction != XLleft) {
+	if ((node->direction != XLdown) && (node->direction != XLup) &&
+	    (node->direction != XLright) && (node->direction != XLleft)) {
 	    p = findenv(node);
 	    if (p != NULL) {
 		node->direction = p->direction;
 	    }
 	}
-	if (node->direction == XLleft && node->Upr.Uline.endpos.ypos < 0.0 ||
-	     node->direction == XLdown && node->Upr.Uline.endpos.ypos > 0.0) {
+	if (((node->direction == XLleft) && (node->Upr.Uline.endpos.ypos < 0.0)) ||
+	     ((node->direction == XLdown) &&
+	      (node->Upr.Uline.endpos.ypos > 0.0))) {
 	    printf("[bl]}\n");
 	}
-	else if (node->direction == XLleft && node->Upr.Uline.endpos.ypos > 0.0 ||
-		 node->direction == XLup && node->Upr.Uline.endpos.ypos < 0.0) {
+	else if (((node->direction == XLleft) &&
+		  (node->Upr.Uline.endpos.ypos > 0.0)) ||
+		 ((node->direction == XLup) &&
+		  (node->Upr.Uline.endpos.ypos < 0.0))) {
 	    printf("[tl]}\n");
 	}
-	else if (node->direction == XLright && node->Upr.Uline.endpos.ypos < 0.0 ||
-		 node->direction == XLup && node->Upr.Uline.endpos.ypos > 0.0) {
+	else if (((node->direction == XLright) &&
+		  (node->Upr.Uline.endpos.ypos < 0.0)) ||
+		 ((node->direction == XLup) &&
+		  (node->Upr.Uline.endpos.ypos > 0.0))) {
 	    printf("[tr]}\n");
 	}
 	else {
@@ -8776,18 +8922,19 @@ void texdraw(primitive *node)
 	}
 	texwrtext(node, node->textp, node->aat.xpos, node->aat.ypos);
     }
-    else if (drawmode >= 0 && drawmode < 32 &&
-	     ((1L << drawmode) & ((1L << TeX) | (1L << Pict2e))) != 0 &&
-	     node->Upr.Uline.aradius > 0.0) {
-	if (node->Upr.Uline.aradius >= 0.05 / sin(pi / 18.0)) {
-	    npts = (long)floor(fabs(node->Upr.Uline.endpos.ypos) / (pi / 18.0) + 0.5);
+    else if ((drawmode >= 0) && (drawmode < 32) &&
+	     (((1L << drawmode) & ((1L << TeX) | (1L << Pict2e))) != 0) &&
+	     (node->Upr.Uline.aradius > 0.0)) {
+	if (node->Upr.Uline.aradius >= (0.05 / sin(pi / 18.0))) {
+	    npts = (long)floor(
+		     (fabs(node->Upr.Uline.endpos.ypos) / (pi / 18.0)) + 0.5);
 	}
 	else if (node->Upr.Uline.aradius == 0.0) {
 	    npts = 4;
 	}
 	else {
-	    npts = (long)floor(fabs(node->Upr.Uline.endpos.ypos) / atan(
-				 0.05 / node->Upr.Uline.aradius) + 0.5);
+	    npts = (long)floor((fabs(node->Upr.Uline.endpos.ypos) / atan(
+				  0.05 / node->Upr.Uline.aradius)) + 0.5);
 	}
 	if (npts < 4) {
 	    npts = 4;
@@ -8799,8 +8946,8 @@ void texdraw(primitive *node)
 	y = node->Upr.Uline.aradius * sin(node->Upr.Uline.endpos.xpos);
 	/*D if debuglevel = 2 then writeln(log,'x,y',x:7:4,y:7:4); D*/
 	for (i = 1; i <= npts; i++) {
-	    x1 = ct * x - st * y;
-	    y1 = st * x + ct * y;
+	    x1 = (ct * x) - (st * y);
+	    y1 = (st * x) + (ct * y);
 	    /*D if debuglevel = 2 then writeln(log,x1:7:4,y1:7:4); D*/
 	    printf("\\put");
 	    wcoord(&output, node->aat.xpos + x, node->aat.ypos + y);
@@ -8845,7 +8992,8 @@ void texdraw(primitive *node)
 }  /* texdraw */
 
 
-void treedraw(primitive *node)
+void
+treedraw(primitive *node)
 { while (node != NULL) {
       switch (drawmode) {
 
@@ -8894,8 +9042,8 @@ void treedraw(primitive *node)
       if (drawmode == PDF) {
 	  resetgs(node);
       }
-      else if (drawmode == xfig && node->ptype == XBLOCK &&
-	       node->direction == -1) {
+      else if ((drawmode == xfig) && (node->ptype == XBLOCK) &&
+	       (node->direction == (-1))) {
 	  printf("-6\n");
       }
       bfill = false;
@@ -8957,7 +9105,8 @@ begin
 /* D; if debuglevel > 0 then writeln(log,' treedraw done') D */
 /*
    end; */
-void drawtree(double n, double s, double e, double w, primitive *eb)
+void
+drawtree(double n, double s, double e, double w, primitive *eb)
 { double fsctmp;
 
   bfill = false;
@@ -8968,7 +9117,7 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
   case SVG:
     fsctmp = fsc;
     fsc /= SVGPX;                                            /* output pixels */
-    svgprelude(n, s, e, w, venv(eb, XLlinethick) / 72 * scale);
+    svgprelude(n, s, e, w, (venv(eb, XLlinethick) / 72) * scale);
     treedraw(eb);
     svgpostlude();
     fsc = fsctmp;
@@ -9040,7 +9189,6 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
 
 
 /* G end. G */
-/* dpic2 */
 /* include dpic1.p */
 /* G module dpic1; G */
 /* include dp0.h */
@@ -9048,24 +9196,27 @@ void drawtree(double n, double s, double e, double w, primitive *eb)
 /* include sysdep.h */
 /* G#include 'sysdep.h'G */
 /* Recursive routines: snaptree FindExitPoint neswrec shift treedraw scaleobj */
-int bval(Char *buf)
+int
+bval(Char *buf)
 { return (((int) buf[0]) << 7) + (int) buf[1] ;
 }
 
 
-void putbval(Char *buf, int n)
+void
+putbval(Char *buf, int n)
 { /* D
     if debuglevel > 0 then writeln(log,'putbval[',ordp(buf):1,'](',n:1,')'); D */
   buf[0] = (Char)(n>>7); buf[1] = (Char)(n % 128);
 }
 
 
-void deletename(nametype **head)
+void
+deletename(nametype **head)
 { /*F(var head: strptr)F*/
   nametype *pn, *r;
   int j, FORLIM;
 
-  while (*head != NULL) {
+  while ((*head) != NULL) {
       pn = *head;
       r = pn;
       while (pn->next_ != NULL) {
@@ -9073,7 +9224,7 @@ void deletename(nametype **head)
 	  pn = pn->next_;
       }
       r->next_ = NULL;
-      if (pn == *head) {
+      if (pn == (*head)) {
 	  *head = NULL;
       }
       /*D if debuglevel > 0 then
@@ -9082,7 +9233,7 @@ void deletename(nametype **head)
 	  if (bval(pn->segmnt) > 1) {
 	      j = bval(pn->segmnt);
 	      putbval(pn->segmnt, j - 1);
-	      if (pn->segmnt == freeseg && pn->seginx + pn->len == freex) {
+	      if ((pn->segmnt == freeseg) && (pn->seginx + pn->len == freex)) {
 		  freex = pn->seginx;
 		  j = 3;
 		  while (freex > j) {
@@ -9101,7 +9252,7 @@ void deletename(nametype **head)
 		  }
 	      }
 	  }
-	  else if (pn->segmnt == freeseg && freeseg != NULL) {
+	  else if ((pn->segmnt == freeseg) && (freeseg != NULL)) {
 	      /*D if debuglevel > 0 then
 	         writeln(log,'deletename freeseg[',ordp(freeseg):1,']'); D*/
 	      Free(freeseg);
@@ -9119,21 +9270,24 @@ void deletename(nametype **head)
 }
 
 
-void setspec(int *specv, int svalue)
-{ *specv = ((*specv) >> 3) * 8 + svalue - XLlinetype;
+void
+setspec(int *specv, int svalue)
+{ *specv = (((*specv) >> 3) * 8) + svalue - XLlinetype;
   /* if svalue = XLsolid then
      specv := (specv div 32)*32 + 16 + (specv mod 16) */
 }
 
 
-void resetspec(int *specv, int svalue)
+void
+resetspec(int *specv, int svalue)
 { *specv = 0;
   setspec(specv, svalue);
 }
 
 
-void setthen(int *specv)
-{ *specv = ((*specv) >> 4) * 16 + ((*specv) & 7) + 8;
+void
+setthen(int *specv)
+{ *specv = (((*specv) >> 4) * 16) + ((*specv) & 7) + 8;
 }
 
 
@@ -9359,17 +9513,18 @@ end;
       end
    end;
 D*/
-void deletetree(primitive **p)
+void
+deletetree(primitive **p)
 { /*F(var p: primitivep)F*/
   primitive *r;
   int i;
   primitive *With;
 
-  if (*p != NULL) {
+  if ((*p) != NULL) {
       (*p)->parent = NULL;
   }
-  while (*p != NULL) {
-      while ((*p)->next_ != NULL || (*p)->son != NULL) {
+  while ((*p) != NULL) {
+      while (((*p)->next_ != NULL) || ((*p)->son != NULL)) {
 	  r = *p;
 	  if ((*p)->next_ != NULL) {
 	      *p = (*p)->next_;
@@ -9438,23 +9593,25 @@ F*/
 }
 
 
-void setangles(double *strtang, double *arcang, postype ctr, double xs,
-		      double ys, double xf, double yf)
+void
+setangles(double *strtang, double *arcang, postype ctr, double xs, double ys,
+	  double xf, double yf)
 { double ra;                       /* set arc angles given centre, start, end */
 
   *strtang = datan(ys - ctr.ypos, xs - ctr.xpos);
-  ra = principal(datan(yf - ctr.ypos, xf - ctr.xpos) - *strtang, pi);
-  if (ra < 0.0 && *arcang > 0.0) {
+  ra = principal(datan(yf - ctr.ypos, xf - ctr.xpos) - (*strtang), pi);
+  if ((ra < 0.0) && ((*arcang) > 0.0)) {
       ra += 2.0 * pi;
   }
-  else if (ra > 0.0 && *arcang < 0.0) {
+  else if ((ra > 0.0) && ((*arcang) < 0.0)) {
       ra -= 2.0 * pi;
   }
   *arcang = ra;
 }
 
 
-void eqop(double *x, int op, double y)
+void
+eqop(double *x, int op, double y)
 { int i, j;
 
   switch (op) {
@@ -9486,31 +9643,34 @@ void eqop(double *x, int op, double y)
     break;
 
   case XLremeq:
-    i = (long)floor(*x + 0.5);
+    i = (long)floor((*x) + 0.5);
     j = (long)floor(y + 0.5);
     if (j == 0) {
 	markerror(852);
 	*x = 0.0;
     }
     else {
-	*x = i - i / j * j;
+	*x = i - ((i / j) * j);
     }
     break;
   }
 }
 
 
-void setstval(int *st, int value)
-{ *st = value * 256 + ((*st) & 255);
+void
+setstval(int *st, int value)
+{ *st = (value * 256) + ((*st) & 255);
 }
 
 
-int getstval(int st)
+int
+getstval(int st)
 { return (st >> 8);
 }
 
 
-void setstflag(int *st, int value)
+void
+setstflag(int *st, int value)
 { switch (value) {
 
   case XEMPTY:
@@ -9518,42 +9678,43 @@ void setstflag(int *st, int value)
     break;
 
   case XLto:
-    *st = ((*st) >> 1) * 2 + 1;
+    *st = (((*st) >> 1) * 2) + 1;
     break;
 
   case XLfrom:
-    *st = ((*st) >> 2) * 4 + ((*st) & 1) + 2;
+    *st = (((*st) >> 2) * 4) + ((*st) & 1) + 2;
     break;
 
   case XLat:
-    *st = ((*st) >> 3) * 8 + ((*st) & 3) + 4;
+    *st = (((*st) >> 3) * 8) + ((*st) & 3) + 4;
     break;
 
   case XLradius:
-    *st = ((*st) >> 4) * 16 + ((*st) & 7) + 8;
+    *st = (((*st) >> 4) * 16) + ((*st) & 7) + 8;
     break;
 
   case XLcw:
-    *st = ((*st) >> 5) * 32 + ((*st) & 15) + 16;
+    *st = (((*st) >> 5) * 32) + ((*st) & 15) + 16;
     break;
 
   case XLccw:
-    *st = ((*st) >> 6) * 64 + ((*st) & 31) + 32;
+    *st = (((*st) >> 6) * 64) + ((*st) & 31) + 32;
     break;
 
   case XLchop:
-    *st = ((*st) >> 7) * 128 + ((*st) & 63) + 64;
+    *st = (((*st) >> 7) * 128) + ((*st) & 63) + 64;
     break;
 
   case XLdirecton:
-    *st = ((*st) >> 8) * 256 + ((*st) & 127) + 128;
+    *st = (((*st) >> 8) * 256) + ((*st) & 127) + 128;
     break;
   }
 }
 
 
-boolean teststflag(int st, int value)
-{ boolean b;
+boolean
+teststflag(int st, int value)
+{ boolean b = false;
 
   switch (value) {
 
@@ -9593,8 +9754,9 @@ boolean teststflag(int st, int value)
 }
 
 
-int eqstring(Char *seg1, chbufinx inx1, chbufinx len1, Char *seg2,
-		    chbufinx inx2, chbufinx len2)
+int
+eqstring(Char *seg1, chbufinx inx1, chbufinx len1, Char *seg2, chbufinx inx2,
+	 chbufinx len2)
 { int i = 0;
   int j, k;
 
@@ -9604,7 +9766,7 @@ int eqstring(Char *seg1, chbufinx inx1, chbufinx len1, Char *seg2,
      writeln(log); write(log,' 2nd arg =');
      if seg2 = nil then write(log,' nil') else snapname(seg2,inx2,len2);
      writeln(log) end; D*/
-  if (seg1 == NULL || seg2 == NULL) {
+  if ((seg1 == NULL) || (seg2 == NULL)) {
       k = maxint;
       return k;
   }
@@ -9641,8 +9803,9 @@ int eqstring(Char *seg1, chbufinx inx1, chbufinx len1, Char *seg2,
 }
 
 
-int cmpstring(primitive *p1, primitive *p2)
-{ if (p1 == NULL || p2 == NULL) {
+int
+cmpstring(primitive *p1, primitive *p2)
+{ if ((p1 == NULL) || (p2 == NULL)) {
       return maxint;
   }
   else if (p1->textp == NULL) {
@@ -9658,8 +9821,8 @@ int cmpstring(primitive *p1, primitive *p2)
 }
 
 
-primitive *findplace(primitive *p, Char *chb, chbufinx inx,
-			    chbufinx length)
+primitive *(
+findplace(primitive *p, Char *chb, chbufinx inx, chbufinx length))
 { primitive *pj = NULL;
   nametype *With;
 
@@ -9686,8 +9849,8 @@ primitive *findplace(primitive *p, Char *chb, chbufinx inx,
 }
 
 
-arg *findmacro(arg *p, Char *chb, chbufinx inx, chbufinx length,
-		      arg **last)
+arg *(
+findmacro(arg *p, Char *chb, chbufinx inx, chbufinx length, arg **last))
 { arg *pj = NULL;
   arg *With;
 
@@ -9714,23 +9877,25 @@ arg *findmacro(arg *p, Char *chb, chbufinx inx, chbufinx length,
 }
 
 
-int varhash(Char *chb, chbufinx chbufx, chbufinx length)
+int
+varhash(Char *chb, chbufinx chbufx, chbufinx length)
 { int idx;
 
   if (chb == NULL) {
       idx = 0;
-      return (idx - idx / (HASHLIM + 1) * (HASHLIM + 1));
+      return (idx - ((idx / (HASHLIM + 1)) * (HASHLIM + 1)));
   }
   idx = chb[chbufx];
   if (length > 2) {
       idx += chb[chbufx + length - 2];
   }
-  return (idx - idx / (HASHLIM + 1) * (HASHLIM + 1));
+  return (idx - ((idx / (HASHLIM + 1)) * (HASHLIM + 1)));
 }
 
 
-nametype *findname(primitive *eb, Char *chb, chbufinx chbufx,
-			  chbufinx length, nametype **last, int *k)
+nametype *(
+findname(primitive *eb, Char *chb, chbufinx chbufx, chbufinx length,
+	 nametype **last, int *k))
 { nametype *leftptr;
   nametype *rightptr = NULL;
   int left = 0, right = 0;
@@ -9759,7 +9924,7 @@ nametype *findname(primitive *eb, Char *chb, chbufinx chbufx,
   if (leftptr != NULL) {
       *k = eqstring(chb, chbufx, length, leftptr->segmnt, leftptr->seginx,
 		    leftptr->len);
-      if (*k < 0) {
+      if ((*k) < 0) {
 	  left = 2;
 	  leftptr = leftptr->next_;
 	  right = eb->Upr.UBLOCK.nvars[idx] + 1;
@@ -9780,12 +9945,12 @@ nametype *findname(primitive *eb, Char *chb, chbufinx chbufx,
       *k = eqstring(chb, chbufx, length, With->segmnt, With->seginx,
 		    With->len);
       /*D if debuglevel > 0 then write(log,' k=',k:1); D*/
-      if (*k < 0) {
+      if ((*k) < 0) {
 	  left = midpt + 1;
 	  leftptr = (*last)->next_;
 	  continue;
       }
-      if (*k == 0) {
+      if ((*k) == 0) {
 	  leftptr = *last;
 	  rightptr = leftptr;
       }
@@ -9794,7 +9959,7 @@ nametype *findname(primitive *eb, Char *chb, chbufinx chbufx,
 	  rightptr = *last;
       }
   }
-  if (*k == 0) {
+  if ((*k) == 0) {
       return leftptr;
   }
   else {
@@ -9804,7 +9969,8 @@ nametype *findname(primitive *eb, Char *chb, chbufinx chbufx,
 }
 
 
-void marknotfound(int eno, Char *chb, chbufinx inx, chbufinx len)
+void
+marknotfound(int eno, Char *chb, chbufinx inx, chbufinx len)
 { int i;
 
   /*D if debuglevel > 0 then begin write(log,'Search failure ',eno:1);
@@ -9815,7 +9981,7 @@ void marknotfound(int eno, Char *chb, chbufinx inx, chbufinx len)
   fprintf(errout, "\nSearch failure");
   if (chb != NULL) {
       fprintf(errout, " for \"");
-      for (i = inx; i < inx + len; i++) {
+      for (i = inx; i < (inx + len); i++) {
 	  putc(chb[i], errout);
       }
       putc('"', errout);
@@ -9824,8 +9990,9 @@ void marknotfound(int eno, Char *chb, chbufinx inx, chbufinx len)
 }
 
 
-nametype *glfindname(primitive *eb, Char *chb, chbufinx chbufx,
-			    chbufinx length, nametype **last, int *k)
+nametype *(
+glfindname(primitive *eb, Char *chb, chbufinx chbufx, chbufinx length,
+	   nametype **last, int *k))
 { nametype *np = NULL;
   primitive *pp = NULL;
 
@@ -9847,7 +10014,8 @@ nametype *glfindname(primitive *eb, Char *chb, chbufinx chbufx,
 }
 
 
-void newstr(nametype **sp)
+void
+newstr(nametype **sp)
 { /*F(var sp: strptr)F*/
   nametype *With;
 
@@ -9864,12 +10032,12 @@ void newstr(nametype **sp)
 
 
 /* put a string into freeseg */
-void storestring(nametype *outstr, Char *srcbuf, chbufinx psrc,
-			chbufinx lsrc)
+void
+storestring(nametype *outstr, Char *srcbuf, chbufinx psrc, chbufinx lsrc)
 { int i, j;
   boolean newseg;
 
-  if (freeseg == NULL || lsrc > CHBUFSIZ - freex + 1) {
+  if ((freeseg == NULL) || (lsrc > (CHBUFSIZ - freex + 1))) {
       newseg = true;
   }
   else {
@@ -9902,7 +10070,8 @@ void storestring(nametype *outstr, Char *srcbuf, chbufinx psrc,
 
 
 /* duplicate a strptr and copy the body */
-void copystr(nametype **sp, nametype *ip)
+void
+copystr(nametype **sp, nametype *ip)
 { if (ip == NULL) {
       *sp = NULL;
   }
@@ -9913,7 +10082,9 @@ void copystr(nametype **sp, nametype *ip)
 }
 
 
-void appendstring(nametype *sp, Char *buf, chbufinx px, chbufinx ll)
+/* append buf to *sp */
+void
+appendstring(nametype *sp, Char *buf, chbufinx px, chbufinx ll)
 {  /*D k := 0; D*/
   int i;
   /*D,k D*/
@@ -9921,11 +10092,11 @@ void appendstring(nametype *sp, Char *buf, chbufinx px, chbufinx ll)
   Char *tmpseg;
   int FORLIM;
 
-  if (sp == NULL || buf == NULL) {
+  if ((sp == NULL) || (buf == NULL)) {
       return;
   }
-  if (sp->segmnt == freeseg && sp->seginx + sp->len == freex &&
-       freex + ll - 1 <= CHBUFSIZ) {
+  if ((sp->segmnt == freeseg) && (sp->seginx + sp->len == freex) &&
+      (freex + ll - 1 <= CHBUFSIZ)) {
       /*D if debuglevel > 0 then begin
           write(log,' appending |');
           for i:=0 to ll-1 do write(log,buf^[px+i]); writeln(log,'|') end; D*/
@@ -9958,7 +10129,7 @@ void appendstring(nametype *sp, Char *buf, chbufinx px, chbufinx ll)
   j = bval(sp->segmnt);
   if (j > 1) {
       putbval(sp->segmnt, j - 1);                                /*D k := 2; D*/
-      if (sp->segmnt == freeseg && sp->seginx + sp->len == freex) {
+      if ((sp->segmnt == freeseg) && (sp->seginx + sp->len == freex)) {
 	  freex = sp->seginx;
 	  j = 3;
 	  while (freex > j) {
@@ -9995,8 +10166,8 @@ void appendstring(nametype *sp, Char *buf, chbufinx px, chbufinx ll)
 }
 
 
-int putstring(int ix, nametype *sp, Char *buf, chbufinx px,
-		     chbufinx ll)
+int
+putstring(int ix, nametype *sp, Char *buf, chbufinx px, chbufinx ll)
 { if (ix <= 0) {
       storestring(sp, buf, px, ll);
   }
@@ -10007,7 +10178,8 @@ int putstring(int ix, nametype *sp, Char *buf, chbufinx px,
 }
 
 
-double pheight(primitive *pr)
+double
+pheight(primitive *pr)
 { double ph;
 
   if (pr == NULL) {
@@ -10049,7 +10221,8 @@ double pheight(primitive *pr)
 }
 
 
-double pwidth(primitive *pr)
+double
+pwidth(primitive *pr)
 { double pw;
 
   if (pr == NULL) {
@@ -10091,7 +10264,8 @@ double pwidth(primitive *pr)
 }
 
 
-void neswrec(primitive *ptm)
+void
+neswrec(primitive *ptm)
 { while (ptm != NULL) {
       nesw(ptm);
       if (ptm->ptype != XBLOCK) {
@@ -10102,7 +10276,8 @@ void neswrec(primitive *ptm)
 }
 
 
-void getnesw(primitive *ptm)
+void
+getnesw(primitive *ptm)
 { initnesw();
   neswrec(ptm);
   if (south > north) {
@@ -10116,13 +10291,14 @@ void getnesw(primitive *ptm)
 }
 
 
-void FindExitPoint(primitive *pr, postype *pe)
+void
+FindExitPoint(primitive *pr, postype *pe)
 { if (pr == NULL) {
       pe->xpos = 0.0;
       pe->ypos = 0.0;
       return;
   }
-  if (pr->ptype != XBLOCK && pr->son != NULL) {
+  if ((pr->ptype != XBLOCK) && (pr->son != NULL)) {
       FindExitPoint(pr->son, pe);
       return;
   }
@@ -10134,19 +10310,19 @@ void FindExitPoint(primitive *pr, postype *pe)
     switch (pr->direction) {
 
     case XLup:
-      pe->ypos = pr->aat.ypos + pr->Upr.Ubox.boxheight * 0.5;
+      pe->ypos = pr->aat.ypos + (pr->Upr.Ubox.boxheight * 0.5);
       break;
 
     case XLdown:
-      pe->ypos = pr->aat.ypos - pr->Upr.Ubox.boxheight * 0.5;
+      pe->ypos = pr->aat.ypos - (pr->Upr.Ubox.boxheight * 0.5);
       break;
 
     case XLleft:
-      pe->xpos = pr->aat.xpos - pr->Upr.Ubox.boxwidth * 0.5;
+      pe->xpos = pr->aat.xpos - (pr->Upr.Ubox.boxwidth * 0.5);
       break;
 
     case XLright:
-      pe->xpos = pr->aat.xpos + pr->Upr.Ubox.boxwidth * 0.5;
+      pe->xpos = pr->aat.xpos + (pr->Upr.Ubox.boxwidth * 0.5);
       break;
     }
     break;
@@ -10164,19 +10340,19 @@ void FindExitPoint(primitive *pr, postype *pe)
     switch (pr->direction) {
 
     case XLup:
-      pe->ypos = pr->aat.ypos + pr->Upr.UBLOCK.blockheight * 0.5;
+      pe->ypos = pr->aat.ypos + (pr->Upr.UBLOCK.blockheight * 0.5);
       break;
 
     case XLdown:
-      pe->ypos = pr->aat.ypos - pr->Upr.UBLOCK.blockheight * 0.5;
+      pe->ypos = pr->aat.ypos - (pr->Upr.UBLOCK.blockheight * 0.5);
       break;
 
     case XLleft:
-      pe->xpos = pr->aat.xpos - pr->Upr.UBLOCK.blockwidth * 0.5;
+      pe->xpos = pr->aat.xpos - (pr->Upr.UBLOCK.blockwidth * 0.5);
       break;
 
     case XLright:
-      pe->xpos = pr->aat.xpos + pr->Upr.UBLOCK.blockwidth * 0.5;
+      pe->xpos = pr->aat.xpos + (pr->Upr.UBLOCK.blockwidth * 0.5);
       break;
     }
     break;
@@ -10206,19 +10382,19 @@ void FindExitPoint(primitive *pr, postype *pe)
     switch (pr->direction) {
 
     case XLup:
-      pe->ypos = pr->aat.ypos + pr->Upr.Uellipse.elheight * 0.5;
+      pe->ypos = pr->aat.ypos + (pr->Upr.Uellipse.elheight * 0.5);
       break;
 
     case XLdown:
-      pe->ypos = pr->aat.ypos - pr->Upr.Uellipse.elheight * 0.5;
+      pe->ypos = pr->aat.ypos - (pr->Upr.Uellipse.elheight * 0.5);
       break;
 
     case XLleft:
-      pe->xpos = pr->aat.xpos - pr->Upr.Uellipse.elwidth * 0.5;
+      pe->xpos = pr->aat.xpos - (pr->Upr.Uellipse.elwidth * 0.5);
       break;
 
     case XLright:
-      pe->xpos = pr->aat.xpos + pr->Upr.Uellipse.elwidth * 0.5;
+      pe->xpos = pr->aat.xpos + (pr->Upr.Uellipse.elwidth * 0.5);
       break;
     }
     break;
@@ -10242,7 +10418,8 @@ void FindExitPoint(primitive *pr, postype *pe)
 }
 
 
-void newprim(primitive **pr, int primtype, primitive *envblk)
+void
+newprim(primitive **pr, int primtype, primitive *envblk)
 { int i;
   primitive *With;
 
@@ -10304,9 +10481,10 @@ void newprim(primitive **pr, int primtype, primitive *envblk)
   }
   With->lparam = mdistmax;
   With->lthick = mdistmax;
-  if (primtype == XLstring || primtype == XLspline || primtype == XLarc ||
-       primtype == XLarrow || primtype == XLline || primtype == XLellipse ||
-       primtype == XLcircle || primtype == XLbox) {
+  if ((primtype == XLstring) || (primtype == XLspline) ||
+      (primtype == XLarc) || (primtype == XLarrow) || (primtype == XLline) ||
+      (primtype == XLellipse) || (primtype == XLcircle) ||
+      (primtype == XLbox)) {
       resetspec(&With->spec, XLsolid);
   }
   else {
@@ -10367,7 +10545,8 @@ void newprim(primitive **pr, int primtype, primitive *envblk)
 }  /* newprim */
 
 
-void arcenddir(primitive *pr)
+void
+arcenddir(primitive *pr)
 { if (pr->Upr.Uline.endpos.ypos > 0.0) {
       switch (pr->direction) {
 
@@ -10418,15 +10597,16 @@ void arcenddir(primitive *pr)
 }
 
 
-void shift(primitive *pr, double x, double y)
+void
+shift(primitive *pr, double x, double y)
 { primitive *With;
 
   while (pr != NULL) {
       With = pr;
       With->aat.xpos += x;
       With->aat.ypos += y;
-      if (With->ptype == XLspline || With->ptype == XLmove ||
-	   With->ptype == XLarrow || With->ptype == XLline) {
+      if ((With->ptype == XLspline) || (With->ptype == XLmove) ||
+	  (With->ptype == XLarrow) || (With->ptype == XLline)) {
 	  With->Upr.Uline.endpos.xpos += x;
 	  With->Upr.Uline.endpos.ypos += y;
       }
@@ -10438,7 +10618,8 @@ void shift(primitive *pr, double x, double y)
 }
 
 
-void scaleobj(primitive *pr, double s)
+void
+scaleobj(primitive *pr, double s)
 { primitive *With;
 
   while (pr != NULL) {
@@ -10464,8 +10645,8 @@ void scaleobj(primitive *pr, double s)
       else if (With->ptype == XLarc) {
 	  With->Upr.Uline.aradius *= s;
       }
-      else if (With->ptype == XLspline || With->ptype == XLmove ||
-	       With->ptype == XLarrow || With->ptype == XLline) {
+      else if ((With->ptype == XLspline) || (With->ptype == XLmove) ||
+	       (With->ptype == XLarrow) || (With->ptype == XLline)) {
 	  With->Upr.Uline.endpos.xpos *= s;
 	  With->Upr.Uline.endpos.ypos *= s;
       }
@@ -10479,7 +10660,8 @@ void scaleobj(primitive *pr, double s)
 
 /* corner(prim,<corner>,xval,yval);
                            Put the corner coordinates into xval,yval */
-void corner(primitive *pr, int lexv, double *x, double *y)
+void
+corner(primitive *pr, int lexv, double *x, double *y)
 { primitive *pe;
   boolean sb;
 
@@ -10492,9 +10674,9 @@ void corner(primitive *pr, int lexv, double *x, double *y)
   *x = pr->aat.xpos;
   *y = pr->aat.ypos;
   pe = pr;
-  if (lexv == XEMPTY &&
-      (pr->ptype == XLspline || pr->ptype == XLmove || pr->ptype == XLarrow ||
-       pr->ptype == XLline)) {
+  if ((lexv == XEMPTY) &&
+      ((pr->ptype == XLspline) || (pr->ptype == XLmove) ||
+       (pr->ptype == XLarrow) || (pr->ptype == XLline))) {
       while (pe->son != NULL) {
 	  pe = pe->son;
       }
@@ -10502,7 +10684,7 @@ void corner(primitive *pr, int lexv, double *x, double *y)
       *y = 0.5 * (pr->aat.ypos + pe->Upr.Uline.endpos.ypos);
       return;
   }
-  if (lexv == XEMPTY && pr->ptype != XLaTeX) {
+  if ((lexv == XEMPTY) && (pr->ptype != XLaTeX)) {
       return;
   }
   switch (pr->ptype) {
@@ -10522,17 +10704,18 @@ void corner(primitive *pr, int lexv, double *x, double *y)
         write(log,' n,s'); wpair(log,north,south);
         write(log,' w,e'); wpair(log,west,east)
         end; D*/
-    if ((pr->ptype == XLarc || pr->ptype == XLcircle ||
-	 pr->ptype == XLellipse || pr->ptype == XLbox) &&
-	(lexv == XDnw || lexv == XDsw || lexv == XDse || lexv == XDne)) {
+    if (((pr->ptype == XLarc) || (pr->ptype == XLcircle) ||
+	 (pr->ptype == XLellipse) ||
+	 (pr->ptype == XLbox)) && ((lexv == XDnw) || (lexv == XDsw) ||
+				   (lexv == XDse) || (lexv == XDne))) {
 	switch (pr->ptype) {
 
 	case XLbox:
 	  *y = Min(pr->Upr.Ubox.boxradius,
 		   Min(fabs(pr->Upr.Ubox.boxheight),
-		       fabs(pr->Upr.Ubox.boxwidth)) / 2) * (1 - 1 / sqrt(2.0));
-	  *x = pr->Upr.Ubox.boxwidth / 2 - *y;
-	  *y = pr->Upr.Ubox.boxheight / 2 - *y;
+		       fabs(pr->Upr.Ubox.boxwidth)) / 2) * (1 - (1 / sqrt(2.0)));
+	  *x = (pr->Upr.Ubox.boxwidth / 2) - (*y);
+	  *y = (pr->Upr.Ubox.boxheight / 2) - (*y);
 	  break;
 
 	case XLellipse:
@@ -10569,8 +10752,8 @@ void corner(primitive *pr, int lexv, double *x, double *y)
 	  *y = -*y;
 	  break;
 	}
-	*x = pr->aat.xpos + *x;
-	*y = pr->aat.ypos + *y;
+	*x = pr->aat.xpos + (*x);
+	*y = pr->aat.ypos + (*y);
     }
     else if (pr->ptype == XLarc) {
 	switch (lexv) {
@@ -10596,15 +10779,15 @@ void corner(primitive *pr, int lexv, double *x, double *y)
 	  break;
 
 	case XDstart:
-	  *x = pr->aat.xpos + pr->Upr.Uline.aradius * cos(pr->Upr.Uline.endpos.xpos);
-	  *y = pr->aat.ypos + pr->Upr.Uline.aradius * sin(pr->Upr.Uline.endpos.xpos);
+	  *x = pr->aat.xpos + (pr->Upr.Uline.aradius * cos(pr->Upr.Uline.endpos.xpos));
+	  *y = pr->aat.ypos + (pr->Upr.Uline.aradius * sin(pr->Upr.Uline.endpos.xpos));
 	  break;
 
 	case XDend:
-	  *x = pr->aat.xpos + pr->Upr.Uline.aradius *
-		 cos(pr->Upr.Uline.endpos.xpos + pr->Upr.Uline.endpos.ypos);
-	  *y = pr->aat.ypos + pr->Upr.Uline.aradius *
-		 sin(pr->Upr.Uline.endpos.xpos + pr->Upr.Uline.endpos.ypos);
+	  *x = pr->aat.xpos + (pr->Upr.Uline.aradius *
+		 cos(pr->Upr.Uline.endpos.xpos + pr->Upr.Uline.endpos.ypos));
+	  *y = pr->aat.ypos + (pr->Upr.Uline.aradius *
+		 sin(pr->Upr.Uline.endpos.xpos + pr->Upr.Uline.endpos.ypos));
 	  break;
 	}
     }
@@ -10676,55 +10859,56 @@ void corner(primitive *pr, int lexv, double *x, double *y)
 	    while (pe->son != NULL) {
 		pe = pe->son;
 	    }
-	    *x = 0.5 * (*x + pe->Upr.Uline.endpos.xpos);
-	    *y = 0.5 * (*y + pe->Upr.Uline.endpos.ypos);
+	    *x = 0.5 * ((*x) + pe->Upr.Uline.endpos.xpos);
+	    *y = 0.5 * ((*y) + pe->Upr.Uline.endpos.ypos);
 	}
 	else {
 	    do {
+		sb = false;
 		switch (lexv) {
 
 		case XDn:
-		  sb = (pe->Upr.Uline.endpos.ypos > *y);
+		  sb = (pe->Upr.Uline.endpos.ypos > (*y));
 		  break;
 
 		case XDs:
-		  sb = (pe->Upr.Uline.endpos.ypos < *y);
+		  sb = (pe->Upr.Uline.endpos.ypos < (*y));
 		  break;
 
 		case XDe:
-		  sb = (pe->Upr.Uline.endpos.xpos > *x);
+		  sb = (pe->Upr.Uline.endpos.xpos > (*x));
 		  break;
 
 		case XDw:
-		  sb = (pe->Upr.Uline.endpos.xpos < *x);
+		  sb = (pe->Upr.Uline.endpos.xpos < (*x));
 		  break;
 
 		case XDne:
-		  sb = ((pe->Upr.Uline.endpos.ypos > *y &&
-			 pe->Upr.Uline.endpos.xpos >= *x) ||
-			(pe->Upr.Uline.endpos.ypos >= *y &&
-			 pe->Upr.Uline.endpos.xpos > *x));
+		  sb = (((pe->Upr.Uline.endpos.ypos > (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos >= (*x))) ||
+			((pe->Upr.Uline.endpos.ypos >= (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos > (*x))));
 		  break;
 
 		case XDse:
-		  sb = ((pe->Upr.Uline.endpos.ypos < *y &&
-			 pe->Upr.Uline.endpos.xpos >= *x) ||
-			(pe->Upr.Uline.endpos.ypos <= *y &&
-			 pe->Upr.Uline.endpos.xpos > *x));
+		  sb = (((pe->Upr.Uline.endpos.ypos < (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos >= (*x))) ||
+			((pe->Upr.Uline.endpos.ypos <= (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos > (*x))));
 		  break;
 
 		case XDsw:
-		  sb = ((pe->Upr.Uline.endpos.ypos < *y &&
-			 pe->Upr.Uline.endpos.xpos <= *x) ||
-			(pe->Upr.Uline.endpos.ypos <= *y &&
-			 pe->Upr.Uline.endpos.xpos < *x));
+		  sb = (((pe->Upr.Uline.endpos.ypos < (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos <= (*x))) ||
+			((pe->Upr.Uline.endpos.ypos <= (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos < (*x))));
 		  break;
 
 		case XDnw:
-		  sb = ((pe->Upr.Uline.endpos.ypos > *y &&
-			 pe->Upr.Uline.endpos.xpos <= *x) ||
-			(pe->Upr.Uline.endpos.ypos >= *y &&
-			 pe->Upr.Uline.endpos.xpos < *x));
+		  sb = (((pe->Upr.Uline.endpos.ypos > (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos <= (*x))) ||
+			((pe->Upr.Uline.endpos.ypos >= (*y)) &&
+			 (pe->Upr.Uline.endpos.xpos < (*x))));
 		  break;
 		}
 		if (sb) {
@@ -10750,7 +10934,8 @@ void corner(primitive *pr, int lexv, double *x, double *y)
 }
 
 
-primitive *nthprimobj(primitive *primp, int nth, int objtype)
+primitive *(
+nthprimobj(primitive *primp, int nth, int objtype))
 { primitive *prp = NULL;
   primitive *pp;
   int i;
@@ -10808,7 +10993,8 @@ primitive *nthprimobj(primitive *primp, int nth, int objtype)
 }
 
 
-void resetenv(int envval, primitive *envbl)
+void
+resetenv(int envval, primitive *envbl)
 { environx i, last;
 
   if (envbl == NULL) {
@@ -10830,7 +11016,7 @@ void resetenv(int envval, primitive *envbl)
       /*D if debuglevel > 0 then
          writeln(log,'resetenv new[',ordp(env):1,']'); D*/
   }
-  for (i = envval - 1; i <= last - 1; i++) {
+  for (i = envval - 1; i <= (last - 1); i++) {
       switch (i + 1) {
 
       case XLarcrad:                          /* scaled environment vars (in) */
@@ -10890,8 +11076,8 @@ void resetenv(int envval, primitive *envbl)
 	break;
 
       case XLtextht:
-	if (drawmode >= 0 && drawmode < 32 &&
-	    ((1L << drawmode) & ((1L << SVG) | (1L << PDF))) != 0) {
+	if ((drawmode >= 0) && (drawmode < 32) &&
+	    (((1L << drawmode) & ((1L << SVG) | (1L << PDF))) != 0)) {
 	    envbl->Upr.UBLOCK.env[i - XLenvvar] = DFONT / 72.0;
 	}
 	else {
@@ -10936,7 +11122,8 @@ void resetenv(int envval, primitive *envbl)
 }
 
 
-void inheritenv(primitive *envbl)
+void
+inheritenv(primitive *envbl)
 { environx i;
   primitive *pr;
 
@@ -10948,13 +11135,14 @@ void inheritenv(primitive *envbl)
   envbl->Upr.UBLOCK.env = Malloc(sizeof(envarray));
   /*D if debuglevel > 0 then
      writeln(log,'inheritenv new[',ordp(env):1,']'); D*/
-  for (i = XLenvvar; i <= XLlastenv - 1; i++) {
+  for (i = XLenvvar; i <= (XLlastenv - 1); i++) {
       envbl->Upr.UBLOCK.env[i - XLenvvar] = pr->Upr.UBLOCK.env[i - XLenvvar];
   }
 }
 
 
-void resetscale(double x, int opr, primitive *envbl)
+void
+resetscale(double x, int opr, primitive *envbl)
 { double r, s;
   int i;
 
@@ -10980,7 +11168,8 @@ void resetscale(double x, int opr, primitive *envbl)
 
 
 /* performed for each input diagram: */
-void inittwo(void)
+void
+inittwo(void)
 { freeinbuf = NULL;
   freeseg = NULL;
   freex = 0;
@@ -10993,10 +11182,11 @@ void inittwo(void)
 }
 
 
-void deletefreeargs(arg **a)
+void
+deletefreeargs(arg **a)
 { arg *na;
 
-  while (*a != NULL) {
+  while ((*a) != NULL) {
       na = (*a)->nexta;                                                 /*D,8D*/
       /*D if debuglevel > 0 then writeln(log,'del arg[',ordp(a):1,']'); D*/
       disposebufs(&(*a)->argbody);
@@ -11006,10 +11196,11 @@ void deletefreeargs(arg **a)
 }
 
 
-void deletefreeinbufs(fbuffer **p)
+void
+deletefreeinbufs(fbuffer **p)
 { fbuffer *q;
 
-  while (*p != NULL) {
+  while ((*p) != NULL) {
       q = (*p)->nextb;
       /*D if debuglevel > 0 then logaddr(p); D*/
       Free((*p)->carray);
@@ -11019,13 +11210,14 @@ void deletefreeinbufs(fbuffer **p)
 }
 
 
-double intpow(double x, int k)
+double
+intpow(double x, int k)
 { /* 0^(-k) does not occur */
   if (k == 0) {
       x = 1.0;                                             /* 0^0 returns 1.0 */
       return x;
   }
-  if (x == 0.0 || k == 1) {
+  if ((x == 0.0) || (k == 1)) {
       return x;
   }
   if (k < 0) {
@@ -11047,8 +11239,8 @@ double intpow(double x, int k)
 }
 
 
-void getscale(double xv, double yv, primitive *lp, double *sfact,
-		     double *xsc)
+void
+getscale(double xv, double yv, primitive *lp, double *sfact, double *xsc)
 { /* .PS xv yv
      sfact = nominal scale factor set by scale = ...
      xsc = effective scale factor to achieve correct max picture size
@@ -11069,45 +11261,47 @@ void getscale(double xv, double yv, primitive *lp, double *sfact,
 	    write(log,' maxpswid='); wfloat(log,qp^.env^[XLmaxpswid]);
 	    write(log,' maxpsht='); wfloat(log,qp^.env^[XLmaxpsht]);
 	    writeln(log) end; D*/
-	  if (east > west && (east - west) / *sfact >
-			     qp->Upr.UBLOCK.env[XLmaxpswid - XLenvvar - 1] &&
-	       qp->Upr.UBLOCK.env[XLmaxpswid - XLenvvar - 1] > 0.0) {
+	  if ((east > west) &&
+	      ((east - west) / (*sfact) >
+	       qp->Upr.UBLOCK.env[XLmaxpswid - XLenvvar - 1]) &&
+	      (qp->Upr.UBLOCK.env[XLmaxpswid - XLenvvar - 1] > 0.0)) {
 	      erno = 903;
 	      gs = (east - west) / qp->Upr.UBLOCK.env[XLmaxpswid - XLenvvar - 1];
 	  }
-	  if (north > south &&
-	       (north - south) / *sfact >
-	       qp->Upr.UBLOCK.env[XLmaxpsht - XLenvvar - 1] &&
-	       qp->Upr.UBLOCK.env[XLmaxpsht - XLenvvar - 1] > 0.0) {
+	  if ((north > south) &&
+	      ((north - south) / (*sfact) >
+	       qp->Upr.UBLOCK.env[XLmaxpsht - XLenvvar - 1]) &&
+	      (qp->Upr.UBLOCK.env[XLmaxpsht - XLenvvar - 1] > 0.0)) {
 	      erno = 904;
 	      gs = Max(gs,
 		  (north - south) / qp->Upr.UBLOCK.env[XLmaxpsht - XLenvvar - 1]);
 	  }
       }
   }
-  if (xv > 0.0 && east > west) {
+  if ((xv > 0.0) && (east > west)) {
       erno = 0;
-      gs = (east - west) / *sfact / xv;
+      gs = (east - west) / (*sfact) / xv;
   }
-  if (yv > 0.0 && north > south &&
-      (xv == 0.0 || (north - south) / gs > yv * *sfact)) {
+  if ((yv > 0.0) && (north > south) &&
+      ((xv == 0.0) || ((north - south) / gs > yv * (*sfact)))) {
       erno = 0;
-      gs = (north - south) / *sfact / yv;
+      gs = (north - south) / (*sfact) / yv;
   }
   if (erno != 0) {
       markerror(erno);
   }
   /*D if debuglevel > 0 then begin write(log,' getscale=');
      wfloat(log,gs*sfact); writeln(log) end; D*/
-  *xsc = gs * *sfact;
+  *xsc = gs * (*sfact);
 }
 
 
-void addelem(primitive *prold, primitive *prnew)
+void
+addelem(primitive *prold, primitive *prnew)
 { primitive *pp, *pq;
 
   /*D if debuglevel > 0 then write(log,'addelem: '); D*/
-  if (prold == NULL || prnew == NULL) {
+  if ((prold == NULL) || (prnew == NULL)) {
       return;
   }
   pp = prold;
@@ -11133,7 +11327,8 @@ void addelem(primitive *prold, primitive *prnew)
 }
 
 
-void copyprim(primitive *prin, primitive **prout)
+void
+copyprim(primitive *prin, primitive **prout)
 { /* Needed because assignment of variant records is unreliable */
   int i;
 
@@ -11214,18 +11409,19 @@ void copyprim(primitive *prin, primitive **prout)
 }
 
 
-void deletestringbox(primitive **pr)
+void
+deletestringbox(primitive **pr)
 { primitive *prx;
 
-  if (*pr != NULL) {
+  if ((*pr) != NULL) {
       if ((*pr)->parent != NULL) {
 	  if ((*pr)->parent->son != NULL) {
-	      if ((*pr)->parent->son == *pr) {
+	      if ((*pr)->parent->son == (*pr)) {
 		  (*pr)->parent->son = NULL;
 	      }
 	      else {
 		  prx = (*pr)->parent->son;
-		  while (prx->next_ != NULL && prx->next_ != *pr) {
+		  while ((prx->next_ != NULL) && (prx->next_ != (*pr))) {
 		      prx = prx->next_;
 		  }
 		  prx->next_ = NULL;
@@ -11238,7 +11434,8 @@ void deletestringbox(primitive **pr)
 
 
 /* addsuffix(chbuf,chbufx,length,attstack^[newp+1].xval); */
-void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
+void
+addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
 {                                                             /*DGHF ordp FHGD*/
   int i, j, k, FORLIM;
 
@@ -11250,13 +11447,13 @@ void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
          ' inx=',inx:1,' len=',len:1,' suff=');
         wfloat(log,suff); write(log,' chbufi=',chbufi:1);
         snapname(buf,inx,len); writeln(log) end; D*/
-  if (chbufi + *len - 1 > CHBUFSIZ) {
+  if (chbufi + (*len) - 1 > CHBUFSIZ) {
       fatal(4);
   }
-  if (*inx + *len != chbufi) {
+  if ((*inx) + (*len) != chbufi) {
       FORLIM = *len;
       for (i = 0; i < FORLIM; i++) {
-	  buf[chbufi + i] = buf[*inx + i];
+	  buf[chbufi + i] = buf[(*inx) + i];
       }
       *inx = chbufi;
   }
@@ -11270,33 +11467,34 @@ void addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
       i /= 10;
   } while (i != 0);
   *len += 2;
-  if (*inx + *len - 1 > CHBUFSIZ) {
+  if ((*inx) + (*len) - 1 > CHBUFSIZ) {
       fatal(4);
   }
-  buf[*inx + *len - 1] = ']';
-  j = *len - 2;
+  buf[(*inx) + (*len) - 1] = ']';
+  j = (*len) - 2;
   i = (long)floor(suff + 0.5);
   if (i < 0) {
       i = -i;
   }
   do {
       k = i / 10;
-      buf[*inx + j] = i - k * 10 + '0';
+      buf[(*inx) + j] = i - (k * 10) + '0';
       i = k;
       j--;
   } while (i != 0);
-  if ((long)floor(suff + 0.5) < 0) {
-      buf[*inx + j] = '-';
+  if (((long)floor(suff + 0.5)) < 0) {
+      buf[(*inx) + j] = '-';
       j--;
   }
-  buf[*inx + j] = '[';
-  chbufi = *inx + *len;                                                 /* ?? */
+  buf[(*inx) + j] = '[';
+  chbufi = (*inx) + (*len);                                             /* ?? */
   /*D ; if debuglevel <> 0 then begin
      snapname(buf,inx,len); writeln(log) end D*/
 }  /* addsuffix */
 
 
-void appendthen(primitive **pr)
+void
+appendthen(primitive **pr)
 { primitive *prp;
 
   copyprim(*pr, &prp);
@@ -11315,7 +11513,8 @@ void appendthen(primitive **pr)
 }
 
 
-void lineardir(primitive *pr, double dy, double dx, int *state)
+void
+lineardir(primitive *pr, double dy, double dx, int *state)
 { if (!(teststflag(*state, XLto) | teststflag(*state, XLdirecton))) {
       pr->Upr.Uline.endpos = pr->aat;
   }
@@ -11341,46 +11540,51 @@ void lineardir(primitive *pr, double dy, double dx, int *state)
 }
 
 
-boolean hasoutline(int lx, boolean warn)
+boolean
+hasoutline(int lx, boolean warn)
 { boolean hs;
 
-  hs = (lx == XLspline || lx == XLarrow || lx == XLline || lx == XLarc ||
-	lx == XLellipse || lx == XLcircle || lx == XLbox);
+  hs = ((lx == XLspline) || (lx == XLarrow) || (lx == XLline) ||
+	(lx == XLarc) || (lx == XLellipse) ||
+	(lx == XLcircle) || (lx == XLbox));
   if (drawmode == SVG) {
-      hs = (hs || lx == XLstring);
+      hs = (hs || (lx == XLstring));
   }
-  if (!hs && warn) {
+  if ((!hs) && warn) {
       markerror(858);
   }
   return hs;
 }
 
 
-boolean hasshade(int lx, boolean warn)
+boolean
+hasshade(int lx, boolean warn)
 { boolean hs;
 
-  if (lx == XLellipse || lx == XLcircle || lx == XLbox) {
+  if ((lx == XLellipse) || (lx == XLcircle) || (lx == XLbox)) {
       hs = true;
   }
-  else if (drawmode >= 0 && drawmode < 32 &&
-	   ((1L << drawmode) & ((1L << Pict2e) | (1L << TeX) | (1L << tTeX) |
-				(1L << xfig))) != 0) {
+  else if ((drawmode >= 0) && (drawmode < 32) &&
+	   (((1L << drawmode) & ((1L << Pict2e) | (1L << TeX) | (1L << tTeX) |
+				 (1L << xfig))) != 0)) {
       hs = false;
   }
   else {
-      hs = (lx == XLspline || lx == XLarrow || lx == XLline || lx == XLarc);
+      hs = ((lx == XLspline) || (lx == XLarrow) || (lx == XLline) ||
+	    (lx == XLarc));
   }
   if (drawmode == SVG) {
-      hs = (hs || lx == XLstring);
+      hs = (hs || (lx == XLstring));
   }
-  if (!hs && warn) {
+  if ((!hs) && warn) {
       markerror(858);
   }
   return hs;
 }
 
 
-void makevar(Char *s, int ln, int nameval)
+void
+makevar(Char *s, int ln, int nameval)
 { nametype *vn, *lastvar, *namptr;
   int j, k;
   primitive *With;
@@ -11430,13 +11634,16 @@ void makevar(Char *s, int ln, int nameval)
 
 
 /* This is the syntactic action routine. */
-void produce(stackinx newp, int p)
-{ Char lastc;
-  nametype *lastvar, *namptr;
+void
+produce(stackinx newp, int p)
+{ nametype *lastvar, *namptr;
   fbuffer *lastm;
   arg *macp, *lastp;
   primitive *primp, *prp, *eb;
   int i, j, k, kk, lj, ll, nexprs;
+  /* P2CC #ifdef NO_SNPRINTF */
+  /* P2CP iw,ip: integer; */
+  /* P2CC #endif */
   /*D kx: integer; D*/
   double r, s, t, x1, y1, dx, dy, ts;
   boolean bswitch;
@@ -11457,7 +11664,7 @@ void produce(stackinx newp, int p)
   With = &attstack[newp];
   /*D with attstack^[newp] do if (debuglevel = 2) and (
      ((p >= block1) and (p <= block3)) or
-     ((p > object1) and (p <= object26))
+     ((p > object1) and (p <= object27))
      or (p in [sprintf2,string2,element5,element11,namedobj2]))
        then printobject(prim);
   if debuglevel > 0 then with attstack^[newp] do
@@ -11558,11 +11765,11 @@ void produce(stackinx newp, int p)
 	west = 0.0;
 	south = 0.0;
     }
-    else if (drawmode >= 0 && drawmode < 32 &&
-	     ((1L << drawmode) & ((1L << SVG) | (1L << PDF) | (1L << PS))) != 0 &&
-	     envblock != NULL) {
+    else if ((drawmode >= 0) && (drawmode < 32) &&
+	     (((1L << drawmode) & ((1L << SVG) | (1L << PDF) | (1L << PS))) !=
+	      0) && (envblock != NULL)) {
 	if (envblock->Upr.UBLOCK.env != NULL) {
-	    r = envblock->Upr.UBLOCK.env[XLlinethick - XLenvvar - 1] / 2 / 72 *
+	    r = (envblock->Upr.UBLOCK.env[XLlinethick - XLenvvar - 1] / 2 / 72) *
 		envblock->Upr.UBLOCK.env[XLscale - XLenvvar - 1];
 	    /*D if debuglevel > 0 then begin
 	      write(log,' west='); wfloat(log,west);
@@ -11571,9 +11778,9 @@ void produce(stackinx newp, int p)
 	      write(log,' shift=('); wfloat(log,-west+r);
 	      write(log,','); wfloat(log,-south+r);
 	      writeln(log,')'); flush(log) end; D*/
-	    shift(envblock, 2 * r - west, 2 * r - south);
-	    north += 3 * r - south;
-	    east += 3 * r - west;
+	    shift(envblock, (2 * r) - west, (2 * r) - south);
+	    north += (3 * r) - south;
+	    east += (3 * r) - west;
 	    west = r;
 	    south = r;
 	}
@@ -11651,17 +11858,17 @@ void produce(stackinx newp, int p)
   /* | element */
   case elementlist2:
     With->state = 0;
-    if (With->prim != NULL && With->lexval != XLcontinue) {
+    if ((With->prim != NULL) && (With->lexval != XLcontinue)) {
 	i = newp - 1;
 	j = 1;
 	/*D if debuglevel>0 then write(log,
 	   ' Elementlist2: Searching for last drawn element, newp=',newp:1);D*/
 	while (i > j) {
-	    if ((attstack[i].lexval == XLabel ||
-		 attstack[i].lexval == XLendfor ||
-		 attstack[i].lexval == XFOR ||
-		 attstack[i].lexval == XLBRACE ||
-		 attstack[i].lexval == XNL) && attstack[i].prim == NULL) {
+	    if (((attstack[i].lexval == XLabel) ||
+		 (attstack[i].lexval == XLendfor) ||
+		 (attstack[i].lexval == XFOR) ||
+		 (attstack[i].lexval == XLBRACE) ||
+		 (attstack[i].lexval == XNL)) && (attstack[i].prim == NULL)) {
 		i--;
 	    }
 	    else {
@@ -11745,7 +11952,7 @@ void produce(stackinx newp, int p)
 	With->xval = 0.0;
     }
     else {
-	With->xval = i - i / j * j;
+	With->xval = i - ((i / j) * j);
     }
     break;
 
@@ -11764,8 +11971,9 @@ void produce(stackinx newp, int p)
   case element1:
     if (With->prim != NULL) {
 	prp = With->prim;
-	if (With->prim->ptype == XLspline || With->prim->ptype == XLmove ||
-	     With->prim->ptype == XLarrow || With->prim->ptype == XLline) {
+	if ((With->prim->ptype == XLspline) ||
+	    (With->prim->ptype == XLmove) || (With->prim->ptype == XLarrow) ||
+	    (With->prim->ptype == XLline)) {
 	    if (With->startchop != 0.0) {
 		With2 = With->prim;
 		dx = With2->Upr.Uline.endpos.xpos - With2->aat.xpos;
@@ -11858,8 +12066,8 @@ void produce(stackinx newp, int p)
   case element7:
     envblock->Upr.UBLOCK.here.xpos = With->xval;
     envblock->Upr.UBLOCK.here.ypos = With->yval;
-    if (With->state == XLright || With->state == XLleft ||
-	 With->state == XLdown || With->state == XLup) {
+    if ((With->state == XLright) || (With->state == XLleft) ||
+	(With->state == XLdown) || (With->state == XLup)) {
 	envblock->direction = With->state;
     }
     if (attstack[newp+2].state == 0) {
@@ -11938,8 +12146,10 @@ void produce(stackinx newp, int p)
 	    With->prim = With->prim->parent;
 	}
 	if (prp != With->prim) {
-	    With->prim->name = prp->name;
-	    prp->name = NULL;
+	    if ((With->prim->name == NULL) && (prp->name != NULL)) {
+		With->prim->name = prp->name;
+		prp->name = NULL;
+	    }
 	}
 	if (With->prim->ptype == XLarc) {
 	    arcenddir(prp);
@@ -11964,20 +12174,20 @@ void produce(stackinx newp, int p)
 	    }
 	    else {
 		x1 = With2->aat.xpos +
-		     With2->Upr.Uline.aradius * cos(With2->Upr.Uline.endpos.xpos);
+		     (With2->Upr.Uline.aradius * cos(With2->Upr.Uline.endpos.xpos));
 		    /* from */
 		y1 = With2->aat.ypos +
-		     With2->Upr.Uline.aradius * sin(With2->Upr.Uline.endpos.xpos);
+		     (With2->Upr.Uline.aradius * sin(With2->Upr.Uline.endpos.xpos));
 		if (teststflag(With->state, XLto))
 		{                                 /* to X from Here|Y implied */
-		    if (i != XEMPTY && i != XDc) {
+		    if ((i != XEMPTY) && (i != XDc)) {
 			markerror(858);
 		    }
-		    r = With2->aat.xpos + With2->Upr.Uline.aradius * cos(
-			    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos);
+		    r = With2->aat.xpos + (With2->Upr.Uline.aradius * cos(
+			    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos));
 			/* to */
-		    s = With2->aat.ypos + With2->Upr.Uline.aradius * sin(
-			    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos);
+		    s = With2->aat.ypos + (With2->Upr.Uline.aradius * sin(
+			    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos));
 		    With2->aat.xpos = With->xval;
 		    With2->aat.ypos = With->yval;
 		    With2->Upr.Uline.aradius = linlen(r - With2->aat.xpos,
@@ -11987,16 +12197,16 @@ void produce(stackinx newp, int p)
 			      r, s);
 		}
 		else if (teststflag(With->state, XLfrom)) {
-		    if (i != XEMPTY && i != XDc) {
+		    if ((i != XEMPTY) && (i != XDc)) {
 			markerror(858);
 		    }
 		    With2->aat.xpos = With->xval;
 		    With2->aat.ypos = With->yval;
 		    t = datan(y1 - With2->aat.ypos, x1 - With2->aat.xpos);
-		    r = With2->aat.xpos + With2->Upr.Uline.aradius *
-					  cos(t + With2->Upr.Uline.endpos.ypos);
-		    s = With2->aat.ypos + With2->Upr.Uline.aradius *
-					  sin(t + With2->Upr.Uline.endpos.ypos);
+		    r = With2->aat.xpos + (With2->Upr.Uline.aradius * cos(
+					     t + With2->Upr.Uline.endpos.ypos));
+		    s = With2->aat.ypos + (With2->Upr.Uline.aradius * sin(
+					     t + With2->Upr.Uline.endpos.ypos));
 		    With2->Upr.Uline.aradius = linlen(x1 - With2->aat.xpos,
 						    y1 - With2->aat.ypos);
 		    setangles(&With2->Upr.Uline.endpos.xpos,
@@ -12043,7 +12253,12 @@ void produce(stackinx newp, int p)
     break;
 
   case suffix2:
-    With->xval = attstack[newp+1].xval;
+    if (fabs(attstack[newp+1].xval) > maxint) {
+	fatal(9);
+    }
+    else {
+	With->xval = attstack[newp+1].xval;
+    }
     break;
 
   /* position = pair */
@@ -12056,9 +12271,9 @@ void produce(stackinx newp, int p)
   case position4:
     r = With->xval;
     With->xval = attstack[newp+2].xval +
-		 r * (attstack[newp+4].xval - attstack[newp+2].xval);
+		 (r * (attstack[newp+4].xval - attstack[newp+2].xval));
     With->yval = attstack[newp+2].yval +
-		 r * (attstack[newp+4].yval - attstack[newp+2].yval);
+		 (r * (attstack[newp+4].yval - attstack[newp+2].yval));
     if (p == position4) {
 	if (attstack[newp+5].lexval != XGT) {
 	    markerror(869);
@@ -12074,9 +12289,9 @@ void produce(stackinx newp, int p)
   case position3:
     r = With->xval;
     With->xval = attstack[newp+5].xval +
-		 r * (attstack[newp+7].xval - attstack[newp+5].xval);
+		 (r * (attstack[newp+7].xval - attstack[newp+5].xval));
     With->yval = attstack[newp+5].yval +
-		 r * (attstack[newp+7].yval - attstack[newp+5].yval);
+		 (r * (attstack[newp+7].yval - attstack[newp+5].yval));
     break;
 
   /* assignlist = assignment */
@@ -12239,9 +12454,9 @@ void produce(stackinx newp, int p)
 		With2->textp = prp->textp;
 		prp->textp = NULL;
 	    }
-	    else if (With2->textp->segmnt == prp->textp->segmnt &&
-		     With2->textp->seginx + With2->textp->len ==
-		     prp->textp->seginx) {
+	    else if ((With2->textp->segmnt == prp->textp->segmnt) &&
+		     (With2->textp->seginx + With2->textp->len ==
+		      prp->textp->seginx)) {
 		/*D if debuglevel > 0 then writeln(log,' stringexpr2 branch 1,',
 		   ' seginx,length=',textp^.seginx:1,',',textp^.len:1,
 		   ' seginx,length=',prp^.textp^.seginx:1,',',prp^.textp^.len:1); D*/
@@ -12265,7 +12480,7 @@ void produce(stackinx newp, int p)
     With2 = With->prim;
     With2->Upr.Ubox.boxheight = eb->Upr.UBLOCK.env[XLtextht - XLenvvar - 1];
     With2->Upr.Ubox.boxwidth = eb->Upr.UBLOCK.env[XLtextwid - XLenvvar - 1];
-    if (drawmode == xfig && With2->Upr.Ubox.boxwidth == 0.0) {
+    if ((drawmode == xfig) && (With2->Upr.Ubox.boxwidth == 0.0)) {
 	/* To keep xfig from crashing, assume text height is 0.1
 	   and a character is 0.1*0.75 wide */
 	eb = findenv(envblock);
@@ -12274,7 +12489,7 @@ void produce(stackinx newp, int p)
 	}
 	With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight * With->length * 0.75;
     }
-    if (drawmode == PDF && With2->Upr.Ubox.boxwidth == 0.0) {
+    if ((drawmode == PDF) && (With2->Upr.Ubox.boxwidth == 0.0)) {
 	With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight * With->length * 0.6;
     }
     With2->Upr.Ubox.boxradius = 0.0;
@@ -12296,7 +12511,7 @@ void produce(stackinx newp, int p)
     }
     With->varname = findname(envblock, chbuf, With->chbufx, With->length,
 			     &lastvar, &k);
-    if (With->varname == NULL && attstack[newp+2].lexval != XEQ) {
+    if ((With->varname == NULL) && (attstack[newp+2].lexval != XEQ)) {
 	With->varname = glfindname(envblock->parent, chbuf, With->chbufx,
 				   With->length, &namptr, &kk);
     }
@@ -12356,20 +12571,22 @@ void produce(stackinx newp, int p)
   case assignment3:
   case assignment4:
     if (envblock != NULL) {
-	if (With->lexval == XLscale) {
-	    resetscale(attstack[newp+2].xval, attstack[newp+1].lexval,
-		       envblock);
-	}
-	else if (With->lexval == XLarrowhead && drawmode == TeX &&
-		 attstack[newp+2].xval == 0.0) {
+	if ((With->lexval == XLarrowhead) && (drawmode == TeX) &&
+	    (attstack[newp+2].xval == 0.0)) {
 	    markerror(858);
 	}
 	else {
 	    if (envblock->Upr.UBLOCK.env == NULL) {
 		inheritenv(envblock);
 	    }
-	    eqop(&envblock->Upr.UBLOCK.env[With->lexval - XLenvvar - 1],
-		 attstack[newp+1].lexval, attstack[newp+2].xval);
+	    if (With->lexval == XLscale) {
+		resetscale(attstack[newp+2].xval, attstack[newp+1].lexval,
+			   envblock);
+	    }
+	    else {
+		eqop(&envblock->Upr.UBLOCK.env[With->lexval - XLenvvar - 1],
+		     attstack[newp+1].lexval, attstack[newp+2].xval);
+	    }
 	}
 	With->xval = envblock->Upr.UBLOCK.env[With->lexval - XLenvvar - 1];
 	/*D if debuglevel > 0 then begin
@@ -12377,7 +12594,7 @@ void produce(stackinx newp, int p)
 	   ' Assignment3or4 envblock[',ordp(envblock),']: lexval=',lexval:1,
 	   ' value='); wfloat(log,envblock^.env^[lexval]); writeln(log) end; D*/
 	With->startchop = With->lexval;
-	if (With->lexval == XLdashwid || With->lexval == XLlinethick) {
+	if ((With->lexval == XLdashwid) || (With->lexval == XLlinethick)) {
 	    newprim(&With->prim, XLaTeX, envblock);
 	    if (With->lexval == XLlinethick) {
 		With->prim->lthick = With->xval;
@@ -12447,7 +12664,7 @@ void produce(stackinx newp, int p)
     break;
 
   case logexpr2:
-    if (With->xval != 0.0 || attstack[newp+2].xval != 0.0) {
+    if ((With->xval != 0.0) || (attstack[newp+2].xval != 0.0)) {
 	With->xval = 1.0;
     }
     else {
@@ -12476,14 +12693,14 @@ void produce(stackinx newp, int p)
 	if (t < 0.0) {                                     /* or (yval < 0.0) */
 	    With->length = 862;
 	}
-	else if (t == 0.0 && fabs(With->yval * With->xval) != 0.0) {
+	else if ((t == 0.0) && (fabs(With->yval * With->xval) != 0.0)) {
 	    With->length = 860;
 	}
-	else if (With->yval == 0.0 && t != 0.0) {
+	else if ((With->yval == 0.0) && (t != 0.0)) {
 	    With->length = 860;
 	}
-	else if (fabs(With->yval) == 1 &&
-		 fabs(With->xval) != fabs(With->endchop)) {
+	else if ((fabs(With->yval) == 1) &&
+		 (fabs(With->xval) != fabs(With->endchop))) {
 	    With->length = 860;
 	}
 	else {
@@ -12506,11 +12723,11 @@ void produce(stackinx newp, int p)
 	With->varname = attstack[newp+1].varname;
 	With->varname->val = With->xval;
     }
-    else if ((long)floor(With->startchop + 0.5) != XLscale) {
+    else if (((long)floor(With->startchop + 0.5)) != XLscale) {
 	if (envblock->Upr.UBLOCK.env == NULL) {
 	    inheritenv(envblock);
 	}
-	envblock->Upr.UBLOCK.env[(int)((long)floor(With->startchop + 0.5)) -
+	envblock->Upr.UBLOCK.env[((int)((long)floor(With->startchop + 0.5))) -
 			     XLenvvar - 1] = With->xval;
     }
     else {
@@ -12542,7 +12759,7 @@ void produce(stackinx newp, int p)
     }
     else {
 	With1->xval =
-	  envblock->Upr.UBLOCK.env[(int)((long)floor(With1->startchop + 0.5)) -
+	  envblock->Upr.UBLOCK.env[((int)((long)floor(With1->startchop + 0.5))) -
 			       XLenvvar - 1];
     }
     bswitch = false;
@@ -12552,8 +12769,8 @@ void produce(stackinx newp, int p)
 	}
 	else {
 	    With1->xval += With1->yval;
-	    if (With1->yval > 0 && With1->xval > With1->endchop ||
-		 With1->yval < 0 && With1->xval < With1->endchop) {
+	    if (((With1->yval > 0) && (With1->xval > With1->endchop)) ||
+		((With1->yval < 0) && (With1->xval < With1->endchop))) {
 		bswitch = true;
 	    }
 	}
@@ -12563,18 +12780,18 @@ void produce(stackinx newp, int p)
     }
     else {
 	With1->xval *= With1->yval;
-	if ((fabs(With1->yval) >= 1.0 &&
-	     fabs(With1->xval) > fabs(With1->endchop)) ||
-	     (fabs(With1->yval) < 1.0 &&
-	      fabs(With1->xval) < fabs(With1->endchop))) {
+	if (((fabs(With1->yval) >= 1.0) &&
+	     (fabs(With1->xval) > fabs(With1->endchop))) ||
+	    ((fabs(With1->yval) < 1.0) &&
+	     (fabs(With1->xval) < fabs(With1->endchop)))) {
 	    bswitch = true;
 	}
     }
     if (With1->varname != NULL) {
 	With1->varname->val = With1->xval;
     }
-    else if ((long)floor(With1->startchop + 0.5) != XLscale) {
-	envblock->Upr.UBLOCK.env[(int)((long)floor(With1->startchop + 0.5)) -
+    else if (((long)floor(With1->startchop + 0.5)) != XLscale) {
+	envblock->Upr.UBLOCK.env[((int)((long)floor(With1->startchop + 0.5))) -
 			     XLenvvar - 1] = With1->xval;
     }
     else {
@@ -12637,7 +12854,7 @@ void produce(stackinx newp, int p)
 	if (With1->prim->textp == NULL) {
 	    markerror(861);
 	}
-	else if (p == redirect2 && attstack[newp].lexval != XGT) {
+	else if ((p == redirect2) && (attstack[newp].lexval != XGT)) {
 	    markerror(869);
 	}
 	else if (safemode) {
@@ -12668,8 +12885,8 @@ void produce(stackinx newp, int p)
 	if (With1->prim->textp == NULL) {
 	    markerror(861);
 	}
-	else if (attstack[newp].lexval != XGT ||
-		 attstack[newp+1].lexval != XGT) {
+	else if ((attstack[newp].lexval != XGT) ||
+		 (attstack[newp+1].lexval != XGT)) {
 	    markerror(869);
 	}
 	else if (safemode) {
@@ -12789,6 +13006,7 @@ void produce(stackinx newp, int p)
 	nexprs = attstack[newp+4].state;
     }
     if (tmpbuf == NULL) {
+	tmpfmt = Malloc(sizeof(chbufarray));
 	tmpbuf = Malloc(sizeof(chbufarray));
 	/*D if debuglevel > 0 then begin write(log,'sprintf1,2 tmpbuf[');
 	   writeln(log,ordp(tmpbuf):1,']') end; D*/
@@ -12835,16 +13053,16 @@ void produce(stackinx newp, int p)
 		if (With4->segmnt[With4->seginx + j] == '-') {
 		    j++;
 		}
-#ifdef NO_SNPRINTF
-		attstack[newp+1].state = j;
-#endif
+		/* P2CC #ifdef NO_SNPRINTF */
+		/* P2CP iw := j; */
+		/* P2CC #endif */
 		while (j < k) {
-		    if (With4->segmnt[With4->seginx + j] == 'g' ||
-			 With4->segmnt[With4->seginx + j] == 'f' ||
-			 With4->segmnt[With4->seginx + j] == 'e') {
+		    if ((With4->segmnt[With4->seginx + j] == 'g') ||
+			(With4->segmnt[With4->seginx + j] == 'f') ||
+			(With4->segmnt[With4->seginx + j] == 'e')) {
 			k = j;
 		    }
-		    else if (With4->segmnt[With4->seginx + j] == '.' ||
+		    else if ((With4->segmnt[With4->seginx + j] == '.') ||
 			     isdigit(With4->segmnt[With4->seginx + j])) {
 			j++;
 		    }
@@ -12852,6 +13070,7 @@ void produce(stackinx newp, int p)
 			j = k;
 		    }
 		}
+		ts = attstack[newp + (i * 2) + 4].xval;
 		if (k == With4->len) {
 		    markerror(865);
 		    continue;
@@ -12860,58 +13079,63 @@ void produce(stackinx newp, int p)
 		/*D if debuglevel > 0 then begin write(log,'format="');
 		  for kx := lj to j-1 do write(log,segmnt^[seginx+kx]);
 		  write(log, '" nexprs=',nexprs:2,' Numerical print value=');
-		  wfloat(log,attstack^[newp+4+2*i].xval); writeln(log);
+		  wfloat(log,ts); writeln(log);
 		  flush(log) end; D*/
-		/* Write the expression to tmpbuf */
-#ifdef NO_SNPRINTF
-		k = attstack[newp+1].state;
-		ll = j - 1;
-		s = 0.0;
-		while (k < ll) {
-		    if (With4->segmnt[With4->seginx + k] == '.') {
-			ll = k;
-		    }
-		    else {
-			s = 10.0 * s + With4->segmnt[With4->seginx + k] - '0';
-			k++;
-		    }
-		}
-		r = 0.0;
-		for (ll = k + 1; ll < j; ll++) {
-		    r = 10.0 * r + With4->segmnt[With4->seginx + ll] - '0';
-		}
-		ll = 0;
-		if (s > CHBUFSIZ - 2 || r > CHBUFSIZ - 2) {
-		    markerror(865);
+		/* Check for potential buffer overflow if
+		   snprintf is unavailable. */
+		/* P2CC #ifdef NO_SNPRINTF */
+		/* P2CP
+		k := iw; ll := j-1; iw := 0;
+		while k < ll do if segmnt^[seginx+k]='.' then ll := k else begin
+		    iw := 10*iw + ord(segmnt^[seginx+k])-ord('0'); k := k+1 end;
+		ip := 0;
+		for ll := k+1 to j-2 do ip :=10*ip+ord(segmnt^[seginx+ll])-ord('0');
+		if ip > iw then iw := ip;
+		if ((iw+7) > CHBUFSIZ) or ((j-lj) > CHBUFSIZ) then begin
+		  markerror(873); ll := 0; j := len end
+		else begin
+		  for ll:=lj to j-1 do tmpfmt^[ll-lj] := segmnt^[seginx + ll];
+		  tmpfmt^[j-lj] := chr(0); */
+		/* P2CC
+		  ll := sprintf(tmpbuf,tmpfmt, ts); */
+		/* P2CP end; */
+		/* Copy the format to tmpfmt and convert
+		   using snprintf */
+		/* P2CC #else */
+		if (j - lj + 1 > CHBUFSIZ) {
+		    markerror(873);
+		    ll = 0;
 		    j = With4->len;
 		}
 		else {
-		    lastc = With4->segmnt[With4->seginx + j];
-		    With4->segmnt[With4->seginx + j] = '\0';
-		    ll = sprintf(&tmpbuf[1],
-				  &With4->segmnt[With4->seginx + lj],
-				  attstack[newp + i * 2 + 4].xval);
-		    With4->segmnt[With4->seginx + j] = lastc;
+		    for (ll = lj; ll <= (j - 2); ll++) {
+			tmpfmt[ll - lj] = With4->segmnt[With4->seginx + ll];
+		    }
+		    tmpfmt[j - lj - 1] = 'L';
+		    tmpfmt[j - lj] = With4->segmnt[With4->seginx + j - 1];
+		    tmpfmt[j - lj + 1] = '\0';
+		    ll = snprintf(tmpbuf,CHBUFSIZ,tmpfmt, (long double) ts);
 		}
-#else
-		lastc = With4->segmnt[With4->seginx + j];
-		With4->segmnt[With4->seginx + j] = '\0';
-		ll = snprintf(&tmpbuf[1], CHBUFSIZ - 1,
-			      &With4->segmnt[With4->seginx + lj],
-			      attstack[newp + i * 2 + 4].xval);
-		With4->segmnt[With4->seginx + j] = lastc;
-#endif
-		if (ll > CHBUFSIZ - 2) {
-		    markerror(865);
-		    ll = CHBUFSIZ - 2;
+		/* P2CC #endif */
+		if (ll < 0) {
+		    markerror(874);
+		    j = With4->len;
+		}
+		else if (ll > CHBUFSIZ) {
+		    markerror(874);
+		    ll = CHBUFSIZ;
+		    j = With4->len;
 		}
 		/*D if debuglevel > 0 then begin
-		   write(log,' tmpbuf(1:',ll:1,')=');
-		   for kx := 1 to ll do write(log,tmpbuf^[kx]);
-		   writeln(log); flush(log) end; D*/
+		      write(log,' ll=',ll:1);
+		      if ll>0 then begin
+		         write(' tmpbuf(0:',(ll-1):1,')=');
+		         for kx := 0 to ll-1 do write(log,tmpbuf^[kx]) end;
+		      writeln(log); flush(log)
+		      end; D*/
 		/* Copy tmpbuf to the string */
 		if (ll > 0) {
-		    kk = putstring(kk, attstack[newp].prim->textp, tmpbuf, 1,
+		    kk = putstring(kk, attstack[newp].prim->textp, tmpbuf, 0,
 				   ll);
 		}
 		i++;
@@ -12940,7 +13164,7 @@ void produce(stackinx newp, int p)
 					  With2->textp->len * 0.75;
 	    }
 	}
-	else if (drawmode == PDF && With2->textp != NULL) {
+	else if ((drawmode == PDF) && (With2->textp != NULL)) {
 	    With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight *
 				      With2->textp->len * 0.6;
 	}
@@ -13028,7 +13252,7 @@ void produce(stackinx newp, int p)
 
 	case XLstring:
 	  With2->Upr.Ubox.boxheight = attstack[newp+2].xval;
-	  if (drawmode == PDF && With2->textp != NULL) {
+	  if ((drawmode == PDF) && (With2->textp != NULL)) {
 	      With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight *
 					With2->textp->len * 0.6;
 	  }
@@ -13045,12 +13269,12 @@ void produce(stackinx newp, int p)
 
 	      case XLup:
 		With2->aat.ypos +=
-		  0.5 * attstack[newp+2].xval - With2->Upr.Ucircle.radius;
+		  (0.5 * attstack[newp+2].xval) - With2->Upr.Ucircle.radius;
 		break;
 
 	      case XLdown:
 		With2->aat.ypos +=
-		  With2->Upr.Ucircle.radius - 0.5 * attstack[newp+2].xval;
+		  With2->Upr.Ucircle.radius - (0.5 * attstack[newp+2].xval);
 		break;
 	      }
 	  }
@@ -13155,12 +13379,12 @@ void produce(stackinx newp, int p)
 
 	      case XLright:
 		With2->aat.xpos +=
-		  0.5 * attstack[newp+2].xval - With2->Upr.Ucircle.radius;
+		  (0.5 * attstack[newp+2].xval) - With2->Upr.Ucircle.radius;
 		break;
 
 	      case XLleft:
 		With2->aat.xpos +=
-		  With2->Upr.Ucircle.radius - 0.5 * attstack[newp+2].xval;
+		  With2->Upr.Ucircle.radius - (0.5 * attstack[newp+2].xval);
 		break;
 	      }
 	  }
@@ -13228,12 +13452,12 @@ void produce(stackinx newp, int p)
 	case XLarc:
 	  t = attstack[newp+2].xval;
 	  if (With2->direction == 0) {
-	      attstack[newp+2].xval = With2->aat.xpos +
-		  With2->Upr.Uline.aradius * cos(
-		    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos);
-	      attstack[newp+2].yval = With2->aat.ypos +
-		  With2->Upr.Uline.aradius * sin(
-		    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos);
+	      attstack[newp+2].xval =
+		With2->aat.xpos + (With2->Upr.Uline.aradius * cos(
+		    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos));
+	      attstack[newp+2].yval =
+		With2->aat.ypos + (With2->Upr.Uline.aradius * sin(
+		    With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos));
 	      /*D if debuglevel = 2 then begin write(log, 'to ');
 	        with attstack^[newp+2] do wpair(log,xval,yval) end; D*/
 	      doprod(object20);
@@ -13330,7 +13554,7 @@ void produce(stackinx newp, int p)
 
   /* | object "scaled" expression */
   case object7:
-    if (With->prim != NULL && attstack[newp+2].lexval != XEMPTY) {
+    if ((With->prim != NULL) && (attstack[newp+2].lexval != XEMPTY)) {
 	With2 = With->prim;
 	r = attstack[newp+2].xval - 1;
 	corner(With->prim, XDc, &x1, &y1);
@@ -13408,21 +13632,21 @@ void produce(stackinx newp, int p)
 
 	      case XLup:
 		With2->aat.xpos = x1;
-		With2->aat.ypos = y1 + With2->Upr.Uellipse.elheight / 2;
+		With2->aat.ypos = y1 + (With2->Upr.Uellipse.elheight / 2);
 		break;
 
 	      case XLdown:
 		With2->aat.xpos = x1;
-		With2->aat.ypos = y1 - With2->Upr.Uellipse.elheight / 2;
+		With2->aat.ypos = y1 - (With2->Upr.Uellipse.elheight / 2);
 		break;
 
 	      case XLright:
-		With2->aat.xpos = x1 + With2->Upr.Uellipse.elwidth / 2;
+		With2->aat.xpos = x1 + (With2->Upr.Uellipse.elwidth / 2);
 		With2->aat.ypos = y1;
 		break;
 
 	      case XLleft:
-		With2->aat.xpos = x1 - With2->Upr.Uellipse.elwidth / 2;
+		With2->aat.xpos = x1 - (With2->Upr.Uellipse.elwidth / 2);
 		With2->aat.ypos = y1;
 		break;
 	      }
@@ -13451,9 +13675,9 @@ void produce(stackinx newp, int p)
   case object8:
     if (With->prim != NULL) {
 	With2 = With->prim;
-	if (With2->ptype == XLspline || With2->ptype == XLarrow ||
-	     With2->ptype == XLmove || With2->ptype == XLline ||
-	     With2->ptype == XLarc) {
+	if ((With2->ptype == XLspline) || (With2->ptype == XLarrow) ||
+	    (With2->ptype == XLmove) || (With2->ptype == XLline) ||
+	    (With2->ptype == XLarc)) {
 	    i = attstack[newp+1].lexval;
 	    envblock->direction = i;
 	    eb = findenv(envblock);
@@ -13464,17 +13688,17 @@ void produce(stackinx newp, int p)
 	      s = sin(With2->Upr.Uline.endpos.xpos);
 	      With2->aat.xpos += With2->Upr.Uline.aradius * r;
 	      With2->aat.ypos += With2->Upr.Uline.aradius * s;
-	      if (With2->direction == XLup && i == XLleft ||
-		   With2->direction == XLdown && i == XLright ||
-		   With2->direction == XLright && i == XLup ||
-		   With2->direction == XLleft && i == XLdown) {
+	      if (((With2->direction == XLup) && (i == XLleft)) ||
+		  ((With2->direction == XLdown) && (i == XLright)) ||
+		  ((With2->direction == XLright) && (i == XLup)) ||
+		  ((With2->direction == XLleft) && (i == XLdown))) {
 		  With2->Upr.Uline.endpos.ypos = pi * 0.5;
 	      }
-	      else if (With2->direction == XLup && i == XLright ||
-		       With2->direction == XLdown && i == XLleft ||
-		       With2->direction == XLright && i == XLdown ||
-		       With2->direction == XLleft && i == XLup) {
-		  With2->Upr.Uline.endpos.ypos = -pi * 0.5;
+	      else if (((With2->direction == XLup) && (i == XLright)) ||
+		       ((With2->direction == XLdown) && (i == XLleft)) ||
+		       ((With2->direction == XLright) && (i == XLdown)) ||
+		       ((With2->direction == XLleft) && (i == XLup))) {
+		  With2->Upr.Uline.endpos.ypos = (-pi) * 0.5;
 	      }
 	      if (attstack[newp+2].lexval != XEMPTY) {
 		  With2->Upr.Uline.aradius = attstack[newp+2].lexval;
@@ -13524,17 +13748,17 @@ void produce(stackinx newp, int p)
     if (With->prim != NULL) {
 	setspec(&With->prim->spec, attstack[newp+1].lexval);
 	if (attstack[newp+2].lexval != XEMPTY) {
-	    if ((attstack[newp+1].lexval == XLsolid ||
-		 attstack[newp+1].lexval == XLinvis) &&
-		(With->prim->ptype == XLmove ||
-		 With->prim->ptype == XLspline ||
-		 With->prim->ptype == XLarrow ||
-		 With->prim->ptype == XLline)) {
+	    if (((attstack[newp+1].lexval == XLsolid) ||
+		 (attstack[newp+1].lexval == XLinvis)) &&
+		((With->prim->ptype == XLmove) ||
+		 (With->prim->ptype == XLspline) ||
+		 (With->prim->ptype == XLarrow) ||
+		 (With->prim->ptype == XLline))) {
 		lineardir(With->prim, attstack[newp+2].xval,
 			  attstack[newp+2].xval, &With->state);
 	    }
-	    else if (attstack[newp+1].lexval == XLsolid ||
-		     attstack[newp+1].lexval == XLinvis) {
+	    else if ((attstack[newp+1].lexval == XLsolid) ||
+		     (attstack[newp+1].lexval == XLinvis)) {
 		markerror(858);
 	    }
 	    else {
@@ -13547,8 +13771,9 @@ void produce(stackinx newp, int p)
   /* | object "chop" optexp */
   case object10:
     if (With->prim != NULL) {
-	if (With->prim->ptype != XLspline && With->prim->ptype != XLmove &&
-	     With->prim->ptype != XLarrow && With->prim->ptype != XLline) {
+	if ((With->prim->ptype != XLspline) &&
+	    (With->prim->ptype != XLmove) &&
+	    (With->prim->ptype != XLarrow) && (With->prim->ptype != XLline)) {
 	    markerror(858);
 	}
 	else {
@@ -13600,9 +13825,9 @@ void produce(stackinx newp, int p)
 	      break;
 
 	    default:
-	      if (drawmode >= 0 && drawmode < 32 &&
-		  ((1L << drawmode) &
-		   ((1L << TeX) | (1L << tTeX) | (1L << Pict2e))) != 0) {
+	      if ((drawmode >= 0) && (drawmode < 32) &&
+		  (((1L << drawmode) &
+		    ((1L << TeX) | (1L << tTeX) | (1L << Pict2e))) != 0)) {
 		  markerror(858);
 	      }
 	      else {
@@ -13637,8 +13862,8 @@ void produce(stackinx newp, int p)
   case object12:
     if (With->prim != NULL) {
 	With2 = With->prim;
-	if (With2->ptype != XLspline && With2->ptype != XLarc &&
-	     With2->ptype != XLarrow && With2->ptype != XLline) {
+	if ((With2->ptype != XLspline) && (With2->ptype != XLarc) &&
+	    (With2->ptype != XLarrow) && (With2->ptype != XLline)) {
 	    markerror(858);
 	}
 	else {
@@ -13688,9 +13913,10 @@ void produce(stackinx newp, int p)
 	       if endpos.ypos>0.0 then endpos.ypos := endpos.ypos-2*pi
 	       end
 	    else */
-	    if (With2->Upr.Uline.endpos.ypos > 0.0 && With2->direction == 0) {
+	    if ((With2->Upr.Uline.endpos.ypos > 0.0) && (With2->direction == 0)) {
 		With2->Upr.Uline.endpos.ypos = -fabs(
-		    principal(2.0 * pi - With2->Upr.Uline.endpos.ypos, 2.0 * pi));
+		    principal((2.0 * pi) - With2->Upr.Uline.endpos.ypos,
+			      2.0 * pi));
 	    }
 	    else if (With2->direction != 0) {
 		With2->aat = arcstart(With->prim);
@@ -13735,9 +13961,10 @@ void produce(stackinx newp, int p)
 	       if endpos.ypos<0.0 then endpos.ypos := 2*pi+endpos.ypos
 	       end
 	    else */
-	    if (With2->Upr.Uline.endpos.ypos < 0.0 && With2->direction == 0) {
+	    if ((With2->Upr.Uline.endpos.ypos < 0.0) && (With2->direction == 0)) {
 		With2->Upr.Uline.endpos.ypos = fabs(
-		    principal(With2->Upr.Uline.endpos.ypos - 2.0 * pi, 2.0 * pi));
+		    principal(With2->Upr.Uline.endpos.ypos - (2.0 * pi),
+			      2.0 * pi));
 	    }
 	    else if (With2->direction != 0) {
 		With2->aat = arcstart(With->prim);
@@ -13883,15 +14110,15 @@ void produce(stackinx newp, int p)
 
 	    case XLarc:
 	      x1 = With2->aat.xpos +
-		   With2->Upr.Uline.aradius * cos(With2->Upr.Uline.endpos.xpos);
+		   (With2->Upr.Uline.aradius * cos(With2->Upr.Uline.endpos.xpos));
 	      y1 = With2->aat.ypos +
-		   With2->Upr.Uline.aradius * sin(With2->Upr.Uline.endpos.xpos);
+		   (With2->Upr.Uline.aradius * sin(With2->Upr.Uline.endpos.xpos));
 	      With2->Upr.Uline.aradius = prp->Upr.Uline.aradius;
 	      With2->Upr.Uline.endpos.xpos = prp->Upr.Uline.endpos.xpos;
-	      With2->aat.xpos =
-		x1 - With2->Upr.Uline.aradius * cos(With2->Upr.Uline.endpos.xpos);
-	      With2->aat.ypos =
-		y1 - With2->Upr.Uline.aradius * sin(With2->Upr.Uline.endpos.xpos);
+	      With2->aat.xpos = x1 - (With2->Upr.Uline.aradius *
+				      cos(With2->Upr.Uline.endpos.xpos));
+	      With2->aat.ypos = y1 - (With2->Upr.Uline.aradius *
+				      sin(With2->Upr.Uline.endpos.xpos));
 	      With2->Upr.Uline.endpos.ypos = prp->Upr.Uline.endpos.ypos;
 	      break;
 
@@ -13939,11 +14166,11 @@ void produce(stackinx newp, int p)
 		    /* boxheight/((i-1)*TEXTRATIO+1)*(i*TEXTRATIO+1) */
 		}
 	    }
-	    if (drawmode >= 0 && drawmode < 32 &&
-		((1L << drawmode) &
-		 ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0) {
+	    if ((drawmode >= 0) && (drawmode < 32) &&
+		(((1L << drawmode) &
+		  ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0)) {
 		/* output contains text */
-		printstate = (printstate >> 1) * 2 + 1;
+		printstate = ((printstate >> 1) * 2) + 1;
 	    }
 	}
 	attstack[newp+1].prim->textp = NULL;
@@ -13954,9 +14181,10 @@ void produce(stackinx newp, int p)
   /* | object "by" position */
   case object18:
     if (With->prim != NULL) {
-	if (With->prim->ptype == XLmove || With->prim->ptype == XLspline ||
-	     With->prim->ptype == XLarrow || With->prim->ptype == XLline ||
-	     With->prim->ptype == XLarc) {
+	if ((With->prim->ptype == XLmove) ||
+	    (With->prim->ptype == XLspline) ||
+	    (With->prim->ptype == XLarrow) || (With->prim->ptype == XLline) ||
+	    (With->prim->ptype == XLarc)) {
 	    With2 = With->prim;
 	    x1 = attstack[newp+2].xval + With2->aat.xpos;
 	    y1 = attstack[newp+2].yval + With2->aat.ypos;
@@ -13978,25 +14206,25 @@ void produce(stackinx newp, int p)
   case object19:
     if (With->prim != NULL) {
 	With2 = With->prim;
-	if (With2->ptype == XLmove || With2->ptype == XLspline ||
-	     With2->ptype == XLarrow || With2->ptype == XLline ||
-	     With2->ptype == XLarc) {
+	if ((With2->ptype == XLmove) || (With2->ptype == XLspline) ||
+	    (With2->ptype == XLarrow) ||
+	    (With2->ptype == XLline) || (With2->ptype == XLarc)) {
 	    if (With2->ptype == XLarc) {
 		r = attstack[newp+2].xval;
 		s = attstack[newp+2].yval;
 		if (teststflag(With->state, XLto)) {
 		    attstack[newp+2].xval = With2->aat.xpos +
-			With2->Upr.Uline.aradius * cos(
-			  With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos);
+			(With2->Upr.Uline.aradius * cos(
+			   With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos));
 		    attstack[newp+2].yval = With2->aat.ypos +
-			With2->Upr.Uline.aradius * sin(
-			  With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos);
+			(With2->Upr.Uline.aradius * sin(
+			   With2->Upr.Uline.endpos.xpos + With2->Upr.Uline.endpos.ypos));
 		    doprod(object20);
 		}
-		With2->aat.xpos = r - With2->Upr.Uline.aradius *
-				      cos(With2->Upr.Uline.endpos.xpos);
-		With2->aat.ypos = s - With2->Upr.Uline.aradius *
-				      sin(With2->Upr.Uline.endpos.xpos);
+		With2->aat.xpos = r - (With2->Upr.Uline.aradius *
+				       cos(With2->Upr.Uline.endpos.xpos));
+		With2->aat.ypos = s - (With2->Upr.Uline.aradius *
+				       sin(With2->Upr.Uline.endpos.xpos));
 	    }
 	    else if (!teststflag(With->state, XLto)) {
 		prp = With->prim;
@@ -14021,9 +14249,10 @@ void produce(stackinx newp, int p)
   /* | object "to" position */
   case object20:
     if (With->prim != NULL) {
-	if (With->prim->ptype == XLmove || With->prim->ptype == XLspline ||
-	     With->prim->ptype == XLarrow || With->prim->ptype == XLline ||
-	     With->prim->ptype == XLarc) {
+	if ((With->prim->ptype == XLmove) ||
+	    (With->prim->ptype == XLspline) ||
+	    (With->prim->ptype == XLarrow) || (With->prim->ptype == XLline) ||
+	    (With->prim->ptype == XLarc)) {
 	    if ((With->prim->ptype != XLarc) & teststflag(With->state, XLto)) {
 		/* (teststflag(state,XLto) or teststflag(state,XLdirecton)) */
 		/*D if debuglevel > 0 then begin writeln(log,'"then" inserted, ');
@@ -14038,13 +14267,13 @@ void produce(stackinx newp, int p)
 	    }
 	    else {
 		x1 = With2->aat.xpos +
-		     With2->Upr.Uline.aradius * cos(With2->Upr.Uline.endpos.xpos);
+		     (With2->Upr.Uline.aradius * cos(With2->Upr.Uline.endpos.xpos));
 		    /* from position */
 		y1 = With2->aat.ypos +
-		     With2->Upr.Uline.aradius * sin(With2->Upr.Uline.endpos.xpos);
+		     (With2->Upr.Uline.aradius * sin(With2->Upr.Uline.endpos.xpos));
 		dx = attstack[newp+2].xval - x1;
 		dy = attstack[newp+2].yval - y1;
-		ts = dx * dx + dy * dy;                            /* chord^2 */
+		ts = (dx * dx) + (dy * dy);                        /* chord^2 */
 		if (With2->direction != 0) {
 		    i = With2->direction;
 		}
@@ -14060,8 +14289,8 @@ void produce(stackinx newp, int p)
 		    With2->Upr.Uline.endpos.ypos = 0.0;
 		}
 		else {
-		    t = sqrt(Max(0.0, 4.0 * With2->Upr.Uline.aradius * With2->
-					Upr.Uline.aradius - ts) / ts);
+		    t = sqrt(Max(0.0, (4.0 * With2->Upr.Uline.aradius * With2->
+					 Upr.Uline.aradius) - ts) / ts);
 		    /*D if debuglevel = 2 then begin
 		       write(log,' t='); wfloat(log,t);
 		       write(log,' |arcangle','|='); wfloat(log,endpos.ypos *180/pi);
@@ -14074,31 +14303,31 @@ void produce(stackinx newp, int p)
 			/* Determine which of the two default arcs to draw: */
 
 		    case XLup:
-		      if (With2->Upr.Uline.endpos.ypos * (-dx - t * dy) < 0.0) {
+		      if (With2->Upr.Uline.endpos.ypos * ((-dx) - (t * dy)) < 0.0) {
 			  t = -t;
 		      }
 		      break;
 
 		    case XLdown:
-		      if (With2->Upr.Uline.endpos.ypos * (-dx - t * dy) > 0.0) {
+		      if (With2->Upr.Uline.endpos.ypos * ((-dx) - (t * dy)) > 0.0) {
 			  t = -t;
 		      }
 		      break;
 
 		    case XLright:
-		      if (With2->Upr.Uline.endpos.ypos * (dy - t * dx) < 0.0) {
+		      if (With2->Upr.Uline.endpos.ypos * (dy - (t * dx)) < 0.0) {
 			  t = -t;
 		      }
 		      break;
 
 		    case XLleft:
-		      if (With2->Upr.Uline.endpos.ypos * (dy - t * dx) > 0.0) {
+		      if (With2->Upr.Uline.endpos.ypos * (dy - (t * dx)) > 0.0) {
 			  t = -t;
 		      }
 		      break;
 		    }
-		    With2->aat.xpos = x1 + 0.5 * (dx + t * dy);
-		    With2->aat.ypos = y1 + 0.5 * (dy - t * dx);
+		    With2->aat.xpos = x1 + (0.5 * (dx + (t * dy)));
+		    With2->aat.ypos = y1 + (0.5 * (dy - (t * dx)));
 		    /*D if debuglevel = 2 then begin
 		       write(log,' t='); wfloat(log,t);
 		       write(log,' aradius='); wfloat(log,aradius);
@@ -14157,11 +14386,11 @@ void produce(stackinx newp, int p)
 	      break;
 
 	    case XLrjust:
-	      namptr->val = i / 4.0 * 4 + 1;
+	      namptr->val = ((i / 4.0) * 4) + 1;
 	      break;
 
 	    case XLljust:
-	      namptr->val = i / 4.0 * 4 + 2;
+	      namptr->val = ((i / 4.0) * 4) + 2;
 	      break;
 
 	    case XLbelow:
@@ -14181,12 +14410,12 @@ void produce(stackinx newp, int p)
 
   /* | object ("colour"|"outline"|"shade") stringexpr */
   case object23:
-    if (drawmode >= 0 && drawmode < 32 &&
-	((1L << drawmode) &
-	 ((1L << Pict2e) | (1L << TeX) | (1L << tTeX) | (1L << xfig))) != 0) {
+    if ((drawmode >= 0) && (drawmode < 32) &&
+	(((1L << drawmode) & ((1L << Pict2e) | (1L << TeX) | (1L << tTeX) |
+			      (1L << xfig))) != 0)) {
 	markerror(858);
     }
-    else if (attstack[newp+2].prim != NULL && With->prim != NULL) {
+    else if ((attstack[newp+2].prim != NULL) && (With->prim != NULL)) {
 	With2 = With->prim;
 	switch (attstack[newp+1].lexval) {
 
@@ -14211,9 +14440,9 @@ void produce(stackinx newp, int p)
 	      deletename(&With2->outlinep);
 	      With2->outlinep = attstack[newp+2].prim->textp;
 	      attstack[newp+2].prim->textp = NULL;
-	      if ((With2->ptype != XLspline && With2->ptype != XLarrow &&
-		   With2->ptype != XLline &&
-		   With2->ptype != XLarc) & hasshade(With->lexval, false)) {
+	      if (((With2->ptype != XLspline) && (With2->ptype != XLarrow) &&
+		   (With2->ptype != XLline) &&
+		   (With2->ptype != XLarc)) & hasshade(With->lexval, false)) {
 		  deletename(&With2->shadedp);
 		  copystr(&With2->shadedp, With2->outlinep);
 	      }
@@ -14244,12 +14473,12 @@ void produce(stackinx newp, int p)
 	if (p == object25) {
 	    setstval(&With->state, attstack[newp+1].lexval);
 	}
-	else if (With->prim->ptype != XLarc &&
-		 With->prim->ptype != XLellipse &&
-		 With->prim->ptype != XLcircle &&
-		 With->prim->ptype != XBLOCK &&
-		 With->prim->ptype != XLstring &&
-		 With->prim->ptype != XLbox) {
+	else if ((With->prim->ptype != XLarc) &&
+		 (With->prim->ptype != XLellipse) &&
+		 (With->prim->ptype != XLcircle) &&
+		 (With->prim->ptype != XBLOCK) &&
+		 (With->prim->ptype != XLstring) &&
+		 (With->prim->ptype != XLbox)) {
 	    markerror(858);
 	}
 	else {
@@ -14266,8 +14495,8 @@ void produce(stackinx newp, int p)
     primp = NULL;
     prp = envblock->son;
     while (prp != NULL) {
-	if (prp->ptype != XLaTeX && prp->ptype != XLstring &&
-	     prp->ptype != XBLOCK && prp->ptype != XLabel) {
+	if ((prp->ptype != XLaTeX) && (prp->ptype != XLstring) &&
+	    (prp->ptype != XBLOCK) && (prp->ptype != XLabel)) {
 	    primp = prp;
 	}
 	prp = prp->next_;
@@ -14306,22 +14535,22 @@ void produce(stackinx newp, int p)
   /* | openblock "[]" */
   /* set parameters for primitive object */
   case block1:
-    if (With->lexval > XLprimitiv && With->lexval < XLenvvar) {
+    if ((With->lexval > XLprimitiv) && (With->lexval < XLenvvar)) {
 	newprim(&With->prim, With->lexval, envblock);
 	eb = findenv(envblock);
-	if ((drawmode >= 0 && drawmode < 32 &&
-	     ((1L << drawmode) & ((1L << MPost) | (1L << Pict2e) | (1L << PDF) |
-		(1L << PS) | (1L << SVG) | (1L << PSfrag))) != 0 &&
-	     With->lexval != XLmove) || With->lexval == XLarc)
+	if (((drawmode >= 0) && (drawmode < 32) &&
+	     (((1L << drawmode) & ((1L << MPost) | (1L << Pict2e) | (1L << PDF) |
+		 (1L << PS) | (1L << SVG) | (1L << PSfrag))) != 0) &&
+	     (With->lexval != XLmove)) || (With->lexval == XLarc))
 	{                                 /* (drawmode in [PGF,PSTricks]) and */
 	    With->prim->lthick = eb->Upr.UBLOCK.env[XLlinethick - XLenvvar - 1];
 	    /*D; if debuglevel > 0 then begin write(log,
 	        ' envblock[',ordp(eb),'] setting linethick=');
 	        wfloat(log,prim^.lthick); writeln(log) end D*/
 	}
-	if (attstack[newp+1].lexval != XEMPTY && With->lexval != XLmove &&
-	     With->lexval != XLspline && With->lexval != XLarrow &&
-	     With->lexval != XLline) {
+	if ((attstack[newp+1].lexval != XEMPTY) && (With->lexval != XLmove) &&
+	    (With->lexval != XLspline) && (With->lexval != XLarrow) &&
+	    (With->lexval != XLline)) {
 	    markerror(858);
 	}
 	With2 = With->prim;
@@ -14416,7 +14645,7 @@ void produce(stackinx newp, int p)
 	    break;
 
 	  case XLright:
-	    With2->Upr.Uline.endpos.xpos = -0.5 * pi;
+	    With2->Upr.Uline.endpos.xpos = (-0.5) * pi;
 	    With2->aat.ypos += With2->Upr.Uline.aradius;
 	    break;
 	  }
@@ -14433,7 +14662,8 @@ void produce(stackinx newp, int p)
 	case XLspline:
 	case XLmove:
 	  With2->Upr.Uline.endpos = With2->aat;
-	  if (With2->ptype == XLspline && attstack[newp+1].lexval != XEMPTY) {
+	  if ((With2->ptype == XLspline) &&
+	      (attstack[newp+1].lexval != XEMPTY)) {
 	      /* This implements adjusted splines */
 	      With2->Upr.Uline.aradius = attstack[newp+1].xval;
 	      attstack[newp+1].lexval = XEMPTY;
@@ -14504,10 +14734,10 @@ void produce(stackinx newp, int p)
 
   /* | stringexpr */
   case block2:
-    if (drawmode >= 0 && drawmode < 32 &&
-	((1L << drawmode) & ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0) {
+    if ((drawmode >= 0) && (drawmode < 32) &&
+	(((1L << drawmode) & ((1L << PS) | (1L << PDF) | (1L << PSfrag))) != 0)) {
 	/* flag text in output */
-	printstate = (printstate >> 1) * 2 + 1;
+	printstate = ((printstate >> 1) * 2) + 1;
     }
     break;
 
@@ -14583,7 +14813,7 @@ void produce(stackinx newp, int p)
   /* closeblock = elementlist optnl */
   /* Add latex to reset env variables changed within a block */
   case closeblock1:
-    if (With->prim != NULL && envblock->Upr.UBLOCK.env != NULL) {
+    if ((With->prim != NULL) && (envblock->Upr.UBLOCK.env != NULL)) {
 	eb = findenv(envblock->parent);
 	if (eb != NULL) {  /* check and reset variables: */
 	    if (envblock->Upr.UBLOCK.env[XLlinethick - XLenvvar - 1] !=
@@ -14762,7 +14992,7 @@ void produce(stackinx newp, int p)
     break;
 
   case factor3:
-    if (With->xval == 0.0 && attstack[newp+2].xval < 0.0) {
+    if ((With->xval == 0.0) && (attstack[newp+2].xval < 0.0)) {
 	markerror(852);
     }
     else {
@@ -14905,7 +15135,7 @@ void produce(stackinx newp, int p)
 
   /* | logprod "&&" logval */
   case logprod2:
-    if (With->xval == 0.0 || attstack[newp+2].xval == 0.0) {
+    if ((With->xval == 0.0) || (attstack[newp+2].xval == 0.0)) {
 	With->xval = 0.0;
     }
     else {
@@ -15148,10 +15378,10 @@ void produce(stackinx newp, int p)
 
 	case XLthickness:
 	  With2 = With->prim;
-	  if (With2->ptype == XLarc || With2->ptype == XLspline ||
-	       With2->ptype == XLarrow || With2->ptype == XLline ||
-	       With2->ptype == XLcircle || With2->ptype == XLellipse ||
-	       With2->ptype == XLbox) {
+	  if ((With2->ptype == XLarc) || (With2->ptype == XLspline) ||
+	      (With2->ptype == XLarrow) || (With2->ptype == XLline) ||
+	      (With2->ptype == XLcircle) || (With2->ptype == XLellipse) ||
+	      (With2->ptype == XLbox)) {
 	      With->xval = With2->lthick;
 	  }
 	  else {
@@ -15162,8 +15392,8 @@ void produce(stackinx newp, int p)
 
 	case XLlength:
 	  With2 = With->prim;
-	  if (With2->ptype == XLspline || With2->ptype == XLmove ||
-	       With2->ptype == XLarrow || With2->ptype == XLline) {
+	  if ((With2->ptype == XLspline) || (With2->ptype == XLmove) ||
+	      (With2->ptype == XLarrow) || (With2->ptype == XLline)) {
 	      primp = With->prim;
 	      while (primp->son != NULL) {
 		  primp = primp->son;
@@ -15177,7 +15407,7 @@ void produce(stackinx newp, int p)
 		  With->xval = r;
 	      }
 	      else {
-		  With->xval = sqrt(r * r + s * s);
+		  With->xval = sqrt((r * r) + (s * s));
 	      }
 	  }
 	  else {
@@ -15191,13 +15421,13 @@ void produce(stackinx newp, int p)
 
   /* | "rand" "(" ")" random number between 0 and 1 */
   case primary8:
-    With->xval = (double)random() / randmax;
+    With->xval = ((double)random()) / randmax;
     break;
 
   /* | "rand" "(" expression ")" */
   case primary9:
     srandom((long)floor(attstack[newp+2].xval + 0.5));
-    With->xval = (double)random() / randmax;
+    With->xval = ((double)random()) / randmax;
     break;
 
   /* | "<func1>" "(" expression ")" */
@@ -15214,7 +15444,7 @@ void produce(stackinx newp, int p)
 	  markerror(868);
       }
       else {
-	  With->xval = datan(sqrt(1 - t * t), t);
+	  With->xval = datan(sqrt(1 - (t * t)), t);
       }
       break;
 
@@ -15224,7 +15454,7 @@ void produce(stackinx newp, int p)
 	  markerror(868);
       }
       else {
-	  With->xval = datan(t, sqrt(1 - t * t));
+	  With->xval = datan(t, sqrt(1 - (t * t)));
       }
       break;
 
@@ -15324,7 +15554,7 @@ void produce(stackinx newp, int p)
 	  markerror(871);
       }
       else {
-	  With->xval = t - s * Floor(t / s);
+	  With->xval = t - (s * Floor(t / s));
 	  if (With->xval < 0) {
 	      With->xval += fabs(s);
 	  }
@@ -15359,7 +15589,8 @@ writeln(log,'Dpic log file'); flush(log);
 if oflag <= 0 then oflag := 1
 end; FMHGD*/
 /* Check if a file is accessible */
-int checkfile(Char *ifn, boolean isverbose)
+int
+checkfile(Char *ifn, boolean isverbose)
 { int cf;
   int i = 0, j = FILENAMELEN;
 
@@ -15380,11 +15611,11 @@ int checkfile(Char *ifn, boolean isverbose)
   ifn[j-1] = '\0';
   cf = access(ifn, 4);
   /*G cf := 4-Access(ifn,4); G*/
-  if (!(isverbose && cf != 0)) {
+  if (!(isverbose && (cf != 0))) {
       return cf;
   }
   fprintf(errout, " *** dpic: Searching for file \"");
-  for (i = 0; i <= j - 2; i++) {
+  for (i = 0; i <= (j - 2); i++) {
       putc(ifn[i], errout);
   }
   fprintf(errout, "\" returns %d\n", cf);
@@ -15394,13 +15625,15 @@ int checkfile(Char *ifn, boolean isverbose)
 
 /* If pascal, open the parse table file */
 /* Open the error stream */
-void openerror(void)
+void
+openerror(void)
 { errout = stderr;
 }
 
 
 /* Open required input and outputs */
-void openfiles(void)
+void
+openfiles(void)
 { /*DGHM var i,j: integer; MHGD*/
   savebuf = NULL;
   output = stdout; input = stdin;
@@ -15448,12 +15681,14 @@ begin F*/
    openparse
    end;
 F*/
-boolean isprint_(Char ch)
-{ return (ch >= 32 && ch <= 126);
+boolean
+isprint_(Char ch)
+{ return ((ch >= 32) && (ch <= 126));
 }
 
 
-void wchar(FILE **iou, Char c)
+void
+wchar(FILE **iou, Char c)
 { if (isprint_(c)) {
       putc(c, *iou);
       return;
@@ -15547,7 +15782,8 @@ begin
 /*--------------------------------------------------------------------*/
 /* Write error message with symbol found
    and symbol expected if possible */
-void markerror(int emi)
+void
+markerror(int emi)
 { /*F(emi: integer)F*/
   int inx, j, k;
   fbuffer *thisbuf, *lastbuf, *With;
@@ -15581,9 +15817,10 @@ void markerror(int emi)
 	      j = With->savedlen;
 	  }
 	  while (inx > j) {
-	      if (With->carray[inx] == etxch || With->carray[inx] == tabch ||
-		   With->carray[inx] == ' ' || With->carray[inx] == crch ||
-		   With->carray[inx] == nlch) {
+	      if ((With->carray[inx] == etxch) ||
+		  (With->carray[inx] == tabch) ||
+		  (With->carray[inx] == ' ') || (With->carray[inx] == crch) ||
+		  (With->carray[inx] == nlch)) {
 		  inx--;
 	      }
 	      else {
@@ -15592,7 +15829,7 @@ void markerror(int emi)
 	  }
 	  j = 0;
 	  while (inx > j) {
-	      if (isprint_(With->carray[inx]) || With->carray[inx] == tabch) {
+	      if (isprint_(With->carray[inx]) || (With->carray[inx] == tabch)) {
 		  inx--;
 	      }
 	      else {
@@ -16648,7 +16885,7 @@ void markerror(int emi)
     break;
 
   case 865:
-    fprintf(errout, "Bad sprintf format\n");
+    fprintf(errout, "Bad sprintf format; only e, f, g allowed\n");
     break;
 
   case 866:
@@ -16679,6 +16916,14 @@ void markerror(int emi)
     fprintf(errout, "Buffer overflow while defining macro argument\n");
     break;
 
+  case 873:
+    fprintf(errout, "Format width too large\n");
+    break;
+
+  case 874:
+    fprintf(errout, "System routine snprintf error: bad formatted value\n");
+    break;
+
   /* warning messages */
   case 901:
     fprintf(errout, "Safe mode: sh, copy, and print to file disallowed\n");
@@ -16706,7 +16951,8 @@ void markerror(int emi)
 
 /*--------------------------------------------------------------------*/
 /* Initialize random number routine */
-void initrandom(void)
+void
+initrandom(void)
 { /* Comment equired by p2c */
   /*F var seed: SmallInt; F*/
 time_t seed;
@@ -16721,7 +16967,8 @@ time_t seed;
 /* Interface routine to push terminal
    attributes onto the attribute stack
    for use by semantic actions */
-void stackattribute(stackinx stackp)
+void
+stackattribute(stackinx stackp)
 { attribute *With;
 
   With = &attstack[stackp];
@@ -16742,7 +16989,8 @@ void stackattribute(stackinx stackp)
 
 
 /* End of macro found */
-void exitmacro(void)
+void
+exitmacro(void)
 { /*,lastarg */
   arg *a;
 
@@ -16760,9 +17008,11 @@ void exitmacro(void)
 
 
 /* Read a line from the input */
-void readline(FILE **infname)
+void
+readline(FILE **infname)
 { int ll,c;
   if (feof( *infname )) { inputeof = true; return; }
+  c = ' ';
   for (ll = CHBUFSIZ-1; inbuf->savedlen < ll; ) {
      c = getc( *infname );
      if ((char)c == '\n') ll = inbuf->savedlen;
@@ -16779,22 +17029,17 @@ void readline(FILE **infname)
      }
   if ((ll == CHBUFSIZ-1) && ((char)c != '\n') && (c != EOF)) {
      inbuf->savedlen++; inbuf->carray[inbuf->savedlen] = bslch; }
-  else {
-     while ((inbuf->savedlen > 0) && (inbuf->carray[inbuf->savedlen] == '\r'))
-        inbuf->savedlen--;
-     if (inbuf->carray[inbuf->savedlen] != bslch || lexstate != 2) {
-        inbuf->savedlen++;
-        inbuf->carray[inbuf->savedlen] = nlch;
-        }
-     }
-  /*D; if debuglevel > 0 then begin writeln(log);
-     write(log,'readline ');
+  else if (inbuf->carray[inbuf->savedlen] != bslch || lexstate != 2) {
+     inbuf->savedlen++;
+     inbuf->carray[inbuf->savedlen] = nlch; }
+  /*D; if debuglevel > 0 then begin writeln(log); write(log,'readline ');
      if inputeof then writeln(log,'inputeof') else wrbuf(inbuf,3,0) end D*/
 }
 
 
 /* Get the next line and set lexstate */
-void nextline(Char lastchar)
+void
+nextline(Char lastchar)
 { int i;
   fbuffer *With;
   int FORLIM;
@@ -16830,12 +17075,12 @@ void nextline(Char lastchar)
       if (With->savedlen >= 1) {
 	  if (With->carray[1] == '.') {
 	      if (lexstate != 2) {
-		  if (With->savedlen >= 4 && With->carray[2] == 'P') {
+		  if ((With->savedlen >= 4) && (With->carray[2] == 'P')) {
 		      if (savebuf != NULL) {
 			  With->savedlen = 0;               /* skip .P* lines */
 		      }
-		      else if (With->carray[3] == 'F' ||
-			       With->carray[3] == 'S') {
+		      else if ((With->carray[3] == 'F') ||
+			       (With->carray[3] == 'S')) {
 			  lexstate = 1;
 			  With->readx = 4;
 		      }
@@ -16846,11 +17091,12 @@ void nextline(Char lastchar)
 		  }
 	      }
 	      else if (lastchar != bslch) {
-		  if (With->savedlen < 4 || With->carray[2] != 'P' ||
-		       savebuf != NULL) {
+		  if ((With->savedlen < 4) || (With->carray[2] != 'P') ||
+		      (savebuf != NULL)) {
 		      With->savedlen = 0;                     /* skip . lines */
 		  }
-		  else if (With->carray[3] == 'F' || With->carray[3] == 'S') {
+		  else if ((With->carray[3] == 'F') ||
+			   (With->carray[3] == 'S')) {
 		      lexstate = 1;
 		      With->readx = 4;
 		  }
@@ -16871,7 +17117,7 @@ void nextline(Char lastchar)
          if debuglevel > 1 then begin
             writeln(log); writeln(log,'lineno ',lineno:1,':') end; D*/
       /* Dump the line if not between .PS and .PE */
-      if (lexstate == 0 && !inputeof) {
+      if ((lexstate == 0) && (!inputeof)) {
 	  With = inbuf;
 	  FORLIM = With->savedlen;
 	  for (i = 1; i < FORLIM; i++) {
@@ -16887,13 +17133,14 @@ void nextline(Char lastchar)
          with inbuf^ do for i:=1 to savedlen do wchar(log,carray^[i]);
          writeln(log,'| lexstate=',lexstate:1)
          end D*/
-  } while (!(inbuf->savedlen > 0 || inputeof));
+  } while (!((inbuf->savedlen > 0) || inputeof));
 }
 
 
 /* Read the next char into ch, accounting for
    strings and end of buffer */
-void inchar(void)
+void
+inchar(void)
 { fbuffer *tp;
   boolean endofbuf;
   fbuffer *With;
@@ -16913,11 +17160,11 @@ void inchar(void)
   endofbuf = (inbuf->readx >= inbuf->savedlen);
   while (endofbuf) {
       With = inbuf;
-      if (With->readx < With->savedlen || inputeof) {
+      if ((With->readx < With->savedlen) || inputeof) {
 	  endofbuf = false;
       }
       else if (With->readx <= With->savedlen) {
-	  if (With->carray[With->readx] != bslch || With->nextb != NULL) {
+	  if ((With->carray[With->readx] != bslch) || (With->nextb != NULL)) {
 	      endofbuf = false;
 	  }
 	  else if (instr) {
@@ -16976,7 +17223,7 @@ void inchar(void)
       }
       if (!inputeof) {
 	  With = inbuf;
-	  if (With->savedlen < 1 || inbuf != topbuf) {
+	  if ((With->savedlen < 1) || (inbuf != topbuf)) {
 	      nextline(' ');
 	  }
 	  else {
@@ -17001,7 +17248,8 @@ void inchar(void)
 
 
 /* skip to end of the current input line */
-void skiptoend(void)
+void
+skiptoend(void)
 { boolean skip = true;
   fbuffer *With;
 
@@ -17038,7 +17286,8 @@ void skiptoend(void)
 
 
 /* Move back in chbuf */
-void backup(void)
+void
+backup(void)
 { fbuffer *With;
 
   With = inbuf;
@@ -17050,7 +17299,8 @@ void backup(void)
 /*--------------------------------------------------------------------*/
 /*--------------------------------------------------------------------*/
 /* Copy ch char into chbuf and get new ch */
-void pushch(void)
+void
+pushch(void)
 { chbuf[chbufi] = ch;
   if (chbufi < CHBUFSIZ) {
       chbufi++;
@@ -17064,7 +17314,8 @@ void pushch(void)
 
 
 /* Read complete line into chbuf */
-void readlatex(void)
+void
+readlatex(void)
 { while (ch != nlch) {
       pushch();
   }
@@ -17073,7 +17324,8 @@ void readlatex(void)
 
 
 /* Pascal C-equivalents */
-int argcount(arg *a)
+int
+argcount(arg *a)
 { int i = 0;
 
   if (a == NULL) {
@@ -17090,7 +17342,8 @@ int argcount(arg *a)
 
 
 /* Find the k-th argument */
-arg *findarg(arg *arlst, int k)
+arg *(
+findarg(arg *arlst, int k))
 { arg *ar;
   int i = 1;
   int j;
@@ -17123,7 +17376,8 @@ arg *findarg(arg *arlst, int k)
 
 
 #ifndef SAFE_MODE
-void pointinput(nametype *txt)
+void
+pointinput(nametype *txt)
 { /*F(txt: strptr)F*/
   int i;
   Char c = ' ';
@@ -17182,7 +17436,8 @@ void pointinput(nametype *txt)
 
 
 /* Redirect output */
-void pointoutput(boolean nw, nametype *txt, int *ier)
+void
+pointoutput(boolean nw, nametype *txt, int *ier)
 { /*F(nw:boolean;txt:strptr;var ier:integer)F*/
   int i, FORLIM;
 
@@ -17196,8 +17451,8 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
   FORLIM = txt->len;
   for (i = 0; i < FORLIM; i++) {
       outfnam[i] = txt->segmnt[txt->seginx + i];
-      if (*ier == 1) {
-	  if (isprint_(outfnam[i]) && outfnam[i] != ' ') {
+      if ((*ier) == 1) {
+	  if (isprint_(outfnam[i]) && (outfnam[i] != ' ')) {
 	      *ier = 0;
 	  }
       }
@@ -17207,7 +17462,7 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
      write(log,'Pointoutput(',nw,' segmnt ',seginx:1,', len ',len:1,') "');
      for i := 1 to len do write(log,outfnam[i]); writeln(log,'"');
      flush(log) end; FMHGD*/
-  if (*ier != 0) {
+  if ((*ier) != 0) {
       markerror(861);
       return;
   }
@@ -17243,7 +17498,8 @@ void pointoutput(boolean nw, nametype *txt, int *ier)
 
 #endif
 /* Read string terminal into chbuf */
-void readstring(void)
+void
+readstring(void)
 { /*D,jD*/
   int n;
   arg *ar;
@@ -17258,7 +17514,7 @@ void readstring(void)
   do {
       c = ch;
       pushch();
-      if (c == bslch && ch == '"') {
+      if ((c == bslch) && (ch == '"')) {
 	  chbufi--;
 	  pushch();
       }
@@ -17266,7 +17522,7 @@ void readstring(void)
 	  n = 0;
 	  if (args != NULL) {
 	      while (isdigit(ch) != 0) {
-		  n = n * 10 + ch - '0';
+		  n = (n * 10) + ch - '0';
 		  inchar();
 	      }
 	  }
@@ -17292,7 +17548,7 @@ void readstring(void)
 	      }
 	  }
       }
-  } while (!(c == '"' || inputeof));
+  } while (!((c == '"') || inputeof));
   if (!inputeof) {
       chbufi--;
   }
@@ -17306,7 +17562,8 @@ void readstring(void)
 }
 
 
-void readexponent(void)
+void
+readexponent(void)
 { boolean neg;
   int k = 0;
 
@@ -17327,7 +17584,7 @@ void readexponent(void)
       return;
   }
   do {
-      k = k * 10 + ch - '0';
+      k = (k * 10) + ch - '0';
       pushch();
   } while (isdigit(ch) != 0);
   if (neg) {
@@ -17339,7 +17596,8 @@ void readexponent(void)
 }  /* readexponent */
 
 
-void readfraction(void)
+void
+readfraction(void)
 { double x = 10.0;
 
   while (isdigit(ch) != 0) {
@@ -17350,7 +17608,8 @@ void readfraction(void)
 }  /* readfraction */
 
 
-void readconst(Char initch)
+void
+readconst(Char initch)
 { /*D if debuglevel=2 then begin writeln(log);
      write(log,' readconst(',initch,') readx=',inbuf^.readx:1,' ');
        logchar(ch); writeln(log) end; D*/
@@ -17359,7 +17618,7 @@ void readconst(Char initch)
   }
   else {
       while (isdigit(ch) != 0) {
-	  floatvalue = 10 * floatvalue + ch - '0';
+	  floatvalue = (10 * floatvalue) + ch - '0';
 	  pushch();
       }
       if (ch == '.') {
@@ -17367,7 +17626,7 @@ void readconst(Char initch)
 	  readfraction();
       }
   }
-  if (ch == 'e' || ch == 'E') {
+  if ((ch == 'e') || (ch == 'E')) {
       readexponent();
   }
   if (ch == 'i') {                    /* A rather odd way to allow inch units */
@@ -17397,7 +17656,8 @@ begin
       end
    end; D*/
 /* Go up one buffer level */
-fbuffer *nbuf(fbuffer *buf)
+fbuffer *(
+nbuf(fbuffer *buf))
 { fbuffer *With;
 
   if (buf->prevb == NULL) {
@@ -17414,7 +17674,8 @@ fbuffer *nbuf(fbuffer *buf)
 
 /* Push macro or arg or string from mac into
    the head of the input stream */
-void copyleft(fbuffer *mac, fbuffer **buf)
+void
+copyleft(fbuffer *mac, fbuffer **buf)
 { /*F(mac: fbufferp; var buf: fbufferp)F*/
   fbuffer *ml = mac;
   int i, k;
@@ -17435,7 +17696,7 @@ void copyleft(fbuffer *mac, fbuffer **buf)
       if (mac->carray != NULL) {
 	  if (mac->savedlen >= mac->readx) {
 	      copied = true;
-	      if (*buf == NULL) {
+	      if ((*buf) == NULL) {
 		  newflag = true;
 	      }
 	      else if ((*buf)->attrib >= 0) {
@@ -17456,7 +17717,7 @@ void copyleft(fbuffer *mac, fbuffer **buf)
 	      }
 	  }
 	  k = mac->savedlen;
-	  if ((*buf)->readx < k - mac->readx + 2) {  /*not enough space*/
+	  if ((*buf)->readx < (k - mac->readx + 2)) {  /*not enough space*/
 	      With = *buf;
 	      while (With->readx > 1) {
 		  With->readx--;
@@ -17491,7 +17752,8 @@ void copyleft(fbuffer *mac, fbuffer **buf)
 /* $n has been seen in a macro argument;
    copy the body into the tail of the input
    buffer */
-void copyright(fbuffer *mac, fbuffer **buf)
+void
+copyright(fbuffer *mac, fbuffer **buf)
 { fbuffer *ml;
   int i, k;
   fbuffer *With;
@@ -17502,7 +17764,7 @@ void copyright(fbuffer *mac, fbuffer **buf)
      write(log,' input'); wrbuf(mac,3,1);
      write(log,' output'); wrbuf(buf,3,0) end; D*/
   while (mac != NULL) {
-      if (*buf == NULL) {
+      if ((*buf) == NULL) {
 	  newbuf(buf);
 	  With = *buf;
 	  With->attrib = -1;
@@ -17538,7 +17800,8 @@ void copyright(fbuffer *mac, fbuffer **buf)
 
 /* Check the current char for line
    continuation */
-void skipcontinue(boolean instrg)
+void
+skipcontinue(boolean instrg)
 { Char c;
   fbuffer *With;
 
@@ -17564,7 +17827,7 @@ void skipcontinue(boolean instrg)
 	  continue;
       }
       /* else if c = '#' then begin */
-      if (c != '#' || instrg) {
+      if ((c != '#') || instrg) {
 	  c = ' ';
 	  break;
       }
@@ -17576,9 +17839,10 @@ void skipcontinue(boolean instrg)
 
 
 /* Skip white space characters */
-void skipwhite(void)
+void
+skipwhite(void)
 { /* D if debuglevel = 2 then writeln(log, 'skipwhite: ' ); D */
-  while (ch == etxch || ch == nlch || ch == tabch || ch == ' ') {
+  while ((ch == etxch) || (ch == nlch) || (ch == tabch) || (ch == ' ')) {
       if (ch == etxch) {
 	  exitmacro();
       }
@@ -17592,7 +17856,8 @@ void skipwhite(void)
 
 /* Stash the current argument into the arg
    struct*/
-void defineargbody(int *parenlevel, fbuffer **p2)
+void
+defineargbody(int *parenlevel, fbuffer **p2)
 { int j, n;
   arg *ar;
   fbuffer *p;
@@ -17604,7 +17869,7 @@ void defineargbody(int *parenlevel, fbuffer **p2)
   /*D if debuglevel > 0 then begin writeln(log);
       write(log, 'defineargbody: parenlevel=',parenlevel:1) end; D*/
   skipwhite();
-  if (*parenlevel >= 0) {
+  if ((*parenlevel) >= 0) {
       inarg = true;
   }
   else {
@@ -17624,7 +17889,7 @@ void defineargbody(int *parenlevel, fbuffer **p2)
       do {
 	  With = p1;
 	  if (prevch != bslch) {
-	      if (instring && ch == '"') {
+	      if (instring && (ch == '"')) {
 		  instring = false;
 	      }
 	      else if (ch == '"') {
@@ -17640,7 +17905,8 @@ void defineargbody(int *parenlevel, fbuffer **p2)
 	      }
 	  }
 	  /*D if debuglevel=2 then write(log,' instring=',instring,' '); D*/
-	  if (!instring && (*parenlevel < 0 || *parenlevel == 0 && ch == ',')) {
+	  if ((!instring) && (((*parenlevel) < 0) ||
+			      (((*parenlevel) == 0) && (ch == ',')))) {
 	      j = With->savedlen;
 	      inarg = false;
 	  }
@@ -17666,7 +17932,7 @@ void defineargbody(int *parenlevel, fbuffer **p2)
 	      if (isdigit(ch) != 0) {
 		  n = 0;
 		  do {
-		      n = n * 10 + ch - '0';
+		      n = (n * 10) + ch - '0';
 		      inchar();
 		  } while (isdigit(ch) != 0);
 		  ar = findarg(args, n);
@@ -17709,7 +17975,8 @@ void defineargbody(int *parenlevel, fbuffer **p2)
 
 
 /* Check for macro name */
-boolean ismacro(Char *chb, chbufinx obi, chbufinx chbi)
+boolean
+ismacro(Char *chb, chbufinx obi, chbufinx chbi)
 { arg *mac, *lastp, *ar;
   arg *lastarg = NULL, *firstarg = NULL;
   int level;
@@ -17764,7 +18031,8 @@ boolean ismacro(Char *chb, chbufinx obi, chbufinx chbi)
 
 /* Push an argument to the left of the
    input stream */
-void copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
+void
+copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
 { int n = 0;
   int i;
   arg *ar;
@@ -17772,7 +18040,7 @@ void copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
   /*D if debuglevel > 0 then begin write(log,'copyarg(');
      for i:= chbs to chbi-1 do write(log,chb^[i]); write(log,') ') end; D*/
   for (i = chbs + 1; i < chbi; i++) {
-      n = n * 10 + chb[i] - '0';
+      n = (n * 10) + chb[i] - '0';
   }
   ar = findarg(args, n);
   backup();
@@ -17785,7 +18053,8 @@ void copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
 
 
 /* Check for $+ or copy arg */
-boolean insertarg(void)
+boolean
+insertarg(void)
 { int icx;
 
   pushch();
@@ -17813,7 +18082,8 @@ boolean insertarg(void)
    Identify and handle all terminals
    of the form <...> in the grammar.
    Reads one character after the terminal end */
-void lexical(void)
+void
+lexical(void)
 { int lxix;
   Char firstch;
   boolean terminalaccepted, looping;
@@ -17827,7 +18097,7 @@ void lexical(void)
   do {
       terminalaccepted = true;
       oldbufi = chbufi;            /* first char of current terminal in chbuf */
-      while (ch == ' ' || ch == tabch) {
+      while ((ch == ' ') || (ch == tabch)) {
 	  inchar();
       }
       /* lexstate is
@@ -17871,8 +18141,9 @@ void lexical(void)
       else if (ch == nlch) {
 	  newsymb = XNL;
 	  ch = ' ';
-	  if (oldsymb == XLelse || oldsymb == XLBRACE || oldsymb == XLthen ||
-	       oldsymb == XCOLON || oldsymb == XNL) {
+	  if ((oldsymb == XLelse) || (oldsymb == XLBRACE) ||
+	      (oldsymb == XLthen) || (oldsymb == XCOLON) ||
+	      (oldsymb == XNL)) {
 	      terminalaccepted = false;
 	  }
       }
@@ -17892,7 +18163,7 @@ void lexical(void)
 	  /* Continuation, comment, constant, latex */
 	  With = inbuf;
 	  if (firstch == bslch) {
-	      if (ch == nlch || ch == '#') {
+	      if ((ch == nlch) || (ch == '#')) {
 		  if (ch == '#') {
 		      skiptoend();
 		  }
@@ -17904,17 +18175,17 @@ void lexical(void)
 		  readlatex();
 	      }
 	  }
-	  else if (firstch == '.' && isdigit(ch) != 0) {
+	  else if ((firstch == '.') && (isdigit(ch) != 0)) {
 	      readconst(firstch);
 	  }
-	  else if (firstch == '.' && With->readx == 3 &&
-		   inbuf->prevb == NULL && newsymb != -2) {
+	  else if ((firstch == '.') && (With->readx == 3) &&
+		   (inbuf->prevb == NULL) && (newsymb != (-2))) {
 	      /* Search in the lexical tree */
 	      readlatex();
 	  }
 	  else {
-	      newsymb = entrytv[firstch];
-	      lxix = entryhp[firstch];
+	      newsymb = entrytv[abs(firstch)];
+	      lxix = entryhp[abs(firstch)];
 	      while (lxix != 0) {
 		  if (ch == '$') {
 		      if (!insertarg()) {
@@ -17932,15 +18203,15 @@ void lexical(void)
 		  }
 	      }
 	      /* Insert argument or macro */
-	      if (isupper(firstch) != 0 &&
-		  (isalnum(ch) != 0 || ch == '_' || ch == '$')) {
+	      if ((isupper(firstch) != 0) &&
+		  ((isalnum(ch) != 0) || (ch == '_') || (ch == '$'))) {
 		  /* Label */
 		  looping = true;
 		  while (looping) {
 		      if (ch == '$') {
 			  looping = insertarg();
 		      }
-		      else if (isalnum(ch) != 0 || ch == '_') {
+		      else if ((isalnum(ch) != 0) || (ch == '_')) {
 			  pushch();
 		      }
 		      else {
@@ -17954,15 +18225,15 @@ void lexical(void)
 		      newsymb = XLabel;
 		  }
 	      }
-	      else if ((isalnum(firstch) != 0 || firstch == '_') &&
-		       (isalnum(ch) != 0 || ch == '_' || ch == '$')) {
+	      else if (((isalnum(firstch) != 0) || (firstch == '_')) &&
+		       ((isalnum(ch) != 0) || (ch == '_') || (ch == '$'))) {
 		  /* variable name */
 		  looping = true;
 		  while (looping) {
 		      if (ch == '$') {
 			  looping = insertarg();
 		      }
-		      else if (isalnum(ch) != 0 || ch == '_') {
+		      else if ((isalnum(ch) != 0) || (ch == '_')) {
 			  pushch();
 		      }
 		      else {
@@ -17986,17 +18257,17 @@ void lexical(void)
 		  terminalaccepted = false;
 	      }
 	      /* Skip after designated terminals */
-	      else if (newsymb == XNL &&
-		       (oldsymb == XLelse || oldsymb == XLBRACE ||
-			oldsymb == XLthen || oldsymb == XCOLON ||
-			oldsymb == XNL)) {
+	      else if ((newsymb == XNL) &&
+		       ((oldsymb == XLelse) || (oldsymb == XLBRACE) ||
+			(oldsymb == XLthen) || (oldsymb == XCOLON) ||
+			(oldsymb == XNL))) {
 		  terminalaccepted = false;
 	      }
-	      else if (newsymb == XLT && inlogic) {
+	      else if ((newsymb == XLT) && inlogic) {
 		  lexsymb = XLcompare;
 		  newsymb = XLcompare;
 	      }
-	      else if (newsymb > XEQ && newsymb <= XLremeq) {
+	      else if ((newsymb > XEQ) && (newsymb <= XLremeq)) {
 		  lexsymb = newsymb;
 		  newsymb = XEQ;
 	      }
@@ -18090,7 +18361,7 @@ void lexical(void)
 		     end D*/
 		  skipwhite();
 	      }
-	      else if (newsymb == 0 && isupper(firstch) != 0) {
+	      else if ((newsymb == 0) && (isupper(firstch) != 0)) {
 		  /* Label, second possibility */
 		  if (ismacro(chbuf, oldbufi, chbufi)) {
 		      terminalaccepted = false;
@@ -18099,8 +18370,8 @@ void lexical(void)
 		      newsymb = XLabel;
 		  }
 	      }
-	      else if (newsymb == 0 &&
-		       (isalnum(firstch) != 0 || firstch == '_')) {
+	      else if ((newsymb == 0) &&
+		       ((isalnum(firstch) != 0) || (firstch == '_'))) {
 		  /* name, second possibility */
 		  if (ismacro(chbuf, oldbufi, chbufi)) {
 		      terminalaccepted = false;
@@ -18126,12 +18397,12 @@ void lexical(void)
       }
       /*lookahead terminals*/
       /*D prlex( terminalaccepted ); D*/
-      if (newsymb != XLaTeX && newsymb != XLstring && newsymb != XLabel &&
-	   newsymb != XLname) {
+      if ((newsymb != XLaTeX) && (newsymb != XLstring) &&
+	  (newsymb != XLabel) && (newsymb != XLname)) {
 	  chbufi = oldbufi;
       }
   } while (!terminalaccepted);
-  if (lexsymb == -1) {
+  if (lexsymb == (-1)) {
       lexsymb = newsymb;
   }
   oldsymb = newsymb;
@@ -18141,7 +18412,8 @@ void lexical(void)
 /*--------------------------------------------------------------------*/
 /* Skip white to next left brace, accounting
    for strings */
-void skiptobrace(void)
+void
+skiptobrace(void)
 { int bracelevel = 1;
   boolean instring = false;
   Char prevch = ' ';
@@ -18156,7 +18428,7 @@ void skiptobrace(void)
 	  exitmacro();
       }
       if (instring) {
-	  if (ch == '"' && prevch != bslch) {
+	  if ((ch == '"') && (prevch != bslch)) {
 	      instring = false;
 	  }
       }
@@ -18191,7 +18463,8 @@ void skiptobrace(void)
 
 /* Stuff the body of a for loop or a macro
    body into p2 */
-void readfor(fbuffer *p0, int attx, fbuffer **p2)
+void
+readfor(fbuffer *p0, int attx, fbuffer **p2)
 { /*F(p0: fbufferp; attx: integer; var p2: fbufferp)F*/
   /* attx: attstack index or -(name length)
      p0 <> nil: append the output to this buffer.
@@ -18233,7 +18506,7 @@ void readfor(fbuffer *p0, int attx, fbuffer **p2)
 	  /* D if debuglevel = 2 then begin write(log, 'readfor1: ');
 	      logchar(ch); write(log,' instring=',instring,' ') end; D */
 	  if (instring) {  /* do not check braces in strings */
-	      if (ch == '"' && prevch != bslch) {
+	      if ((ch == '"') && (prevch != bslch)) {
 		  instring = false;
 	      }
 	  }
@@ -18286,7 +18559,8 @@ void readfor(fbuffer *p0, int attx, fbuffer **p2)
 
 
 /*--------------------------------------------------------------------*/
-void bumptop(stackinx chk, stackinx *sttop)
+void
+bumptop(stackinx chk, stackinx *sttop)
 { /* D if chk<>sttop then
      writeln(errout,'chk=',chk:4,' sttop=',sttop:4); D */
   if (chk < STACKMAX) {
@@ -18330,7 +18604,8 @@ begin
       for i := 1 to j do if attstack^[i].internal = nil then write(log,'    ')
          else write(log,attstack^[i].internal^.ptype:4); writeln(log) end
    end; D*/
-void doprod(int prno)
+void
+doprod(int prno)
 { /*F(prno: integer)F*/
   redubuf[reduinx + REDUMAX].prod_ = prno;
   reduinx--;
@@ -18339,7 +18614,8 @@ void doprod(int prno)
 
 /* Call the semantic action routine
    (produce) for the queued productions */
-void advance(void)
+void
+advance(void)
 {  /* perform reductions */
   int i, j;
   reduelem *With;
@@ -18386,10 +18662,10 @@ void advance(void)
      writeln(log); write(log,' oldbufi=',oldbufi:1,' ');
      snapname(chbuf,0,chbufi); writeln(log)
      end;D*/
-  if (redutop > 0 && j < oldbufi &&
-       redubuf[redutop + REDUMAX].prod_ != closeblock1 &&
-       redubuf[redutop + REDUMAX].prod_ != suffix2 &&
-       redubuf[redutop + REDUMAX].prod_ != suffix1) {
+  if ((redutop > 0) && (j < oldbufi) &&
+      (redubuf[redutop + REDUMAX].prod_ != closeblock1) &&
+      (redubuf[redutop + REDUMAX].prod_ != suffix2) &&
+      (redubuf[redutop + REDUMAX].prod_ != suffix1)) {
       FORLIM = chbufi - oldbufi;
       /*D if debuglevel > 0 then begin write(log,
         'chbuf(', oldbufi:1, ':', chbufi-1:1, ') =');
@@ -18414,7 +18690,8 @@ void advance(void)
 }  /*advance*/
 
 
-void backtrack(stackinx btop, int bstart)
+void
+backtrack(stackinx btop, int bstart)
 { stacktop = btop;
   validtop = btop;
   pseudotop = btop;
@@ -18424,7 +18701,8 @@ void backtrack(stackinx btop, int bstart)
 }  /* backtrack */
 
 
-void pseudoshift(void)
+void
+pseudoshift(void)
 { bumptop(pseudotop, &stacktop);
   pseudotop = top + stacktop - validtop;
   parsestack[pseudotop].table = startinx;
@@ -18436,7 +18714,8 @@ void pseudoshift(void)
 /* Add production number to the production
    buffer if it is positive; negative value
    is for nul production */
-void queue(int rs_, int p)
+void
+queue(int rs_, int p)
 { reduelem *With;
 
   if (p >= 0) {
@@ -18467,7 +18746,8 @@ void queue(int rs_, int p)
 
 /* Check the lexical terminal against the
    parse table. Queue productions. */
-boolean lookahead(symbol lsymbol)
+boolean
+lookahead(symbol lsymbol)
 { boolean decided = false, la = false;
   int si;
 
@@ -18484,7 +18764,7 @@ boolean lookahead(symbol lsymbol)
 	break;
 
       case 1:
-	while (lr[lri + symb] != lsymbol && lr[lri] != 0) {
+	while ((lr[lri + symb] != lsymbol) && (lr[lri] != 0)) {
 	    lri = lr[lri];
 	}
 	decided = true;
@@ -18494,7 +18774,7 @@ boolean lookahead(symbol lsymbol)
       case 2:
       case 4:
       case 6:
-	while (lr[lri + symb] != lsymbol && lr[lri] != 0) {
+	while ((lr[lri + symb] != lsymbol) && (lr[lri] != 0)) {
 	    lri = lr[lri];
 	}
 	if (lr[lri + kind] == 2) {
@@ -18517,7 +18797,7 @@ boolean lookahead(symbol lsymbol)
 	si = parsestack[pseudotop].table;
 	/*D if trace then
 	    writeln(log, ' SI(', si: 1, ')');D*/
-	while (lr[lri + lb] != si && lr[lri] != 0) {
+	while ((lr[lri + lb] != si) && (lr[lri] != 0)) {
 	    lri = lr[lri];
 	}
 	break;
@@ -18532,7 +18812,8 @@ boolean lookahead(symbol lsymbol)
 
 /*--------------------------------------------------------------------*/
 /* Look in the grammar for error recovery */
-void syntaxerror(void)
+void
+syntaxerror(void)
 { boolean success = false;
   stackinx s = 0;
   stackinx s1, FORLIM;
@@ -18558,7 +18839,7 @@ void syntaxerror(void)
 	      success = lookahead(newsymb);
 	  }
 	  s1 = parsestack[s1].link;
-      } while (!(success || s1 == 0));
+      } while (!(success || (s1 == 0)));
       if (!success) {                                                /*D end D*/
 	  lexical();
       }
@@ -18574,7 +18855,8 @@ void syntaxerror(void)
    parse state, and lexical state; then
    parse to end of input, managing the
    parse stack. */
-void parse(void)
+void
+parse(void)
 { initrandom();
   chbuf = Malloc(sizeof(chbufarray));
   /*D if debuglevel > 0 then writeln(log,'new(chbuf)[',odp(chbuf):1,']'); D*/
@@ -18624,7 +18906,8 @@ void parse(void)
 }  /* parse */
 
 
-Char optionchar(Char *fn)
+Char
+optionchar(Char *fn)
 { int j = 1, k = FILENAMELEN + 1;
 
   while (j < k) {
@@ -18653,7 +18936,8 @@ Char optionchar(Char *fn)
 /* Set safe mode and one of 12 output formats.
    The version date is set during
    preprocessing */
-void getoptions(void)
+void
+getoptions(void)
 { Char cht;
   int istop;
 
@@ -18708,8 +18992,11 @@ void getoptions(void)
 	  else if (cht >= '0') and (cht <= '9') then oflag := ord(cht)-ord('0')
 	  FMHGD*/
       }
-      else if (cht == 'h' || cht == '-') {
-	  fprintf(errout, " *** dpic version 2017.08.01\n");
+      else if ((cht == 'h') || (cht == '-')) {
+	  fprintf(errout, " *** dpic version 2018.03.01\n");
+	  /*DGHMF
+	  writeln(errout,' Debug is enabled');
+	  FMHGD*/
 	  fprintf(errout, " Options:\n");
 	  fprintf(errout, "     (none) LaTeX picture output\n");
 	  fprintf(errout, "     -d PDF output\n");
@@ -18743,7 +19030,7 @@ void getoptions(void)
 }  /* getoptions */
 
 
-void main(int argc, Char *argv[])
+int main(int argc, Char *argv[])
 { P_argc = argc; P_argv = argv; __top_jb = NULL;
   redirect = NULL;
   copyin = NULL;
@@ -18761,6 +19048,7 @@ void main(int argc, Char *argv[])
   openfiles();
   inputeof = false;
   attstack = Malloc(sizeof(attstacktype));
+  tmpbuf = NULL;
   parse();
   epilog();
   if (input != NULL) {

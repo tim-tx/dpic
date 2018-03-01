@@ -42,7 +42,7 @@ DOCDIR = /usr/share/doc/dpic
 # CC=xlc
 
 # other.  cc usually works too.
-CFLAGS += $(DEFINEA) $(DEFINEB) $(SAFEMODE) -O -ansi
+CFLAGS += $(DEFINEA) $(DEFINEB) $(SAFEMODE) -O
 CC=gcc
 
 OBJECTS = dpic.o p2clib.o
@@ -76,7 +76,7 @@ dpic.c: $(SOURCES)
 	if test -n "$(DEBUG)" ; \
       then $(CC) -c src/sysdep.c; fi
 
-install: dpic doc/dpicdoc.pdf
+install: dpic doc/dpic-doc.pdf
 	mkdir -p $(DEST)
 	if test -x dpic.exe ; then \
       strip dpic.exe; install dpic.exe $(DEST) ; \
@@ -84,7 +84,7 @@ install: dpic doc/dpicdoc.pdf
       strip dpic; install -m 755 dpic $(DEST) ; \
     fi
 	mkdir -p $(DOCDIR)
-	cp -p doc/dpicdoc.pdf $(DOCDIR)
+	cp -p doc/dpic-doc.pdf $(DOCDIR)
 	mkdir -p $(MANDIR)
 	cat doc/dpic.1 | gzip > $(MANDIR)/dpic.1.gz
 
@@ -92,10 +92,10 @@ uninstall:
 	rm -f $(DEST)/dpic* $(MANDIR)/dpic.1.gz
 	if test `basename $(DOCDIR)` = dpic ; then \
       rm -r $(DOCDIR) ; \
-    else rm -f $(DOCDIR)/dpicdoc.pdf ; \
+    else rm -f $(DOCDIR)/dpic-doc.pdf ; \
     fi
 
-doc/dpicdoc.pdf:
+doc/dpic-doc.pdf:
 	(cd doc; make)
 
 #                               Delete compiled files

@@ -1,6 +1,6 @@
 NAME = PG
 INSTALLDIR = ..
-CC = gcc -ansi
+CC = gcc
 PROGS = $(NAME) $(NAME)c $(NAME)p $(NAME)f
 
 install: $(PROGS)

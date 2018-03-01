@@ -43,8 +43,8 @@ CC = gcc                    # NOTE: logf changed to logfile and
 CC = @CC@
 OPT = -O		   # uncomment this for optimization
 DEB = # -g		   # uncomment this for debugging
-DEFS =			   # place other -D types of things here
-CFLAGS = $(OPT) $(DEB) $(DEFS) -ansi  # -ansi added (DA)
+DEFS = @cninety@   # place other -D types of things here
+CFLAGS = $(OPT) $(DEB) $(DEFS)
 LFLAGS =
 
 
@@ -93,7 +93,6 @@ trans.o: trans.c trans.h
 	$(CC) -c $(CFLAGS) -DHASDUMPS -DP2C_HOME=\"$(ABSHOMEDIR)\" xrans.c \
       -o trans.o
 	rm -f xrans.c
-
 
 # Making and using makeproto
 p2c.hdrs: $(SRCS) makeproto

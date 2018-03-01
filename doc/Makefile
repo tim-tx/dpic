@@ -13,13 +13,13 @@ DPIC = dpic
 PICS = spline.tex arrow.tex circles.tex Spiral.tex
 PDFLATEX = pdflatex --quiet
 
-Dpicdoc.pdf: dpicdoc.aux
-	$(PDFLATEX) dpicdoc
-	$(PDFLATEX) dpicdoc
+Dpicdoc.pdf: dpic-doc.aux
+	$(PDFLATEX) dpic-doc
+	$(PDFLATEX) dpic-doc
 
-dpicdoc.aux: dpicdoc.tex dpicdoc.bib $(PICS) dpic_man.tex VERSION.tex
-	$(PDFLATEX) dpicdoc
-	bibtex dpicdoc
+dpic-doc.aux: dpic-doc.tex dpic-doc.bib $(PICS) dpic_man.tex VERSION.tex
+	$(PDFLATEX) dpic-doc
+	bibtex dpic-doc
 
 VERSION.tex: VERSION
 	cp VERSION VERSION.tex

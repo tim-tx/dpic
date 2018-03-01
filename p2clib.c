@@ -63,18 +63,19 @@ long x;
 }
 
 
-#ifdef __STDC__
-Anyptr my_memmove(Anyptr d, Const Anyptr s, size_t n)
+#if defined(__STDC__) && __STDC__
+    Anyptr my_memmove(Anyptr d, Const Anyptr s, size_t n)
 #else
-Anyptr my_memmove(d, s, n)
-Anyptr d, s;
-register int n;
+    Anyptr my_memmove(d, s, n)
+    Anyptr d, s;
+    register int n;
 #endif
 {
     register char *dd = (char *)d, *ss = (char *)s;
     if (dd < ss || dd - ss >= n) {
 #if defined(bcopy) && defined(memcpy)
-        my_memcpy(dd, ss, n);
+{   Anyptr q; /* DA */
+    q = my_memcpy(dd, ss, n); /* DA */ }
 #else
 	memcpy(dd, ss, n);
 #endif
@@ -88,48 +89,45 @@ register int n;
 }
 
 
-#ifdef __STDC__
-Anyptr my_memcpy(Anyptr d, Const Anyptr s, size_t n)
+#if defined(__STDC__) && __STDC__
+    Anyptr my_memcpy(Anyptr d, Const Anyptr s, size_t n)
 #else
-Anyptr my_memcpy(d, s, n)
-Anyptr d, s;
-register int n;
+    Anyptr my_memcpy(d, s, n)
+    Anyptr d, s;
+    register int n;
 #endif
 {
     register char *ss = (char *)s, *dd = (char *)d;
-    while (n-- > 0)
-	*dd++ = *ss++;
+    while (n-- > 0) *dd++ = *ss++;
     return d;
 }
 
-#ifdef __STDC__
-int my_memcmp(Const Anyptr s1, Const Anyptr s2, size_t n)
+#if defined(__STDC__) && __STDC__
+    int my_memcmp(Const Anyptr s1, Const Anyptr s2, size_t n)
 #else
-int my_memcmp(s1, s2, n)
-Anyptr s1, s2;
-register int n;
+    int my_memcmp(s1, s2, n)
+    Anyptr s1, s2;
+    register int n;
 #endif
 {
     register char *a = (char *)s1, *b = (char *)s2;
     register int i;
     while (n-- > 0)
-	if ((i = (*a++) - (*b++)) != 0)
-	    return i;
+	   if ((i = (*a++) - (*b++)) != 0) return i;
     return 0;
 }
 
-#ifdef __STDC__
-Anyptr my_memset(Anyptr d, int c, size_t n)
+#if defined(__STDC__) && __STDC__
+    Anyptr my_memset(Anyptr d, int c, size_t n)
 #else
-Anyptr my_memset(d, c, n)
-Anyptr d;
-register int c;
-register int n;
+    Anyptr my_memset(d, c, n)
+    Anyptr d;
+    register int c;
+    register int n;
 #endif
 {
     register char *dd = (char *)d;
-    while (n-- > 0)
-	*dd++ = c;
+    while (n-- > 0) *dd++ = c;
     return d;
 }
 
@@ -137,20 +135,16 @@ register int n;
 int my_toupper(c)
 int c;
 {
-    if (islower(c))
-	return _toupper(c);
-    else
-	return c;
+    if (islower(c)) return _toupper(c);
+    else return c;
 }
 
 
 int my_tolower(c)
 int c;
 {
-    if (isupper(c))
-	return _tolower(c);
-    else
-	return c;
+    if (isupper(c)) return _tolower(c);
+    else return c;
 }
 
 
@@ -161,20 +155,15 @@ long a, b;
 {
     long v;
 
-    if (a == 0 || a == 1)
-	return a;
-    if (a == -1)
-	return (b & 1) ? -1 : 1;
-    if (b < 0)
-	return 0;
-    if (a == 2)
-	return 1L << b;
+    if (a == 0 || a == 1) return a;
+    if (a == -1) return (b & 1) ? -1 : 1;
+    if (b < 0) return 0;
+    if (a == 2) return 1L << b;
     v = (b & 1) ? a : 1;
     while ((b >>= 1) > 0) {
-	a *= a;
-	if (b & 1)
-	    v *= a;
-    }
+	    a *= a;
+	    if (b & 1) v *= a;
+        }
     return v;
 }
 
@@ -182,38 +171,30 @@ long a, b;
 long P_imax(a, b)
 long a, b;
 {
-    if (a > b)
-	return a;
-    else
-	return b;
+    if (a > b) return a;
+    else return b;
 }
 
 long P_imin(a, b)
 long a, b;
 {
-    if (a < b)
-	return a;
-    else
-	return b;
+    if (a < b) return a;
+    else return b;
 }
 
 
 double P_rmax(a, b)
 double a, b;
 {
-    if (a > b)
-	return a;
-    else
-	return b;
+    if (a > b) return a;
+    else return b;
 }
 
 double P_rmin(a, b)
 double a, b;
 {
-    if (a < b)
-	return a;
-    else
-	return b;
+    if (a < b) return a;
+    else return b;
 }
 
 
@@ -222,7 +203,7 @@ double a, b;
 /* Common string functions: */
 
 /* Store in "ret" the substring of length "len" starting from "pos" (1-based).
-   Store a shorter or null string if out-of-range.  Return "ret". */
+   Store a shorter or null string if out of range.  Return "ret". */
 
 char *strsub(ret, s, pos, len)
 register char *ret, *s;
@@ -287,16 +268,13 @@ register char *s1, *s2;
 
     while (*s1) {
 	if (*s1++ != *s2++) {
-	    if (!s2[-1])
-		return 1;
+	    if (!s2[-1]) return 1;
 	    c1 = toupper(s1[-1]);
 	    c2 = toupper(s2[-1]);
-	    if (c1 != c2)
-		return c1 - c2;
+	    if (c1 != c2) return c1 - c2;
 	}
     }
-    if (*s2)
-	return -1;
+    if (*s2) return -1;
     return 0;
 }
 
@@ -360,13 +338,12 @@ register int padchar, num;
     register char *d = ret;
 
     if (s == d) {
-	while (*d++) ;
+	    while (*d++) ;
     } else {
-	while ((*d++ = *s++)) ;
+	    while ((*d++ = *s++)) ;
     }
     num -= (--d - ret);
-    while (--num >= 0)
-	*d++ = padchar;
+    while (--num >= 0) *d++ = padchar;
     *d = 0;
     return ret;
 }
@@ -382,12 +359,10 @@ register int len, spos, dpos;
 {
     s += spos - 1;
     d += dpos - 1;
-    while (*d && --len >= 0)
-	*d++ = *s++;
+    while (*d && --len >= 0) *d++ = *s++;
     if (len > 0) {
-	while (--len >= 0)
-	    *d++ = *s++;
-	*d = 0;
+	    while (--len >= 0) *d++ = *s++;
+	    *d = 0;
     }
 }
 
@@ -401,16 +376,11 @@ register int pos, len;
 {
     register int slen;
 
-    if (--pos < 0)
-        return;
+    if (--pos < 0) return;
     slen = strlen(s) - pos;
-    if (slen <= 0)
-        return;
+    if (slen <= 0) return;
     s += pos;
-    if (slen <= len) {
-        *s = 0;
-        return;
-    }
+    if (slen <= len) { *s = 0; return; }
     while ((*s = s[len])) s++;
 }
 
@@ -423,23 +393,18 @@ register int pos;
 {
     register int slen, dlen;
 
-    if (--pos < 0)
-        return;
+    if (--pos < 0) return;
     dlen = strlen(dst);
     dst += dlen;
     dlen -= pos;
-    if (dlen <= 0) {
-        strcpy(dst, src);
-        return;
-    }
+    if (dlen <= 0) { strcpy(dst, src); return; }
     slen = strlen(src);
     do {
         dst[slen] = *dst;
         --dst;
     } while (--dlen >= 0);
     dst++;
-    while (--slen >= 0)
-        *dst++ = *src++;
+    while (--slen >= 0) *dst++ = *src++;
 }
 
 
@@ -455,8 +420,7 @@ FILE *f;
     int ch;
 
     ch = getc(f);
-    if (ch == EOF)
-	return EOF;
+    if (ch == EOF) return EOF;
     ungetc(ch, f);
     return (ch == '\n') ? ' ' : ch;
 }
@@ -471,8 +435,7 @@ FILE *f;
 {
     register int ch;
 
-    if (feof(f))
-	return 1;
+    if (feof(f)) return 1;
 #ifdef HAVE_ISATTY
     if (isatty(fileno(f)))
 #else
@@ -480,8 +443,7 @@ FILE *f;
 #endif
 	return 0;    /* not safe to look-ahead on the keyboard! */
     ch = getc(f);
-    if (ch == EOF)
-	return 1;
+    if (ch == EOF) return 1;
     ungetc(ch, f);
     return 0;
 }
@@ -495,8 +457,7 @@ FILE *f;
     register int ch;
 
     ch = getc(f);
-    if (ch == EOF)
-        return 1;
+    if (ch == EOF) return 1;
     ungetc(ch, f);
     return (ch == '\n');
 }
@@ -512,8 +473,7 @@ FILE *f;
   do {
     ch = getc(f);
   } while (ch == ' ' || ch == '\t' || ch == '\n');
-  if (ch != EOF)
-    ungetc(ch, f);
+  if (ch != EOF) ungetc(ch, f);
   return f;
 }
 
@@ -528,8 +488,7 @@ FILE *f;
   do {
     ch = getc(f);
   } while (ch == ' ' || ch == '\t');
-  if (ch != EOF)
-    ungetc(ch, f);
+  if (ch != EOF) ungetc(ch, f);
   return f;
 }
 
@@ -544,18 +503,14 @@ int len;
     int ch;
 
     for (;;) {
-	if (len <= 0)
-	    return;
-	ch = getc(f);
-	if (ch == EOF || ch == '\n')
-	    break;
-	*s++ = ch;
-	--len;
+    	if (len <= 0) return;
+    	ch = getc(f);
+    	if (ch == EOF || ch == '\n') break;
+    	*s++ = ch;
+    	--len;
     }
-    while (--len >= 0)
-	*s++ = ' ';
-    if (ch != EOF)
-	ungetc(ch, f);
+    while (--len >= 0) *s++ = ' ';
+    if (ch != EOF) ungetc(ch, f);
 }
 
 Void P_readlnpaoc(f, s, len)
@@ -566,16 +521,14 @@ int len;
     int ch;
 
     for (;;) {
-	ch = getc(f);
-	if (ch == EOF || ch == '\n')
-	    break;
-	if (len > 0) {
-	    *s++ = ch;
-	    --len;
-	}
+    	ch = getc(f);
+    	if (ch == EOF || ch == '\n') break;
+    	if (len > 0) {
+    	    *s++ = ch;
+    	    --len;
+    	}
     }
-    while (--len >= 0)
-	*s++ = ' ';
+    while (--len >= 0) *s++ = ' ';
 }
 
 
@@ -587,14 +540,11 @@ FILE *f;
     long savepos = ftell(f);
     long val;
 
-    if (fseek(f, 0L, SEEK_END))
-        return -1;
+    if (fseek(f, 0L, SEEK_END)) return -1;
     val = ftell(f);
-    if (fseek(f, savepos, SEEK_SET))
-        return -1;
+    if (fseek(f, savepos, SEEK_SET)) return -1;
     return val;
 }
-
 
 /* Use packed array of char for a file name. */
 
@@ -605,14 +555,10 @@ register int len;
     static Char fnbuf[256];
     register Char *cp = fnbuf;
     
-    while (--len >= 0 && *fn && !isspace(*fn))
-	*cp++ = *fn++;
+    while (--len >= 0 && *fn && !isspace(*fn)) *cp++ = *fn++;
     *cp = 0;
     return fnbuf;
 }
-
-
-
 
 /* Pascal's "memavail" doesn't make much sense in Unix with virtual memory.
    We fix memory size as 10Meg as a reasonable compromise. */
@@ -626,9 +572,6 @@ long maxavail()
 {
     return memavail();
 }
-
-
-
 
 /* Sets are stored as an array of longs.  S[0] is the size of the set;
    S[N] is the N'th 32-bit chunk of the set.  S[0] equals the maximum
@@ -648,10 +591,8 @@ register long *d, *s1, *s2;
         *d++ = *s1++ | *s2++;
 	sz1--, sz2--;
     }
-    while (--sz1 >= 0)
-	*d++ = *s1++;
-    while (--sz2 >= 0)
-	*d++ = *s2++;
+    while (--sz1 >= 0) *d++ = *s1++;
+    while (--sz2 >= 0) *d++ = *s2++;
     *dbase = d - dbase - 1;
     return dbase;
 }
@@ -662,8 +603,7 @@ register long *d, *s1, *s2;
 {
     long *dbase = d++;
     register int sz1 = *s1++, sz2 = *s2++;
-    while (--sz1 >= 0 && --sz2 >= 0)
-        *d++ = *s1++ & *s2++;
+    while (--sz1 >= 0 && --sz2 >= 0) *d++ = *s1++ & *s2++;
     while (--d > dbase && !*d) ;
     *dbase = d - dbase;
     return dbase;
@@ -678,8 +618,7 @@ register long *d, *s1, *s2;
     while (--sz1 >= 0 && --sz2 >= 0)
         *d++ = *s1++ & ~*s2++;
     if (sz1 >= 0) {
-        while (sz1-- >= 0)
-            *d++ = *s1++;
+        while (sz1-- >= 0) *d++ = *s1++;
     }
     while (--d > dbase && !*d) ;
     *dbase = d - dbase;
@@ -696,10 +635,8 @@ register long *d, *s1, *s2;
         *d++ = *s1++ ^ *s2++;
 	sz1--, sz2--;
     }
-    while (--sz1 >= 0)
-	*d++ = *s1++;
-    while (--sz2 >= 0)
-	*d++ = *s2++;
+    while (--sz1 >= 0) *d++ = *s1++;
+    while (--sz2 >= 0) *d++ = *s2++;
     while (--d > dbase && !*d) ;
     *dbase = d - dbase;
     return dbase;
@@ -713,8 +650,7 @@ register long *s;
     register int bit;
     bit = val % SETBITS;
     val /= SETBITS;
-    if (val < *s++ && ((1L<<bit) & s[val]))
-	return 1;
+    if (val < *s++ && ((1L<<bit) & s[val])) return 1;
     return 0;
 }
 
@@ -730,11 +666,9 @@ register unsigned val;
     size = *s;
     if (++val > size) {
         s += size;
-        while (val > size)
-            *++s = 0, size++;
+        while (val > size) *++s = 0, size++;
         *sbase = size;
-    } else
-        s += val;
+    } else s += val;
     *s |= 1L<<bit;
     return sbase;
 }
@@ -746,8 +680,7 @@ register unsigned v1, v2;
 {
     register long *sbase = s;
     register int b1, b2, size;
-    if ((int)v1 > (int)v2)
-	return sbase;
+    if ((int)v1 > (int)v2) return sbase;
     b1 = v1 % SETBITS;
     v1 /= SETBITS;
     b2 = v2 % SETBITS;
@@ -755,8 +688,7 @@ register unsigned v1, v2;
     size = *s;
     v1++;
     if (++v2 > size) {
-        while (v2 > size)
-            s[++size] = 0;
+        while (v2 > size) s[++size] = 0;
         s[v2] = 0;
         *s = v2;
     }
@@ -765,8 +697,7 @@ register unsigned v1, v2;
         *s |= (~((-2L)<<(b2-b1))) << b1;
     } else {
         *s++ |= (-1L) << b1;
-        while (++v1 < v2)
-            *s++ = -1;
+        while (++v1 < v2) *s++ = -1;
         *s |= ~((-2L) << b2);
     }
     return sbase;
@@ -781,9 +712,8 @@ register unsigned val;
     bit = val % SETBITS;
     val /= SETBITS;
     if (++val <= *s) {
-	if (!(s[val] &= ~(1L<<bit)))
-	    while (*s && !s[*s])
-		(*s)--;
+	    if (!(s[val] &= ~(1L<<bit)))
+	        while (*s && !s[*s]) (*s)--;
     }
     return s;
 }
@@ -793,11 +723,9 @@ int P_setequal(s1, s2)              /* s1 = s2 */
 register long *s1, *s2;
 {
     register int size = *s1++;
-    if (*s2++ != size)
-        return 0;
+    if (*s2++ != size) return 0;
     while (--size >= 0) {
-        if (*s1++ != *s2++)
-            return 0;
+        if (*s1++ != *s2++) return 0;
     }
     return 1;
 }
@@ -807,11 +735,9 @@ int P_subset(s1, s2)                /* s1 <= s2 */
 register long *s1, *s2;
 {
     register int sz1 = *s1++, sz2 = *s2++;
-    if (sz1 > sz2)
-        return 0;
+    if (sz1 > sz2) return 0;
     while (--sz1 >= 0) {
-        if (*s1++ & ~*s2++)
-            return 0;
+        if (*s1++ & ~*s2++) return 0;
     }
     return 1;
 }
@@ -826,8 +752,7 @@ register long *d, *s;
     memcpy(d, s, (*s + 1) * sizeof(long));
 #else
     register int i = *s + 1;
-    while (--i >= 0)
-        *d++ = *s++;
+    while (--i >= 0) *d++ = *s++;
 #endif
     return save_d;
 }
@@ -841,10 +766,9 @@ register long *d;
 register long s;
 {
     if (s) {
-	d[1] = s;
-	*d = 1;
-    } else
-        *d = 0;
+	    d[1] = s;
+	    *d = 1;
+    } else *d = 0;
     return d;
 }
 
@@ -852,15 +776,9 @@ register long s;
 long P_packset(s)                   /* convert s to a small-set */
 register long *s;
 {
-    if (*s++)
-        return *s;
-    else
-        return 0;
+    if (*s++) return *s;
+    else return 0;
 }
-
-
-
-
 
 /* Oregon Software Pascal extensions, courtesy of William Bader */
 
@@ -874,13 +792,13 @@ Char *line;
     h = h - l + 1;
     len = 0;
     for(i = 1; i < P_argc; i++) {
-	s = P_argv[i];
-	while (*s) {
-	    if (len >= h) return len;
-	    line[len++] = *s++;
-	}
-	if (len >= h) return len;
-	line[len++] = ' ';
+    	s = P_argv[i];
+    	while (*s) {
+    	    if (len >= h) return len;
+    	    line[len++] = *s++;
+    	}
+    	if (len >= h) return len;
+    	line[len++] = ' ';
     }
     return len;
 }
@@ -897,8 +815,7 @@ int *Day, *Month, *Year, *Hour, *Min, *Sec;
     *Day = tm->tm_mday;
     *Month = tm->tm_mon + 1;		/* Jan = 0 */
     *Year = tm->tm_year;
-    if (*Year < 1900)
-	*Year += 1900;     /* year since 1900 */
+    if (*Year < 1900) *Year += 1900;     /* year since 1900 */
     *Hour = tm->tm_hour;
     *Min = tm->tm_min;
     *Sec = tm->tm_sec;
@@ -915,8 +832,7 @@ char *s;
 
     time(&clock);
     c = ctime(&clock);
-    for (i = 0; i < 11; i++)
-	s[i] = my_toupper(c[where[i]]);
+    for (i = 0; i < 11; i++) s[i] = my_toupper(c[where[i]]);
     s[2] = '-';
     s[6] = '-';
 }
@@ -930,8 +846,7 @@ char *s;
 
     time(&clock);
     c = ctime(&clock);
-    for (i = 0; i < 8; i++)
-	s[i] = c[i+11];
+    for (i = 0; i < 8; i++) s[i] = c[i+11];
     s[8] = '.';
     s[9] = '0';
     s[10] = '0';
@@ -948,14 +863,10 @@ register int len, n;
 {
     register char *cp;
 
-    if ((unsigned)n < P_argc)
-	cp = P_argv[n];
-    else
-	cp = "";
-    while (*cp && --len >= 0)
-	*s++ = *cp++;
-    while (--len >= 0)
-	*s++ = ' ';
+    if ((unsigned)n < P_argc) cp = P_argv[n];
+    else cp = "";
+    while (*cp && --len >= 0) *s++ = *cp++;
+    while (--len >= 0) *s++ = ' ';
 }
 
 
@@ -963,9 +874,9 @@ register int len, n;
 
 /* if defined(__GNUC__) || defined(HAVE_INTTYPES_H) */
 #ifndef NO_INTTYPES_H
-uintptr_t _OutMem() { return (uintptr_t) _Escape(-2); } /* (DA) */
+    uintptr_t _OutMem() { return (uintptr_t) _Escape(-2); } /* (DA) */
 #else
-int _OutMem() { return _Escape(-2); }
+    int _OutMem() { return _Escape(-2); }
 #endif
 
 int _CaseCheck()
@@ -1078,14 +989,12 @@ int code;
 
     P_escapecode = code;
     if (__top_jb) {
-	__p2c_jmp_buf *jb = __top_jb;
-	__top_jb = jb->next;
-	longjmp(jb->jbuf, 1);
+	    __p2c_jmp_buf *jb = __top_jb;
+	    __top_jb = jb->next;
+	    longjmp(jb->jbuf, 1);
     }
-    if (code == 0)
-        exit(EXIT_SUCCESS);
-    if (code == -1)
-        exit(EXIT_FAILURE);
+    if (code == 0) exit(EXIT_SUCCESS);
+    if (code == -1) exit(EXIT_FAILURE);
     fprintf(stderr, "%s\n", _ShowEscape(buf, P_escapecode, P_ioresult, ""));
     exit(EXIT_FAILURE);
 }
@@ -1103,10 +1012,10 @@ char *name;
 {
     P_ioresult = code;
     if (!__top_jb && name && *name) {
-	char buf[100];
-	fprintf(stderr, "%s: %s\n",
-		name, _ShowEscape(buf, P_escapecode, P_ioresult, ""));
-	exit(EXIT_FAILURE);
+	    char buf[100];
+	    fprintf(stderr, "%s: %s\n",
+		    name, _ShowEscape(buf, P_escapecode, P_ioresult, ""));
+	    exit(EXIT_FAILURE);
     }
     return _Escape(-10);
 }

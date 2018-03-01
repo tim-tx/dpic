@@ -5176,7 +5176,7 @@ _L10:
 }
 
 
-void main(int argc, Char *argv[])
+int main(int argc, Char *argv[])
 {
   P_argc = argc; P_argv = argv; __top_jb = NULL;
   if (setjmp(_JL999))

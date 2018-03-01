@@ -1,7 +1,7 @@
 NAME = PG
 INSTALLDIR = ..
 CC = @CC@
-CFLAGS = -ansi -O -Wno-unused-result
+CFLAGS = @cninety@ -O -Wno-unused-result
 PROGS = $(NAME) $(NAME)c $(NAME)p $(NAME)f
 
 install: $(PROGS)

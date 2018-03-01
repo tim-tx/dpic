@@ -1,4 +1,4 @@
-%                               dpicdoc.tex
+%                               dpic-doc.tex
 \documentclass[11pt]{article}
 \usepackage{verbatim,url}
 \usepackage{amssymb}
@@ -153,11 +153,6 @@ the differences between gpic and dpic.
    gpic constructs that dpic does not implement directly, and some dpic
    extensions that gpic does not implement.
    For details, see \SR{Diffs:}.
-
-\iffalse
-For a summary of dpic syntax, Appendix~A contains a formatted Unix man
-page for dpic, and Appendix~B contains the dpic grammar.
-\fi
 
 \section{Dpic usage}\label{Usage:}
 In the following, items in square brackets [~] are optional
@@ -373,16 +368,6 @@ later in \SR{Macros:} or, if you must, by using the following trick:
 This method works because all locations ({\tt Origin} and {\tt Export})
 inside the block will be
 translated by the same amount no matter where the block is positioned.
-\iffalse
-Their differences therefore remain constant, with one exception:
-if the dpic {\tt scaled {\sl x}} construct is employed, the trick has
-to be modified as shown:
-\ntt{s = 0.7}
-\ntt{Q: [ v = 5; w = 6}
-\ntt{\quad Origin:\ (0,0); Export:\ (v,w) ] scaled s}
-\ntt{v = (Q.Export.x - Q.Origin.x)/s}
-\ntt{w = (Q.Export.y - Q.Origin.y)/s}
-\fi
 
 \subsection{Dpic macros}\label{Macros:}
 Macros can be used to turn the basic dpic language into a powerful
@@ -963,17 +948,6 @@ one or two postprocessors such as Tikz-pgf or PSTricks.
   know nothing about color except as strings attached to drawing
   elements.  What the string should contain depends on the postprocessor.
 
-\iffalse
-\subsection{Arbitrary filled paths}
-  The unaugmented pic language and its gpic extensions do not allow the
-  filling of arbitrary closed curves other than boxes, circles, and
-  ellipses.  However, the recent outlined and shaded attributes allow
-  the filling of areas outline by one linear object such as a
-  multi-segment line or spline, as described above.
-  Use the\verb|\pscustom| function of PSTricks, for example,
-  for more elaborate fills.
-\fi
-
 \subsubsection{Filling with color}
 Basic pic shapes such as boxes, circles, and ellipses
 can be colored and filled using, for example,
@@ -988,27 +962,6 @@ evaluates to a string compatible with the postprocessor
   PDF, and raw \Postscript)
 so that the following produces a circle filled in gold, for example:
 \ntt{circle shaded rgbstring(1,0.84,0)}.
-
-\iffalse
-For example, the definitions
-\begin{verbatim}
-define(`gold_',`1,0.84,0')
-ifelse(m4postprocessor,pstricks,
- `command "\definecolor{`gold'}{rgb}{gold_}"',
-m4postprocessor,pgf,
- `command "\definecolor{`gold'}{rgb}{gold_}"',
-m4postprocessor,mpost,
- `define(`gold',`(gold_)')',
-m4postprocessor,postscript,
- `define(`gold',`1 0.84 0')',
-m4postprocessor,pdf,
- `define(`gold',`1 0.84 0')')
-\end{verbatim}
-allow the command
-\ntt{circle shaded "gold"}\\
-to work for the three different postprocessors specified plus
-direct postscript or PDF output.
-\fi
 
   More elaborate options can also be invoked. For example,
   with \TPGF output, the command
@@ -1085,19 +1038,6 @@ For TikZ-PGF, try
   \ntt{print sprintf("x = \%g",y) > "datafile"\hfill
     \# Write out the assignment}
 \\
-\iffalse
-  Provided the diagram source is a file ({\tt test.pic}, for example),
-  the second explicit call to \dpic\ can be avoided
-  by modifying the above example to something like the following;
-\begin{verbatim}
-  filerecursion = 0 ; x = <default value>
-  print "" >> "datafile" ; copy "datafile"
-  ... draw objects and calculate required value y ...
-  if filerecursion == 0 then {
-    print sprintf("filerecursion = 1; x = %g",y) > "datafile"
-    sh "dpic -p test.pic > test.tex" }
-\end{verbatim}
-\fi
 
 %===============================================================================
 
@@ -1602,35 +1542,6 @@ macro can be replaced by one customized to suit.
   a valid variable name.  There are no array operations, but it is easy
   to write macros for them.
 
-\iffalse
-\subsection{Macros}
-  The macro
-    \ntt{define spot \tLB}
-      \ntt{\quad circle at \$1}
-    \ntt{\tRB}\\
-  invoked as
-    \ntt{A: spot((1,2))}\\
-  is expanded by gpic to
-    \ntt{A: circle at (1,2)}\\
-  whereas it is expanded literally by dpic to
-    \ntt{A:}
-      \ntt{\quad circle at (1,2)}\\
-
-  (Gpic ignores the white space after the \tLB\ but not before the \tRB).
-  To emulate the gpic behaviour, write
-    \ntt{define spot \tLB\ }\tBS
-      \ntt{\quad circle at \$1}
-    \ntt{\tRB}\\
-  or simply use
-    \ntt{define spot \tLB\ circle at \$1 \tRB}\\
-  To allow, for example,
-    \ntt{A: spot((1,2)) dashed}\\
-  use the last definition above or write
-    \ntt{define spot \tLB\ \tBS}
-      \ntt{\quad circle at \$1 \tBS}
-    \ntt{\tRB}
-\fi
-
 \subsection{Splines}
   Gpic extends the ATT pic grammar to make {\tt line 0.5} legal and mean
   ``a line of length 0.5 in the current direction.'' All linear objects are
@@ -1773,14 +1684,6 @@ command "\makeatletter\@ifundefined{ifPst@noCurrentPoint}%
  \psset{noCurrentPoint}}\makeatother%"
 \end{verbatim}
 
-\iffalse
-  If you are using a version of PSTricks dated August 2010 or later
-  then the above can be simplified to
-\begin{verbatim}
- \psset{noCurrentPoint}
-\end{verbatim}
-\fi
-
   This patch need only be executed once per LaTeX run rather than with
   every diagram.
 
@@ -1799,7 +1702,7 @@ command "\makeatletter\@ifundefined{ifPst@noCurrentPoint}%
 
 \pdfbookmark[section]{\refname}{refs}
 \bibliographystyle{plain}
-\bibliography{dpicdoc}
+\bibliography{dpic-doc}
 
 %===============================================================================
 %\iffalse

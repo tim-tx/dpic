@@ -8,10 +8,14 @@ DOCDIR = $(DESTDIR)/$(PREFIX)/share/doc/dpic
 
 #-----------------------------------------------------------------------
 
-DEFS=@defrand@ @defno_snprintf@ @safe_mode@ @no_intt@
+DEFS= @defrand@ @defno_snprintf@ @safe_mode@ @no_intt@
+# To force -DNO_SNPRINT
+#DEFS= @cninety@ @defrand@ -DNO_SNPRINTF @safe_mode@ @no_intt@
+
 CC=@CC@
 PC=@PC@
 CFLAGS += $(DEFS) -O
+
 
 OBJECTS = dpic.o p2clib.o
 
@@ -40,11 +44,11 @@ installdpic: dpic
     fi
 
 #SPECMANDIR = $(DESTDIR)/usr/share/man/man1
-installdocs: doc/dpicdoc.pdf
+installdocs: doc/dpic-doc.pdf
 	mkdir -p $(DOCDIR)
 	mkdir -p $(MANDIR)
 #	mkdir -p $(SPECMANDIR)
-	install -m 644 doc/dpicdoc.pdf $(DOCDIR)
+	install -m 644 doc/dpic-doc.pdf $(DOCDIR)
 	install -m 644 doc/dpictools.pic $(DOCDIR)
 #	install -m 644 doc/dpic.1 $(SPECMANDIR)
 	cat doc/dpic.1 | gzip > $(MANDIR)/dpic.1.gz
@@ -60,10 +64,10 @@ uninstall:
 	rm -f $(DEST)/dpic* $(MANDIR)/dpic.1.gz
 	if test `basename $(DOCDIR)` = dpic ; then \
       rm -r $(DOCDIR) ; \
-    else rm -f $(DOCDIR)/dpicdoc.pdf ; \
+    else rm -f $(DOCDIR)/dpic-doc.pdf ; \
     fi
 
-doc/dpicdoc.pdf:
+doc/dpic-doc.pdf:
 	(cd doc; make)
 
 # The following is only executed if src files are changed. 

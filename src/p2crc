@@ -18,6 +18,9 @@ ElseIf			1
 Indent			+2
 BlockIndent		+2
 CommentIndent	-80
+ExtraParens		1
+#ainType		int
+NewLineFuncs	1
 
 #				Standard C functions
 LeaveAlone	system

@@ -37,7 +37,7 @@ const
     nlch = chr(ordNL); tabch = chr(ordTAB); crch = chr(ordCR);
     etxch = chr(ordETX); bslch = chr(ordBSL);
 
-    CHBUFSIZ = 4095;            (* size of chbuf arrays, input record *)
+    CHBUFSIZ = 4095;            (* upper limit of chbuf buffers       *)
     (*P2CIP*)
     maxbval = (ordMAXCH+1)*(ordMAXCH+1)-1;
     (*P2CP maxbval = 128*128-1; *)            (* must be > CHBUFSIZ-2 *)
@@ -51,25 +51,24 @@ const
     REDUMAX = 128;              (* size of reduction buffer           *)
     MAXERRCOUNT = 3;            (* max no of errors before giving up  *)
 
-                                (* Text parameters                    *)
-    DFONT = 11;                 (* default svg textht, pt; should be adj*)
-    TEXTRATIO = 1.6;            (* baseline to text height ratio      *)
-
                                 (* Draw types                         *)
-   MFpic = 1; MPost = 2; PDF = 3; PGF = 4; Pict2e = 5; PS = 6;
-   PSfrag = 7; PSTricks = 8; SVG = 9; TeX = 10; tTeX = 11; xfig = 12;
+    MFpic = 1; MPost = 2; PDF = 3; PGF = 4; Pict2e = 5; PS = 6;
+    PSfrag = 7; PSTricks = 8; SVG = 9; TeX = 10; tTeX = 11; xfig = 12;
 
-                                (* processor constants                *)
-   SVGPX = 90;                  (* SVG pixels per inch                *)
-   SPLT = 0.551784;             (* optimum spline tension for arcs    *)
-   xfigres = 1200;
-   xdispres = 80;
-   pointd = 72;
+    SPLT = 0.551784;            (* optimum spline tension for arcs    *)
+    pointd = 72;
+                                (* postprocessor constants (vars?)    *)
+    SVGPX = 90;                 (* SVG pixels per inch                *)
+    xfigres = 1200;
+    xdispres = 80;
+                                (* Text parameters (vars?)            *)
+    DFONT = 11;                 (* default svg textht, pt;            *)
+    TEXTRATIO = 1.6;            (* baseline to text height ratio      *)
    
 type
                                 (* Lexical types                      *)
     chbufinx = 0..CHBUFSIZ;
-    symbol = 0..symbmax;
+    symbol = (* 0..symbmax; *) integer;
     lxinx = 0..lxmax;
     production = 0..prodmax;
     chbufarray = packed array [chbufinx] of char;
@@ -210,7 +209,7 @@ type
     (*GHMF infname: mstring; FMHG*)  (* name of current input file    *)
     (*GHMF outfnam: mstring; FMHG*)  (* name of current output file   *)
 
-    inputeof: boolean;          (* end of input flag                  *)
+    inputeof: boolean;          (* end-of-input flag                  *)
     forbufend: boolean;         (* end of for buffer                  *)
     (*GHMF argct: integer; FMHG*)   (* argument counter for options   *)
     drawmode: integer;          (* output conversion                  *)
@@ -218,9 +217,8 @@ type
     (*D oflag: integer; D*)     (* debug level and open logfile flag  *)
 
                                 (* Lexical analyzer character buffer  *)
-    (* chbuf: strptr; *)
     chbuf: chbufp;
-    chbufi,oldbufi: chbufinx;   (* character buffer index             *)
+    chbufi,oldbufi: chbufinx;   (* character buffer indices           *)
 
                                 (* Lexical variables                  *)
     (*P2CIP*)
@@ -228,8 +226,8 @@ type
     (*P2CP*)
     ch: char;                   (* current character                  *)
     newsymb: -2..symbmax;       (* current lexical symbol             *)
-    lexstate: integer;          (* 0..4: <.PS; .PS; in pic; .PE; >.PE *)
     lexsymb: integer;
+    lexstate: integer;          (* 0..4: <.PS; .PS; in pic; .PE; >.PE *)
     inlogic: boolean;           (* set < to <compare> in context      *)
     instr: boolean;             (* set while reading a string         *)
     inbuf,savebuf,freeinbuf,topbuf: fbufferp;
@@ -253,6 +251,7 @@ type
     freeseg: chbufp;            (* segment open to store strings      *)
     freex: 0..CHBUFSIZ+1;       (* next free location                 *)
     tmpbuf: chbufp;             (* buffer for snprintf or sprintf     *)
+    (*P2CP tmpfmt: chbufp; *)   (* format buffer for snprintf         *)
     scale,fsc: real;            (* scale factor and final scale factor*)
     splcount,spltot: integer;   (* spline depth counter               *)
     pdfobjcount: integer;       (* pdf objects                        *)

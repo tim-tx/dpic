@@ -341,62 +341,39 @@ Static void postrc()
         if (castnull < 0)
             castnull = 0;
     }
-    if (useenum < 0)
-        useenum = (ansiC != 0) ? 1 : 0;
-    if (void_args < 0)
-        void_args = (ansiC > 0 && prototypes != 0) ? 1 : 0;
-    if (prototypes < 0)
-        prototypes = (cplus > 0) ? 2 : (ansiC > 0) ? 1 : 0;
-    if (prototypes == 0)
-        fullprototyping = 0;
-    else if (fullprototyping < 0)
-        fullprototyping = 1;
-    if (useAnyptrMacros < 0)
-	useAnyptrMacros = (ansiC > 0 || cplus > 0) ? 2 : 1;
-    if (usePPMacros < 0)
-	usePPMacros = (ansiC > 0 || cplus > 0) ? 0 : 2;
-    if (newdelete < 0)
-	newdelete = (cplus > 0) ? 1 : 0;
-    if (voidstar < 0)
-        voidstar = (ansiC > 0 || cplus > 0) ? 1 : 0;
-    if (hassignedchar < 0)
-        hassignedchar = (ansiC > 0) ? 1 : 0;
-    if (useconsts < 0)
-        useconsts = (ansiC > 0 || cplus > 0) ? 1 : 0;
-    if (slashslash < 0)
-	slashslash = (cplus > 0) ? 1 : 0;
-    if (userefs < 0)
-        userefs = (cplus > 0) ? 1 : 0;
-    if (useinits < 0)
-        useinits = (cplus > 0) ? 4 : 1;
-    if (anonymousunions < 0)
-        anonymousunions = (cplus > 0) ? 1 : 0;
-    if (callcasts < 0)
-        callcasts = (cplus > 0) ? 1 : 0;
-    if (copystructs < 0)
-        copystructs = (ansiC != 0 || cplus > 0) ? 3 : 0;
-    if (copystructfuncs < 0)
-        copystructfuncs = (ansiC > 0 || cplus > 0) ? 0 : 1;
-    if (starfunctions < 0)
-        starfunctions = (ansiC > 0) ? 0 : 1;
-    if (variablearrays < 0)
-	variablearrays = (ansiC > 1) ? 1 : 0;
-    if (initpacstrings < 0)
-	initpacstrings = (ansiC > 0) ? 1 : 0;
+    if (useenum < 0) useenum = (ansiC != 0) ? 1 : 0;
+    if (void_args < 0) void_args = (ansiC > 0 && prototypes != 0) ? 1 : 0;
+    if (prototypes < 0) prototypes = (cplus > 0) ? 2 : (ansiC > 0) ? 1 : 0;
+    if (prototypes == 0) fullprototyping = 0;
+    else if (fullprototyping < 0) fullprototyping = 1;
+    if (useAnyptrMacros < 0) useAnyptrMacros = (ansiC > 0 || cplus > 0) ? 2:1;
+    if (usePPMacros < 0) usePPMacros = (ansiC > 0 || cplus > 0) ? 0 : 2;
+    if (newdelete < 0) newdelete = (cplus > 0) ? 1 : 0;
+    if (voidstar < 0) voidstar = (ansiC > 0 || cplus > 0) ? 1 : 0;
+    if (hassignedchar < 0) hassignedchar = (ansiC > 0) ? 1 : 0;
+    if (useconsts < 0) useconsts = (ansiC > 0 || cplus > 0) ? 1 : 0;
+    if (slashslash < 0) slashslash = (cplus > 0) ? 1 : 0;
+    if (userefs < 0) userefs = (cplus > 0) ? 1 : 0;
+    if (useinits < 0) useinits = (cplus > 0) ? 4 : 1;
+    if (anonymousunions < 0) anonymousunions = (cplus > 0) ? 1 : 0;
+    if (callcasts < 0) callcasts = (cplus > 0) ? 1 : 0;
+    if (copystructs < 0) copystructs = (ansiC != 0 || cplus > 0) ? 3 : 0;
+    if (copystructfuncs < 0) copystructfuncs = (ansiC > 0 || cplus > 0) ? 0 : 1;
+    if (starfunctions < 0) starfunctions = (ansiC > 0) ? 0 : 1;
+    if (variablearrays < 0) variablearrays = (ansiC > 1) ? 1 : 0;
+    if (initpacstrings < 0) initpacstrings = (ansiC > 0) ? 1 : 0;
     if (*memcpyname) {
-        if (ansiC > 0 || which_unix == UNIX_SYSV)
-            strcpy(memcpyname, "memcpy");
-        else if (which_unix == UNIX_BSD)
-            strcpy(memcpyname, "bcopy");
+        if (ansiC > 0 || which_unix == UNIX_SYSV) strcpy(memcpyname, "memcpy");
+        else if (which_unix == UNIX_BSD) strcpy(memcpyname, "bcopy");
     }
     sizeof_integer = (sizeof_int >= 32) ? sizeof_int : sizeof_long;
     integername = (sizeof_int >= 32) ? "int" : "long";
     if (sizeof_integer && sizeof_integer < 32)
         fprintf(stderr, "Warning: long integers have less than 32 bits\n");
     if (sizeof_int >= 32 && sizeof_long > sizeof_int && prototypes == 0)
-        fprintf(stderr, "Warning: translated code assumes int and long are the same");
-    if (setbits < 0)
-        setbits = (sizeof_integer > 0) ? sizeof_integer : 32;
+        fprintf(stderr,
+         "Warning: translated code assumes int and long are the same");
+    if (setbits < 0) setbits = (sizeof_integer > 0) ? sizeof_integer : 32;
     ucharname = (*name_UCHAR) ? name_UCHAR :
                 (signedchars == 0) ? "char" : "unsigned char";
     scharname = (*name_SCHAR) ? name_SCHAR :
@@ -413,10 +390,8 @@ Static void postrc()
             min_schar = - (1<<(sizeof_char-1));
             max_schar = (1<<(sizeof_char-1)) - 1;
         }
-        if (sizeof_char >= longbits)
-            max_uchar = LONG_MAX;
-        else
-            max_uchar = (1<<sizeof_char) - 1;
+        if (sizeof_char >= longbits) max_uchar = LONG_MAX;
+        else max_uchar = (1<<sizeof_char) - 1;
     } else {
         min_schar = -128;      /* Ansi-required minimum maxima */
         max_schar = 127;
@@ -441,42 +416,32 @@ Static void postrc()
         max_sshort = 32767;
         max_ushort = 65535;
     }
-    if (symcase < 0)
-        symcase = 1;
-    if (smallsetconst == -2)
-        smallsetconst = (*name_SETBITS) ? -1 : 1;
+    if (symcase < 0) symcase = 1;
+    if (smallsetconst == -2) smallsetconst = (*name_SETBITS) ? -1 : 1;
     hpux_lang = 0;
-    if (!strcmp(language, "TURBO")) {
-        which_lang = LANG_TURBO;
-    } else if (!strcmp(language, "UCSD")) {
-        which_lang = LANG_UCSD;
+    if (!strcmp(language, "TURBO")) { which_lang = LANG_TURBO;
+    } else if (!strcmp(language, "UCSD")) { which_lang = LANG_UCSD;
     } else if (!strcmp(language, "MPW") || !strcmp(language, "OBJECT")) {
         which_lang = LANG_MPW;
     } else if (!strcmp(language, "HPUX") || !strcmp(language, "HP-UX")) {
-	which_lang = LANG_HP;
-	hpux_lang = 1;
-    } else if (!strcmp(language, "OREGON")) {
-	which_lang = LANG_OREGON;
+	    which_lang = LANG_HP;
+	    hpux_lang = 1;
+    } else if (!strcmp(language, "OREGON")) { which_lang = LANG_OREGON;
     } else if (!strcmp(language, "VAX") || !strcmp(language, "VMS")) {
-	which_lang = LANG_VAX;
-    } else if (!strncmp(language, "MODULA", 6)) {
-	which_lang = LANG_MODULA;
+	    which_lang = LANG_VAX;
+    } else if (!strncmp(language, "MODULA", 6)) { which_lang = LANG_MODULA;
     } else if (!strncmp(language, "BERK", 4) ||
-	       !strcmp(language, "SUN")) {
-	which_lang = LANG_BERK;
-    } else if (!strcmp(language, "TIP")) {
-	which_lang = LANG_TIP;
-    } else if (!strcmp(language, "APOLLO")) {
-	which_lang = LANG_APOLLO;
+	       !strcmp(language, "SUN")) { which_lang = LANG_BERK;
+    } else if (!strcmp(language, "TIP")) { which_lang = LANG_TIP;
+    } else if (!strcmp(language, "APOLLO")) { which_lang = LANG_APOLLO;
     } else {
         if (*language && strcmp(language, "HP") && strcmp(language, "MODCAL"))
-            fprintf(stderr, "Warning: Language %s not recognized, using HP\n", language);
+            fprintf(stderr,
+              "Warning: Language %s not recognized, using HP\n", language);
         which_lang = LANG_HP;
     }
-    if (modula2 < 0)
-	modula2 = (which_lang == LANG_MODULA) ? 1 : 0;
-    if (pascalcasesens < 0)
-	pascalcasesens = (which_lang == LANG_MODULA) ? 2 :
+    if (modula2 < 0) modula2 = (which_lang == LANG_MODULA) ? 1 : 0;
+    if (pascalcasesens < 0) pascalcasesens = (which_lang == LANG_MODULA) ? 2 :
 	                 (which_lang == LANG_BERK) ? 3 : 0;
     if (implementationmodules < 0)
 	implementationmodules = (which_lang == LANG_VAX ||
@@ -606,18 +571,16 @@ Static void openlogfile()
 }
 
 
-
 void closelogfile()
 {
     long ending_time;
 
     if (logfile) {
 	fprintf(logfile, "\n\n");
-/* DA
 #if defined(unix) || defined(__unix)
+    void *  sbrk(ptrdiff_t __incr); /* DA */
 	fprintf(logfile, "Total memory used: %ld bytes.\n", (long)sbrk(0));
 #endif
-*/
 	time(&ending_time);
 	fprintf(logfile, "Processed %d source lines in %ld:%ld seconds.\n",
 		inf_ltotal,
@@ -678,19 +641,17 @@ char **argv;
 
     i = 0;
     while (i < argc && strcmp(argv[i], "-H")) i++;
-    if (i < argc-1)
-	p2c_home = argv[i+1];
+    if (i < argc-1) p2c_home = argv[i+1];
     else {
-	cp = getenv("P2C_HOME");
-	if (cp)
-	    p2c_home = cp;
+	    cp = getenv("P2C_HOME");
+	    if (cp) p2c_home = cp;
     }
     init_stuff();
     i = 0;
     while (i < argc && strcmp(argv[i], "-i")) i++;
     if (i < argc) {
-	showinitfile();
-	return EXIT_SUCCESS;
+	    showinitfile();
+	    return EXIT_SUCCESS;
     }
     initrc();
     setup_dir();
@@ -703,23 +664,17 @@ char **argv;
     i = 0;
     while (i < argc && strcmp(argv[i], "-v")) i++;
     if (i >= argc) {
-	cp = getenv("P2CRC");
-	if (cp)
-	    readrc(cp, 1);
-	else
-	    readrc(format_s("%H/%s", "p2crc"), 1);
+	    cp = getenv("P2CRC");
+	    if (cp) readrc(cp, 1);
+	    else readrc(format_s("%H/%s", "p2crc"), 1);
     }
     i = 0;
     while (i < argc && strcmp(argv[i], "-c")) i++;
-    if (i < argc-1) {
-        if (strcmp(argv[i+1], "-"))
-            readrc(argv[i+1], 1);
-    } else
-        if (!readrc("p2crc", 0))
-            readrc(".p2crc", 0);
+    if (i < argc-1) { if (strcmp(argv[i+1], "-")) readrc(argv[i+1], 1);
+    } else if (!readrc("p2crc", 0)) readrc(".p2crc", 0);
     if (!*codefnfmt) {
-	fprintf(stderr, "Unable to find required system p2crc file\n");
-	exit_failure();
+	    fprintf(stderr, "Unable to find required system p2crc file\n");
+	    exit_failure();
     }
     codefname = codefnbuf;
     *codefname = 0;
@@ -740,76 +695,73 @@ char **argv;
     argc--, argv++;
     while (argc > 0) {
         if (**argv == '-' && (*argv)[1]) {
-            if (!strcmp(*argv, "-a")) {
-                ansiC = 1;
-	    } else if (argv[0][1] == 'L') {
-		if (strlen(*argv) == 2 && argc > 1) {
-		    strcpy(language, ++*argv);
-		    --argc;
-		} else
-		    strcpy(language, *argv + 2);
-		upc(language);
-            } else if (!strcmp(*argv, "-q")) {
-                quietmode = 1;
-	    } else if (!strcmp(*argv, "-comp")) {
-		/* Set defaults for compiler-like usage */
-		maxalts = 100;
-		elimdeadcode = 0;
-		analyzeflow = 0;
-		foldconsts = 1;
-		foldstrconsts = 1;
-		offsetforloops = 0;
-		keepnulls = 1;
-		hasstaticlinks = 1;
-		mod_po2 = 0;
-		div_po2 = 0;
-		assumebits = 0;
-		assumesigns = 0;
-		formatstrings = 1;
-		structfilesflag = 1;
-		fullstrwrite = 1;
-	    } else if (!strcmp(*argv, "-local")) {
-		/* Assume target machine is same that which compiled p2c */
-		unsigned int ui;
-		unsigned long ul;
-		unsigned short us;
-		unsigned char uc;
-		int i;
-		char ch;
-		struct bitfieldtest bft;
-#ifdef __STDC__
-		ansiC = 1;
-#endif
-		ch = (char)0xffff;
-		signedchars = (ch < 0);
-		bft.f1 = (short)0xffff; /* (short) (DA) */
-		signedfield = (bft.f1 < 0);
-		i = -1;
-		i >>= 1;
-		signedshift = (i < 0);
-		uc = -1;
-		sizeof_char = 0;
-		while (uc) uc >>= 1, sizeof_char++;
-		us = -1;
-		sizeof_short = 0;
-		while (us) us >>= 1, sizeof_short++;
-		ui = -1;
-		sizeof_int = 0;
-		while (ui) ui >>= 1, sizeof_int++;
-		ul = -1;
-		sizeof_long = 0;
-		while (ul) ul >>= 1, sizeof_long++;
-	    } else if (!strcmp(*argv, "-check")) {
-		/* Enable all error checking */
-		casecheck = 1;
-		arraycheck = 1;
-		nilcheck = 1;
-		malloccheck = 1;
-		checkfileisopen = 1;
-		checkreadformat = 1;
-		checkfileeof = 1;
-		checkstdineof = 1;
-		checkfileseek = 1;
+            if (!strcmp(*argv, "-a")) { ansiC = 1;
+    	    } else if (argv[0][1] == 'L') {
+        		if (strlen(*argv) == 2 && argc > 1) {
+        		    strcpy(language, ++*argv);
+        		    --argc;
+        		} else strcpy(language, *argv + 2);
+        		upc(language);
+            } else if (!strcmp(*argv, "-q")) { quietmode = 1;
+    	    } else if (!strcmp(*argv, "-comp")) {
+    			/* Set defaults for compiler-like usage */
+    			maxalts = 100;
+    			elimdeadcode = 0;
+    			analyzeflow = 0;
+    			foldconsts = 1;
+    			foldstrconsts = 1;
+    			offsetforloops = 0;
+    			keepnulls = 1;
+    			hasstaticlinks = 1;
+    			mod_po2 = 0;
+    			div_po2 = 0;
+    			assumebits = 0;
+    			assumesigns = 0;
+    			formatstrings = 1;
+    			structfilesflag = 1;
+    			fullstrwrite = 1;
+    	    } else if (!strcmp(*argv, "-local")) {
+    			/* Assume target machine is same that which compiled p2c */
+    			unsigned int ui;
+    			unsigned long ul;
+    			unsigned short us;
+    			unsigned char uc;
+    			int i;
+    			char ch;
+    			struct bitfieldtest bft;
+    #ifdef __STDC__
+    			ansiC = 1;
+    #endif
+    			ch = (char)0xffff;
+    			signedchars = (ch < 0);
+    			bft.f1 = (int16_t) 0xffff;
+    			signedfield = (bft.f1 < 0);
+    			i = -1;
+    			i >>= 1;
+    			signedshift = (i < 0);
+    			uc = -1;
+    			sizeof_char = 0;
+    			while (uc) uc >>= 1, sizeof_char++;
+    			us = -1;
+    			sizeof_short = 0;
+    			while (us) us >>= 1, sizeof_short++;
+    			ui = -1;
+    			sizeof_int = 0;
+    			while (ui) ui >>= 1, sizeof_int++;
+    			ul = -1;
+    			sizeof_long = 0;
+    			while (ul) ul >>= 1, sizeof_long++;
+    	    } else if (!strcmp(*argv, "-check")) {
+    			/* Enable all error checking */
+    			casecheck = 1;
+    			arraycheck = 1;
+    			nilcheck = 1;
+    			malloccheck = 1;
+    			checkfileisopen = 1;
+    			checkreadformat = 1;
+    			checkfileeof = 1;
+    			checkstdineof = 1;
+    			checkfileseek = 1;
             } else if (!strcmp(*argv, "-o")) {
                 if (*codefname || --argc <= 0)
                     usage();
@@ -834,85 +786,63 @@ char **argv;
             } else if (!strcmp(*argv, "-v")) {
                 /* already done above */
             } else if (!strcmp(*argv, "-H")) {
-		argc--, argv++;
-                /* already done above */
-	    } else if (argv[0][1] == 'I') {
-		if (strlen(*argv) == 2 && argc > 1) {
-		    strlist_append(&importdirs, ++*argv);
-		    --argc;
-		} else
-		    strlist_append(&importdirs, *argv + 2);
+    			argc--, argv++;
+                    /* already done above */
+    	    } else if (argv[0][1] == 'I') {
+    			if (strlen(*argv) == 2 && argc > 1) {
+    			    strlist_append(&importdirs, ++*argv);
+    			    --argc;
+    			} else strlist_append(&importdirs, *argv + 2);
             } else if (argv[0][1] == 'p') {
-                if (strlen(*argv) == 2)
-                    showprogress = 25;
-                else
-                    showprogress = atoi(*argv + 2);
-		nobuffer = 1;
+                if (strlen(*argv) == 2) showprogress = 25;
+                else showprogress = atoi(*argv + 2);
+    		    nobuffer = 1;
             } else if (!strcmp(*argv, "-e")) {
                 copysource++;
             } else if (!strcmp(*argv, "-t")) {
                 tokentrace++;
             } else if (!strcmp(*argv, "-x")) {
-                error_crash++;
-	    } else if (argv[0][1] == 'E') {
-		if (strlen(*argv) == 2)
-		    maxerrors = 0;
-		else
-		    maxerrors = atoi(*argv + 2);
+                    error_crash++;
+    	    } else if (argv[0][1] == 'E') {
+    			if (strlen(*argv) == 2) maxerrors = 0;
+    		    else maxerrors = atoi(*argv + 2);
             } else if (!strcmp(*argv, "-F")) {
                 partialdump = 0;
             } else if (argv[0][1] == 'd') {
-		nobuffer = 1;
-                if (strlen(*argv) == 2)
-                    debug = 1;
-                else
-                    debug = atoi(*argv + 2);
-	    } else if (argv[0][1] == 'B') {
-		if (strlen(*argv) == 2)
-		    i = 1;
-		else
-		    i = atoi(*argv + 2);
-		if (argc == 2 &&
-		    strlen(argv[1]) > 2 &&
-		    !strcmp(argv[1] + strlen(argv[1]) - 2, ".c")) {
-		    testlinebreaker(i, argv[1]);
-		    return EXIT_SUCCESS;
-		} else
-		    testlinebreaker(i, NULL);
-	    } else if (argv[0][1] == 'C') {
-		if (strlen(*argv) == 2)
-		    cmtdebug = 1;
-		else
-		    cmtdebug = atoi(*argv + 2);
-	    } else if (argv[0][1] == 'F') {
-		if (strlen(*argv) == 2)
-		    flowdebug = 1;
-		else
-		    flowdebug = atoi(*argv + 2);
+    			nobuffer = 1;
+                if (strlen(*argv) == 2) debug = 1;
+                else debug = atoi(*argv + 2);
+    	    } else if (argv[0][1] == 'B') {
+        		if (strlen(*argv) == 2) i = 1;
+        		else i = atoi(*argv + 2);
+        		if (argc == 2 &&
+        		    strlen(argv[1]) > 2 &&
+        		    !strcmp(argv[1] + strlen(argv[1]) - 2, ".c")) {
+        		    testlinebreaker(i, argv[1]);
+        		    return EXIT_SUCCESS;
+        		} else testlinebreaker(i, NULL);
+    	    } else if (argv[0][1] == 'C') {
+        		if (strlen(*argv) == 2) cmtdebug = 1;
+        		else cmtdebug = atoi(*argv + 2);
+    	    } else if (argv[0][1] == 'F') {
+    		    if (strlen(*argv) == 2) flowdebug = 1;
+    		    else flowdebug = atoi(*argv + 2);
             } else if (!strcmp(*argv, "-R")) {
-		regression = 1;
+    		    regression = 1;
             } else if (argv[0][1] == 'V') {
-		if (strlen(*argv) == 2)
-		    verbose = 1;
-		else
-		    verbose = atoi(*argv + 2);
+    		    if (strlen(*argv) == 2) verbose = 1;
+    		    else verbose = atoi(*argv + 2);
             } else if (argv[0][1] == 'M') {
-		if (strlen(*argv) == 2)
-		    conserve_mem = 1;
-		else
-		    conserve_mem = atoi(*argv + 2);
-	    } else
-                usage();
-        } else if (!*infname) {
-            strcpy(infname, *argv);
-        } else if (!requested_module) {
-            requested_module = stralloc(*argv);
-        } else
-            usage();
+    		    if (strlen(*argv) == 2) conserve_mem = 1;
+    		    else conserve_mem = atoi(*argv + 2);
+    	    } else usage();
+        } else if (!*infname) { strcpy(infname, *argv);
+        } else if (!requested_module) { requested_module = stralloc(*argv);
+        } else usage();
         argc--, argv++;
-    }
+    } /* while (argc > 0) */
     if (requested_module && !*codefname)
-	strcpy(codefname, format_ss(modulefnfmt, infname, requested_module));
+	    strcpy(codefname, format_ss(modulefnfmt, infname, requested_module));
     if (*infname && strcmp(infname, "-")) {
 	if (strlen(infname) > 2 &&
 	    !strcmp(infname + strlen(infname) - 2, ".c")) {
@@ -939,22 +869,20 @@ char **argv;
             perror(codefname);
             exit_failure();
         }
-	i = (slashslash > 0 || (slashslash < 0 && cplus > 0));
-	fprintf(codef, i ? "// " : "/* ");
-        fprintf(codef, "Output from p2c %s, the Pascal-to-C translator",
-		P2C_VERSION);
-	fprintf(codef, i ? "\n" : " */\n");
+    	i = (slashslash > 0 || (slashslash < 0 && cplus > 0));
+    	fprintf(codef, i ? "// " : "/* ");
+            fprintf(codef, "Output from p2c %s, the Pascal-to-C translator",
+    		P2C_VERSION);
+    	fprintf(codef, i ? "\n" : " */\n");
     } else {
         strcpy(codefname, "<stdout>");
         codef = stdout;
     }
-    if (nobuffer)
-        setbuf(codef, NULL);      /* for debugging */
+    if (nobuffer) setbuf(codef, NULL);      /* for debugging */
     outf = codef;
     outf_lnum = 1;
     logfile = NULL;
-    if (verbose)
-	openlogfile();
+    if (verbose) openlogfile();
     setup_complete = 0;
     init_lex();
     leadingcomments();
@@ -966,30 +894,26 @@ char **argv;
     setup_parse();
     setup_funcs();
     for (sl = tweaksymbols; sl; sl = sl->next) {
-	cp = sl->s;
-	if (*cp == '*') {
-	    cp++;
-	    if (!pascalcasesens)
-		upc(cp);
-	}
+    	cp = sl->s;
+    	if (*cp == '*') {
+    	    cp++;
+    	    if (!pascalcasesens)
+    		upc(cp);
+    	}
         sp = findsymbol(cp);
-	if (sl->value & FUNCBREAK)
-	    sp->flags &= ~FUNCBREAK;
+    	if (sl->value & FUNCBREAK) sp->flags &= ~FUNCBREAK;
         sp->flags |= sl->value;
     }
     strlist_empty(&tweaksymbols);
     for (sl = synonyms; sl; sl = sl->next) {
-	if (!pascalcasesens)
-	    upc(sl->s);
-	sp = findsymbol(sl->s);
-	sp->flags |= SSYNONYM;
-	if (sl->value) {
-	    if (!pascalcasesens)
-		upc((char *)sl->value);
-	    strlist_append(&sp->symbolnames, "===")->value =
-		(long)findsymbol((char *)sl->value);
-	} else
-	    strlist_append(&sp->symbolnames, "===")->value = 0;
+    	if (!pascalcasesens) upc(sl->s);
+    	sp = findsymbol(sl->s);
+    	sp->flags |= SSYNONYM;
+    	if (sl->value) {
+    	    if (!pascalcasesens) upc((char *)sl->value);
+    	    strlist_append(&sp->symbolnames, "===")->value =
+    		(long)findsymbol((char *)sl->value);
+    	} else strlist_append(&sp->symbolnames, "===")->value = 0;
     }
     strlist_empty(&synonyms);
     for (sl = addmacros; sl; sl = sl->next) {
@@ -1001,8 +925,8 @@ char **argv;
     savequiet = quietmode;
     quietmode = 1;
     for (sl = librfiles; sl; sl = sl->next) {
-	if (strlist_find(librfiles, sl->s) == sl)
-	    (void)p_search(format_none(sl->s), "pas", 0);
+	    if (strlist_find(librfiles, sl->s) == sl)
+	        (void)p_search(format_none(sl->s), "pas", 0);
     }
     for (i = 0; i < numsearch; i++)
         (void)p_search(format_none(searchlist[i]), "pas", 1);
@@ -1012,27 +936,20 @@ char **argv;
     flushcomments(NULL, -1, -1);
     showendnotes();
     check_unused_macros();
-    if (!quietmode)
-	printf("\n");
-    if (!showprogress && !quietmode)
-	fprintf(stderr, "\n");
+    if (!quietmode) printf("\n");
+    if (!showprogress && !quietmode) fprintf(stderr, "\n");
     output("\n");
     if (requested_module && !found_module)
         error(format_s("Module \"%s\" not found in file", requested_module));
     if (codef != stdout) {
-	if (slashslash)
-	    output("\n\n// End.\n");
-	else
-	    output("\n\n/* End. */\n");
+	    if (slashslash) output("\n\n// End.\n");
+	    else output("\n\n/* End. */\n");
     }
-    if (inf != stdin)
-        fclose(inf);
-    if (codef != stdout)
-        fclose(codef);
+    if (inf != stdin) fclose(inf);
+    if (codef != stdout) fclose(codef);
     closelogfile();
     mem_summary();
-    if (!quietmode)
-        fprintf(stderr, "Translation completed.\n");
+    if (!quietmode) fprintf(stderr, "Translation completed.\n");
     return EXIT_SUCCESS;
 }
 
@@ -1060,13 +977,12 @@ char *p;
     unsigned long ip = (unsigned long)p;
 
     if (ip < 0) {
-	if (ip < (unsigned long)&ip)
-	    return 1;    /* below the start of the stack */
+	    if (ip < (unsigned long)&ip)
+	        return 1;    /* below the start of the stack */
     } else if (ip >= 512) {
-	if (ip > (unsigned long)sbrk(0))
-	    return 1;    /* past the end of memory */
-    } else
-	return 1;
+	    if (ip > (unsigned long)sbrk(0))
+	        return 1;    /* past the end of memory */
+    } else return 1;
     return 0;
 }
 #else
@@ -1158,8 +1074,8 @@ Meaning *mp;
         return;
     }
     if (ISBOGUS(mp)) {
-	fprintf(outf, "0x%lX\n", (long)mp);
-	return;
+	    fprintf(outf, "0x%lX\n", (long)mp);
+	    return;
     }
     fprintf(outf, "   Meaning %lx, name=%s, kind=%s",
 	    (long)mp, ((mp->name) ? mp->name : "<null>"),
