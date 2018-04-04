@@ -9,3 +9,5 @@ be tweaked for recent versions of gcc.  Translating the dpic source is a
 significant test of p2c but no warranty of correctness should be assumed.
 The translator is included here for the sole purpose of creating dpic.c
 from the proto-pascal source files.
+
+For c99/POSIX compilers the code could be cleaned up greatly.

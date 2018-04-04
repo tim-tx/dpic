@@ -2258,7 +2258,7 @@ xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2018.03.01 option -x for Fig 3.1')
+     writeln('# dpic version 2018.04.03 option -x for Fig 3.1')
      */
   printf("#FIG 3.2\n");
   printf("Landscape\n");
@@ -2268,7 +2268,7 @@ xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2018.03.01 option -x for Fig 3.2\n");
+  printf("# dpic version 2018.04.03 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 }
 
@@ -2701,10 +2701,11 @@ svgprelude(double n, double s, double e, double w, double lth)
      write(log,' e='); wfloat(log,e); write(log,' w='); wfloat(log,w);
      write(log,' fsc='); wfloat(log,fsc); write(log,' lth='); wfloat(log,lth);
      writeln(log) end; D*/
+  gslinethick = 0.8;
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2018.03.01 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2018.04.03 option -v for SVG 1.1 -->\n");
   hsize = (e - w + (2 * lth)) / fsc;
   vsize = (n - s + (2 * lth)) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -2737,7 +2738,6 @@ svgprelude(double n, double s, double e, double w, double lth)
   wfloat(&output, (0.8 / 72) * SVGPX);
   printf("\" fill=\"none\">\n");
   printf("<g>\n");
-  gslinethick = 0.8;
 }
 
 
@@ -2954,10 +2954,6 @@ svgwstring(nametype *p)
   if (p->segmnt == NULL) {
       return;
   }
-  /* kludge: precede string with a blank to add offset */
-  if (p->len > 0) {
-      putchar(' ');
-  }
   FORLIM = p->len;
   for (i = 0; i < FORLIM; i++) {
       c = p->segmnt[p->seginx + i];
@@ -3017,18 +3013,14 @@ svgwtext(primitive *node, nametype *tp, double x, double y)
       }
       if (L) {
 	  printf(" text-anchor=\"start\"");
+	  dx = textoff;
       }
       else if (R) {
 	  printf(" text-anchor=\"end\"");
-      }
-      if (L) {
-	  dx = textoff - (textht * 2 / 5);
-      }
-      else if (R) {
-	  dx = (textht / 7) - textoff;
+	  dx = -textoff;
       }
       else {
-	  dx = textht / (-7);
+	  dx = 0.0;
       }
       dy = textht / (-20);
       if (A) {
@@ -3045,10 +3037,9 @@ svgwtext(primitive *node, nametype *tp, double x, double y)
         writeln(log,' x+dx=',(x+dx):8:3,'[',(x+dx)/fsc:8:3,']',
          ' y+dy=',(y+dy):8:3,'[',(xfheight-(y+dy))/fsc:8:3,']') end; D*/
       svgcoord("x", "y", Max(0.0, x + dx), Max(0.0, y + dy));
-      printf(">\n");
+      printf("\n>");
       svgwstring(tp);
-      printf("\n</text>\n");
-      /*if ptype=XLstring then y:=y-textp^.val else y := y-textht*TEXTRATIO;*/
+      printf("</text>\n");
       y -= textht;
       tp = tp->next_;
   } while (tp != NULL);
@@ -3609,7 +3600,7 @@ pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2018.03.01 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2018.04.03 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -4390,7 +4381,7 @@ mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2018.03.01 option -m for mfpic\n");
+  printf("\n%% dpic version 2018.04.03 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -5102,7 +5093,7 @@ mfpdraw(primitive *node)
 void
 mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2018.03.01 option -s for MetaPost\n");
+  printf("%% dpic version 2018.04.03 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -5779,7 +5770,7 @@ mpodraw(primitive *node)
 void
 pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2018.03.01 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2018.04.03 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -6506,7 +6497,7 @@ psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2018.03.01 option ");
+  printf("\n%%%%Creator: dpic version 2018.04.03 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -7427,7 +7418,7 @@ pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2018.03.01 option -d for PDF\n");
+  printf("%% Creator: dpic version 2018.04.03 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
   /* 1. 2. 3. 4. 5. 6. */
@@ -8397,7 +8388,7 @@ texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2018.03.01 option ");
+  printf("%% dpic version 2018.04.03 option ");
   switch (drawmode) {
 
   case TeX:
@@ -18993,7 +18984,7 @@ getoptions(void)
 	  FMHGD*/
       }
       else if ((cht == 'h') || (cht == '-')) {
-	  fprintf(errout, " *** dpic version 2018.03.01\n");
+	  fprintf(errout, " *** dpic version 2018.04.03\n");
 	  /*DGHMF
 	  writeln(errout,' Debug is enabled');
 	  FMHGD*/

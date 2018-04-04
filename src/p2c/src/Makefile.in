@@ -231,6 +231,7 @@ clean.o:
 
 clean:
 	rm -f $(OBJS) $(LIBOBJS) $(PROTOS) p2c libp2c.a *.exe
+	rm -f p2c.man.inst p2c.cat p2cc
 
 wc:
 	wc $(SRCS) $(LIBSRCS) trans.h

@@ -10,6 +10,8 @@ begin
       write(log,' e='); wfloat(log,e); write(log,' w='); wfloat(log,w);
       write(log,' fsc='); wfloat(log,fsc); write(log,' lth='); wfloat(log,lth);
       writeln(log) end; D*)
+   gslinethick := 0.8;
+
    writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
    writeln('<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"');
    writeln('"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">');
@@ -34,8 +36,7 @@ begin
    write  (' stroke="black"'); write(' stroke-miterlimit="10"');
    write  (' stroke-width="'); wfloat(output,0.8/72*SVGPX);
    writeln('" fill="none">');
-   writeln('<g>');
-   gslinethick := 0.8
+   writeln('<g>')
    end;
 
 procedure svgpostlude;
@@ -132,7 +133,7 @@ begin
 
 procedure svgparam( p:string; x:real);
 begin
-   write(' ',p,'="'); wfloat(output,x/fsc); quote;
+   write(' ',p,'="'); wfloat(output,x/fsc); quote
    end;
 
 procedure svgcoord(s1,s2: string; x,y: real);
@@ -169,8 +170,6 @@ var i: integer;
 begin
    if p<>nil then with p@ do if segmnt<>nil then begin
      waswhite := false;
-                         (* kludge: precede string with a blank to add offset *)
-     if len > 0 then write(' ');
      for i:= 0 to len-1 do begin
        c := segmnt@[seginx+i];
        iswhite := (c in [' ',tabch,nlch,etxch]);
@@ -192,13 +191,13 @@ begin
                            (* boxheight = nstrings * textht *)
      if (ptype=XLstring) and (nstr > 0) then textht := boxheight/nstr;
      textoff := venv(node,XLtextoffset);
-     (*D if debuglevel>0 then begin
-       writeln(log,' svgwtext: x=',x:8:3,'[',x/fsc:8:3,'] y=',y:8:3,
-        '[',(xfheight-y)/fsc:8:3,']');
-       writeln(log,' xfheight=',xfheight:8:3);
-       writeln(log,' textoff=',textoff:8:3,'[',textoff/fsc:8:3,
-        '] textht=',textht:8:3,'[',textht/fsc:8:3,']')
-       end; D*)
+       (*D if debuglevel>0 then begin
+         writeln(log,' svgwtext: x=',x:8:3,'[',x/fsc:8:3,'] y=',y:8:3,
+          '[',(xfheight-y)/fsc:8:3,']');
+         writeln(log,' xfheight=',xfheight:8:3);
+         writeln(log,' textoff=',textoff:8:3,'[',textoff/fsc:8:3,
+          '] textht=',textht:8:3,'[',textht/fsc:8:3,']')
+         end; D*)
      y := y + (nstr/2-4/5)*textht;
      with node@ do repeat
         checkjust(tp, A,B,L,R );
@@ -208,28 +207,28 @@ begin
            write  (' font-size="'); wfloat(output,textht/scale*72);
            write('pt"');
            svgfilloptions(node,boxfill,shadedp,lspec(spec),false);
-           if lthick < 0 then svgsetstroke(0.2);
+           if lthick < 0 then svgsetstroke(0.2)
            end;
-        if L then write(' text-anchor="start"')
-        else if R then write(' text-anchor="end"');
-        if L then dx := textoff-textht*2/5
-        else if R then dx := -textoff+textht/7
-        else dx := -textht/7;
+        if L then begin
+          write(' text-anchor="start"'); dx := textoff end
+        else if R then begin
+          write(' text-anchor="end"'); dx := -textoff end
+        else dx := 0;
         dy := -textht/20;
         if A then dy := dy+textoff+textht/2
         else if B then dy := dy-textoff-textht*(TEXTRATIO-1)/2;
-        (*D if debuglevel>0 then begin
-          writeln(log,' A=',A,' B=',B,' L=',L,' R=',R,
-           ' dy=',dy:8:3,'[',dy/fsc:8:3,']');
-          writeln(log,' x=',x:8:3,'[',x/fsc:8:3,
-           '] y=',y:8:3,'[',(xfheight-y)/fsc:8:3);
-          writeln(log,' x+dx=',(x+dx):8:3,'[',(x+dx)/fsc:8:3,']',
-           ' y+dy=',(y+dy):8:3,'[',(xfheight-(y+dy))/fsc:8:3,']') end; D*)
-        svgcoord('x','y',Max(0,x+dx),Max(0,y+dy)); writeln('>');
-        svgwstring( tp ); writeln;
+          (*D if debuglevel>0 then begin
+            writeln(log,' A=',A,' B=',B,' L=',L,' R=',R,
+             ' dy=',dy:8:3,'[',dy/fsc:8:3,']');
+            writeln(log,' x=',x:8:3,'[',x/fsc:8:3,
+             '] y=',y:8:3,'[',(xfheight-y)/fsc:8:3);
+            writeln(log,' x+dx=',(x+dx):8:3,'[',(x+dx)/fsc:8:3,']',
+             ' y+dy=',(y+dy):8:3,'[',(xfheight-(y+dy))/fsc:8:3,']') end; D*)
+        svgcoord('x','y',Max(0,x+dx),Max(0,y+dy)); writeln;
+        write('>');
+        svgwstring( tp );
         writeln('</text>');
-        (*if ptype=XLstring then y:=y-textp@.val else y := y-textht*TEXTRATIO;*)
-        y:=y-textht;
+        y := y-textht;
         tp := tp@.next
      until tp = nil
      end
@@ -577,7 +576,7 @@ begin
             svglineoptions( node,lsp );
             write(' d="M '); svgwpos(X1); writeln;
             svgwarc( X2,aradius,|arcangle|,|arcangle| );
-            quote; svgendpath;
+            quote; svgendpath
             end;
          svgwtext(node, textp,aat.xpos,aat.ypos )
          end;
