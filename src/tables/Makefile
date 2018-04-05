@@ -59,6 +59,6 @@ $(PG) $(PGC) $(PGP):
       make NAME=PG CC=$(CC) install ; make NAME=PG clean ) ; fi
 
 clean:
-	rm -f lrmax lex* pars* PG.list
+	rm -f lrmax lex* pars* PG.list PG.out
 
 veryclean: clean
