@@ -10,7 +10,7 @@ DOCDIR = $(DESTDIR)/$(PREFIX)/share/doc/dpic
 
 DEFS= @defrand@ @defno_snprintf@ @safe_mode@ @no_intt@
 # To force -DNO_SNPRINT
-#DEFS= @cninety@ @defrand@ -DNO_SNPRINTF @safe_mode@ @no_intt@
+#DEFS= @defrand@ -DNO_SNPRINTF @safe_mode@ @no_intt@
 
 CC=@CC@
 PC=@PC@

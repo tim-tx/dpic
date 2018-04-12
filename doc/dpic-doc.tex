@@ -135,7 +135,7 @@ inclusion in LaTeX documents.
 The pic language is particularly suited for easily creating line diagrams
 such as electric circuits, and many persons use a set of macros
 called Circuit\_macros, which are processed using the m4 macro processor
-and \Dpic.
+and \dpic.
 The pic language
 itself allows macro definitions, and both pic and m4 macros
 will be described.
@@ -203,7 +203,7 @@ via pdflatex a one-step process.
 Mfpic and \MetaPost output are provided for
 compatibility.
 
-The {\tt -r} option produces \Postscript {\tt eps}
+The {\tt -r} option produces \Postscript\ {\tt .eps}
 files, in which font changes or typesetting must be done explicitly.
 % Output in this form can be imported into CorelDraw and Adobe Illustrator. 
 The {\tt -f} option writes \Postscript strings in psfrag
@@ -289,7 +289,7 @@ allow for basic color.  Elaborate fills and cropping are the domain of
 the postprocessors, but can be included easily with the use of macros.
 
 The following sections are intended to help you become familiar
-with dpic language features.  Some of these details
+with dpic language syntax.  Some of these details
 are exclusive to dpic and are not described in the GNU manual
 but are discussed in \SR{Diffs:} of this document.
 
@@ -470,6 +470,7 @@ where the second and third arguments define
 the search interval, the fourth argument specifies the solution
 precision, and the fifth argument is the name of the variable to be set
 to the root.  A basic version of {\tt bisect} is given by
+\pagebreak
 \begin{verbatim}
 define bisect {
   x_m = $2; x_M = $3
@@ -843,6 +844,7 @@ following figure, which shows the result of the command
 \ntt{spline up 1.5 then right 2 then down 1.5}\\[-1.5\baselineskip]
 \input spline.tex
 \par
+\enlargethispage{\baselineskip}
 A straight line is drawn along
 the first half of the first segment and the last half of the last segment.
 The curve is tangent to the centres of the segments.
@@ -1029,6 +1031,7 @@ arcs.
 \Dpic, however, extends the {\tt shaded} and {\tt outlined} directives to
 linear objects such as lines or splines where the output postprocessor allows.
 Consider, for example, the following macro:
+\pagebreak
 \begin{verbatim}
 define slantbox { [ # wid, ht, xslant, yslant, attributes
   w = $1 ; h = $2 ; xs = $3 ; ys = $4
@@ -1077,7 +1080,7 @@ For TikZ-PGF, try
   following code fragment, an assignment to {\tt x} is written to an
   external file so that the required value of {\tt x} will be known after
   the file is read on the second pass.
-\enlargethispage{\baselineskip}
+ \enlargethispage{\baselineskip}
   \ntt{x = {\sl default value}}
   \ntt{print "" >> "datafile" \hfill      \# Make sure the file exists}
   \ntt{copy "datafile" \hfill \# On second pass, read x = required value}
@@ -1174,18 +1177,21 @@ will also import pdf for processing by pdflatex.
 
 \section{Pic processor differences}\label{Diffs:}
 Differences among processors, and between dpic and gpic particularly,
-are summarized below.  Normally, the
+are summarized below.
+These differences result from incomplete language definition and
+from different implementation contexts.
+Normally, the
 only changes required to process correct pic or gpic input with dpic are
 changes to \tLB$\ldots$\tRB\ instead of {\tt X}$\ldots${\tt X}
 syntax as explained below, together with text formatting
-if the original code was written for \groff.  The remaining
-differences documented below are small syntactical differences or
-relate to the use of \PSTricks or the other dpic output formats.
-Sometimes, differences in default syntax (such as for arcs) must be
-considered.
+if the original code was written for \groff.
+Sometimes, differences in default behavior (such as for arcs or object
+placement) must be considered.
+The remaining items are reasonably small syntactical differences or
+relate to the use of \LaTeX\ or the other dpic output formats.
 
-Gpic is being actively maintained so some of the items below apply only
-to older versions.
+%Gpic is being actively maintained so some of the items below apply only
+%to older versions.
 
 \subsection{Command-line options}  They are completely different, of course.
   Type dpic -h to see a list of dpic options.
@@ -1369,7 +1375,7 @@ arguments can be arbitrary expressions rather than the constants shown.
   expression.
 
   String height and width are unscaled on final output from dpic since
-  these depend on later formatting by LaTeX.
+  these may depend on later formatting by LaTeX.
 
 \subsection{{\tt print} {\sl arg},~$\ldots$}
   Dpic allows only one argument, which may be an expression, position,
@@ -1469,7 +1475,7 @@ macro can be replaced by one customized to suit.
   when different parts of a diagram require different scaling.
   For example, if file {\tt component.pic} contains a component
   scaled by 25.4, then the following allow it to be used:
-  \ntt{[ copy("component.pic")] scaled 1/25.4}\\
+  \ntt{[ copy "component.pic" ] scaled 1/25.4}\\
   As always, line thicknesses are not scaled.
 
 \subsection{Arrowheads}
@@ -1496,6 +1502,7 @@ macro can be replaced by one customized to suit.
   parameters, which have to be changed explicitly by either of the
   following methods.  The line thickness is specified in points but the
   arrowhead size parameters are in drawing units:
+\enlargethispage{0.5\baselineskip}\vspace*{-0.5\baselineskip}
 \begin{verbatim}
 # Method 1 (global change within the current block):
   linethick = 2    # default 0.8 (bp)
@@ -1555,7 +1562,7 @@ box using
 \Gpic and \dpic place justified text slightly differently.  In the
 previous example, \gpic places the text with its left edge exactly
 at {\tt A}, with similar effect for right justification.  \Dpic
-uses the environmental variable {\tt textoffset}, which is 2\,pt by
+uses the environmental variable {\tt textoffset}, which is two points by
 default, to place the left edge of the text at {\tt A + (textoffset,0)}
 with a similar gap for other relative positioning.  Assigning {\tt textoffset}
 to 0 sets the gap added by \dpic to zero.
@@ -1573,24 +1580,23 @@ to 0 sets the gap added by \dpic to zero.
 
   The keyword {\tt continue} can also be used slightly differently. The line
   drawn by
-   \ntt{move to (0,0); line right 1 then to (Here,(2,1))}
-
+   \ntt{move to (0,0); line right 1 then to (Here,(2,1))}\\
   terminates at {\tt(0,1)} since {\tt Here} is the position {\tt(0,0)},
   whereas the
   following terminates at {\tt(1,1)} since {\tt Here} is {\tt(1,0)}:
    \ntt{move to (0,0); line right 1; continue to (Here,(2,1))}
 
-  Input parsing would be possible if {\tt continue} were to be replaced by
-  {\tt then}:
-   \ntt{move to (0,0); line right 1; then to (Here,(2,1))}\\
-  The keyword {\tt continue} is not strictly necessary
-  but it has been retained for historical compatibility.
+% Input parsing would be possible if {\tt continue} were to be replaced by
+% {\tt then}:
+%  \ntt{move to (0,0); line right 1; then to (Here,(2,1))}\\
+% The keyword {\tt continue} is not strictly necessary
+% but it has been retained for historical compatibility.
 
 \subsection{Subscripted variables and locations}
   Dpic allows subscripted variables and positions, as an aid in
   geometric calculations such as fitting splines to a set of points.
-  Thus {\tt Pos[{\sl expression}]} is a valid name for a position.  The rounded
-  integer value of the expression is used.  Similarly,
+  For example, {\tt Pos[{\sl expression}]} is a valid name for a position.
+  The rounded integer value of the expression is used.  Similarly,
   {\tt x[{\sl expression}]} is
   a valid variable name.  There are no array operations, but it is easy
   to write macros for them.
@@ -1661,7 +1667,7 @@ A few additional mathematical functions are defined in dpic:
   {\tt loge}, {\tt sign}, {\tt tan}, and {\tt pmod}.
 
 \subsection{PSTricks anomaly}
-  At some time in the mid 2000 to 2010 interval,
+  At some time between the years 2000 and 2010,
   the behaviour of the low-level \PSTricks command
   {\tt \tBS{}psbezier}
   was changed to match the existing context-dependent behavior

@@ -43,7 +43,7 @@ CC = gcc                    # NOTE: logf changed to logfile and
 CC = @CC@
 OPT = -O		   # uncomment this for optimization
 DEB = # -g		   # uncomment this for debugging
-DEFS = @cninety@   # place other -D types of things here
+DEFS =             # place other -D types of things here
 CFLAGS = $(OPT) $(DEB) $(DEFS)
 LFLAGS =
 
