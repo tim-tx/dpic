@@ -44,11 +44,11 @@ installdpic: dpic
     fi
 
 #SPECMANDIR = $(DESTDIR)/usr/share/man/man1
-installdocs: doc/dpic-doc.pdf
+installdocs: dpic-doc.pdf
 	mkdir -p $(DOCDIR)
 	mkdir -p $(MANDIR)
 #	mkdir -p $(SPECMANDIR)
-	install -m 644 doc/dpic-doc.pdf $(DOCDIR)
+	install -m 644 dpic-doc.pdf $(DOCDIR)
 	install -m 644 doc/dpictools.pic $(DOCDIR)
 #	install -m 644 doc/dpic.1 $(SPECMANDIR)
 	cat doc/dpic.1 | gzip > $(MANDIR)/dpic.1.gz
@@ -67,8 +67,8 @@ uninstall:
     else rm -f $(DOCDIR)/dpic-doc.pdf ; \
     fi
 
-doc/dpic-doc.pdf:
-	(cd doc; make)
+dpic-doc.pdf:
+	(cd doc; make ; mv dpic-doc.pdf .. )
 
 # The following is only executed if src files are changed. 
 LEXCINCLUDES = entryhp.h lxhp.h lxnp.h lxtv.h entrytv.h lxch.h
