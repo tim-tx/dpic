@@ -1497,9 +1497,6 @@ neswstring(primitive *pmp, double ht, double wd)
   else if (B) {
       y += ((-ht) * 0.5) - offst;
   }
-  if (drawmode == SVG) {
-      offst = pmp->Upr.Ubox.boxheight / 3;
-  }
   x = pmp->aat.xpos;
   if (R) {
       x += ((-wd) * 0.5) - offst;
@@ -1513,8 +1510,9 @@ neswstring(primitive *pmp, double ht, double wd)
   east = Max(east, x + (wd * 0.5));
   /*D; if debuglevel>0 then begin
      write(log,' neswstring:');
-     wlogfl('aat.xpos',aat.xpos,0); wlogfl('x',x,0);
-     wlogfl('east',east,0); wlogfl('west',west,0); wlogfl('wd',wd,1)
+     wlogfl('aat.xpos',aat.xpos,0); wlogfl('x',x,0); wlogfl('y',y,1);
+     wlogfl('east',east,0); wlogfl('west',west,0); wlogfl('wd',wd,1);
+     wlogfl('north',north,0); wlogfl('south',south,0); wlogfl('ht',ht,1)
      end D*/
 }
 
@@ -9368,7 +9366,8 @@ begin
    XDnw: writeln(log,'.nw'); XDne: writeln(log,'.ne');
    XDse: writeln(log,'.se'); XDsw: writeln(log,'.sw');
    XDc: writeln(log,'.c');
-   XDstart: writeln(log,'.start'); XDend: writeln(log,'.end')
+   XDstart: writeln(log,'.start'); XDend: writeln(log,'.end');
+   XEMPTY: writeln(log,'XEMPTY')
    otherwise writeln(log,'unknown corner lexv=',lexv:1)
    end
    end;
@@ -10656,11 +10655,13 @@ corner(primitive *pr, int lexv, double *x, double *y)
 { primitive *pe;
   boolean sb;
 
+  /* A,B,L,R: boolean;
+  offst: real; */
   if (pr == NULL) {
       return;
   }
   /*D if debuglevel>0 then begin write(log,
-      'Corner: ptype(',ordp(pr):1,'): ptype='); printptype(ptype);
+      'Corner: ptype(',ordp(pr):1,')='); printptype(ptype);
      write(log,' corner='); printcorner(lexv) end; D*/
   *x = pr->aat.xpos;
   *y = pr->aat.ypos;
@@ -10675,9 +10676,11 @@ corner(primitive *pr, int lexv, double *x, double *y)
       *y = 0.5 * (pr->aat.ypos + pe->Upr.Uline.endpos.ypos);
       return;
   }
-  if ((lexv == XEMPTY) && (pr->ptype != XLaTeX)) {
+  /* else if (lexv = XEMPTY) and (not (ptype = XLaTeX)) then begin */
+  if ((lexv == XEMPTY) && (pr->ptype != XLstring) && (pr->ptype != XLaTeX)) {
       return;
   }
+  /*D if debuglevel>0 then write(log,' XEMPTY'); D*/
   switch (pr->ptype) {
 
   case XLbox:
@@ -10690,10 +10693,20 @@ corner(primitive *pr, int lexv, double *x, double *y)
     *y = pr->aat.ypos;
     initnesw();
     nesw(pr);
+    /* Compass corners of justified strings not implemented:
+    if ptype = XLstring then begin
+       checkjust(textp,A,B,L,R);
+       offst := venv(pr,XLtextoffset);
+       if L then x := x+boxwidth/2 + offst
+       else if R then x := x-boxwidth/2 - offst;
+       if A then y := y+boxheight/2 + offst
+       else if B then y := y-boxheight/2 - offst;
+       end; */
     /*D if debuglevel>0 then begin
         write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
         write(log,' n,s'); wpair(log,north,south);
-        write(log,' w,e'); wpair(log,west,east)
+        write(log,' w,e'); wpair(log,west,east);
+        write(log,' x,y'); wpair(log,x,y)
         end; D*/
     if (((pr->ptype == XLarc) || (pr->ptype == XLcircle) ||
 	 (pr->ptype == XLellipse) ||
@@ -14377,11 +14390,11 @@ produce(stackinx newp, int p)
 	      break;
 
 	    case XLrjust:
-	      namptr->val = ((i / 4.0) * 4) + 1;
+	      namptr->val = ((i >> 2) * 4.0) + 1;
 	      break;
 
 	    case XLljust:
-	      namptr->val = ((i / 4.0) * 4) + 2;
+	      namptr->val = ((i >> 2) * 4.0) + 2;
 	      break;
 
 	    case XLbelow:

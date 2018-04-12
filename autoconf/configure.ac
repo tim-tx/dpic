@@ -42,7 +42,7 @@ fi
 CFLAGS=${CFLAGS:-"-O"}
 AC_PROG_CC
 
-AX_CHECK_COMPILE_FLAG([-std=c90],[AC_SUBST(cninety,-std=c90)])
+dnl AX_CHECK_COMPILE_FLAG([-std=c90],[AC_SUBST(cninety,-std=c90)])
 
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET

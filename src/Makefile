@@ -1,4 +1,4 @@
-# Assemble pascal code, generate ANSI C and include files
+# Assemble pascal code, generate C and include files
 
 #                               Compile p2c locally
 P2C = p2c/p2c

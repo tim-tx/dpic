@@ -574,7 +574,6 @@ begin
       offst := venv(pmp,XLtextoffset);
       y := aat.ypos;
       if A then y := y+ht*0.5+offst else if B then y := y-ht*0.5-offst;
-      if drawmode=SVG then offst := boxheight/3;
       x := aat.xpos;
       if R then x := x-wd*0.5-offst else if L then x := x+wd*0.5+offst;
       north := Max(north,y+ht*0.5);
@@ -583,8 +582,9 @@ begin
       east := Max(east,x+wd*0.5)
       (*D;  if debuglevel>0 then begin
          write(log,' neswstring:');
-         wlogfl('aat.xpos',aat.xpos,0); wlogfl('x',x,0);
-         wlogfl('east',east,0); wlogfl('west',west,0); wlogfl('wd',wd,1)
+         wlogfl('aat.xpos',aat.xpos,0); wlogfl('x',x,0); wlogfl('y',y,1);
+         wlogfl('east',east,0); wlogfl('west',west,0); wlogfl('wd',wd,1);
+         wlogfl('north',north,0); wlogfl('south',south,0); wlogfl('ht',ht,1)
          end D*)
       end
    end;

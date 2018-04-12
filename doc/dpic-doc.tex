@@ -44,22 +44,23 @@
 \makeatother
 %                               Customizations
 \newcommand{\bq}{}
-\newcommand{\pic}{{\bq pic}}
-\newcommand{\dvips}{{\bq dvips}}
-\newcommand{\Pic}{{\bq Pic}}
-\newcommand{\gpic}{{\bq gpic}}
-\newcommand{\Gpic}{{\bq Gpic}}
-\newcommand{\Dpic}{{\bq Dpic}}
-\newcommand{\tpic}{{\bq tpic}}
-\newcommand{\mfpic}{{\bq mfpic}}
-\newcommand{\groff}{{\bq groff}}
-\newcommand{\xfig}{{\bq xfig}}
-\newcommand{\PSTricks}{{\bq PSTricks}}
-\newcommand{\MetaPost}{{\bq MetaPost}}
-\newcommand{\Postscript}{{\bq Postscript}}
-\newcommand{\dpic}{{\bq dpic}}
-\newcommand{\Mfour}{{\bq m4}}
-\newcommand{\TPGF}{{\bq Ti{\it k}z~PGF}}
+\newcommand{\pic}{{\bq pic}\xspace}
+\newcommand{\dvips}{{\bq dvips}\xspace}
+\newcommand{\Pic}{{\bq Pic}\xspace}
+\newcommand{\gpic}{{\bq gpic}\xspace}
+\newcommand{\Gpic}{{\bq Gpic}\xspace}
+\newcommand{\Dpic}{{\bq Dpic}\xspace}
+\newcommand{\tpic}{{\bq tpic}\xspace}
+\renewcommand{\LaTeX}{{LaTeX}\xspace}
+\newcommand{\mfpic}{{\bq mfpic}\xspace}
+\newcommand{\groff}{{\bq groff}\xspace}
+\newcommand{\xfig}{{\bq xfig}\xspace}
+\newcommand{\PSTricks}{{\bq PSTricks}\xspace}
+\newcommand{\MetaPost}{{\bq MetaPost}\xspace}
+\newcommand{\Postscript}{{\bq Postscript}\xspace}
+\newcommand{\dpic}{{\bq dpic}\xspace}
+\newcommand{\Mfour}{{\bq m4}\xspace}
+\newcommand{\TPGF}{{\bq Ti{\it k}z~PGF}\xspace}
 %
 \setlength{\parindent}{0pt}
 \addtolength{\parskip}{1ex}
@@ -119,14 +120,14 @@ Dwight Aplevich%
 \section{Introduction}
 
 This document is meant for persons using dpic to produce diagrams for
-LaTeX documents or web files.  You are assumed to have basic knowledge
+\LaTeX documents or web files.  You are assumed to have basic knowledge
 of the pic language as described for the original Documenter's
 Workbench (ATT) pic~\cite{KRpic} or the
 current GNU pic (gpic) processor~\cite{Raymond95}.
 However, a concise dpic language reference is included here in
 Appendix~A, and the context-free dpic input grammar is given in Appendix~B.
 
-\Dpic\ accepts gpic input for the most part but
+\Dpic accepts gpic input for the most part but
 there are minor differences.  The outputs of gpic and dpic are quite
 different but both can serve as preprocessors that create diagrams for
 inclusion in LaTeX documents.
@@ -139,7 +140,7 @@ The pic language
 itself allows macro definitions, and both pic and m4 macros
 will be described.
 
-\Dpic\ usage will be reviewed, some programming examples that illustrate
+\Dpic usage will be reviewed, some programming examples that illustrate
 dpic extensions of the pic language will be given, and then
 the differences among pic translators will be itemized, particularly
 the differences between gpic and dpic.
@@ -157,7 +158,7 @@ the differences between gpic and dpic.
 \section{Dpic usage}\label{Usage:}
 In the following, items in square brackets [~] are optional
 and items separated by a vertical line~\VL~are alternatives.
-To produce .tex output (for LaTeX, PSTricks, TikZ-PGF, mfpic
+To produce .tex output (for LaTeX, \PSTricks, TikZ-PGF, \mfpic
    processing):
    \ntt{dpic {\rm[}{\sl options}{\rm]} {\sl file}.pic \tRA\ {\sl file}.tex}\\
    or
@@ -173,7 +174,7 @@ To produce other formats:
      \tRA\ {\sl file}{\rm[}.tex{\VL}eps{\VL}pdf{\VL}mp{\VL}fig{\VL}svg{\rm]}}
 
 \subsection{Options}
-\Dpic\ accepts the following options:
+\Dpic accepts the following options:
 \begin{tabbing}
 \quad\=\hbox{(none)\ }\= \kill
 \> (none) \> Latex picture-environment output (very limited font-based
@@ -194,18 +195,18 @@ To produce other formats:
 \end{tabbing}
 
 The {\tt -p} option produces output for postprocessing by the
-LaTeX package PSTricks.
+LaTeX package \PSTricks.
 Similarly, the {\tt -g} option produces output
 for the TikZ-PGF packages and makes pdf production
 via pdflatex a one-step process.
 
-Mfpic and MetaPost output are provided for
+Mfpic and \MetaPost output are provided for
 compatibility.
 
-The {\tt -r} option produces Postscript {\tt eps}
+The {\tt -r} option produces \Postscript {\tt eps}
 files, in which font changes or typesetting must be done explicitly.
 % Output in this form can be imported into CorelDraw and Adobe Illustrator. 
-The {\tt -f} option writes Postscript strings in psfrag
+The {\tt -f} option writes \Postscript strings in psfrag
 format for tex or latex typesetting.
 
 The {\tt -d} option produces PDF files.
@@ -223,12 +224,12 @@ then any required text formatting generally must be included explicitly.
 The other possibility for SVG output is that an SVG library of elements
 can be drawn with dpic, and Inkscape used to place and connect copies
 of the elements.  Then Inkscape can export the graphics as eps for
-processing by \LaTeX\ or as pdf for processing by pdflatex.  Inkscape
+processing by \LaTeX or as pdf for processing by pdflatex.  Inkscape
 will also export a tex file from which labels can be formatted and
 overlaid on the imported eps or pdf.
 
-In all cases, arbitrary postprocessor commands (that is, arbitrary PSTricks,
-SVG, Postscript, or other commands) can be inserted into the dpic output
+In all cases, arbitrary postprocessor commands (that is, arbitrary \PSTricks,
+SVG, \Postscript, or other commands) can be inserted into the dpic output
 directly from the source.
 This possibility adds considerable power for manipulating diagram
 elements.
@@ -240,12 +241,12 @@ option.
 
 The file Examples.txt contains a minimal example of each of these
 options except {\tt -z}.  Consult the appropriate manual for processing
-mfpic, PSTricks, MetaPost, pgf, or psfrag output.
+\mfpic, \PSTricks, \MetaPost, pgf, or psfrag output.
 
 Invoking dpic without options produces basic LaTeX drawing commands
 by default.  LaTeX line slopes, for example, are very limited and you
 must ensure that lines and arrows are drawn only at acceptable slopes.
-\Dpic\ sets the maximum slope integer to be 6 for LaTeX, 453 for eepic,
+\Dpic sets the maximum slope integer to be 6 for LaTeX, 453 for eepic,
 and 1000 for pict2e.  To see the effect of the slope limitations,
 process the following:
 \begin{verbatim}
@@ -345,7 +346,7 @@ but occasionaly results in subtle behavior. The code
 \ntt{print x}\\
 prints 7 on the first line and 5 on the second because the assignment
 within brackets creates variable {\tt x} with scope within the brackets.
-However, \Dpic\ allows a second line of the form
+However, \Dpic allows a second line of the form
 \ntt{[ x += 2; print x ]}\\
 which changes the previously defined variable {\tt x} and the value
 7 is printed twice.
@@ -411,7 +412,7 @@ The line
 \ntt{undefine {\sl name}}\\
 deletes the macro definition.
 
-\Dpic\ skips white space immediately preceding macro arguments so that,
+\Dpic skips white space immediately preceding macro arguments so that,
  for example, 
 \ntt{{\sl name}( x, }
 \ntt{ y, z )}\\
@@ -504,7 +505,7 @@ a method that is both simple and adaptable to other shapes.
 The source file {\tt Spiral.m4} makes use of both m4 macros and pic macros.
 
 \subsubsection{Composing statements}
-\Dpic\ macro arguments can be expanded almost anywhere.
+\Dpic macro arguments can be expanded almost anywhere.
 Suppose that circles {\tt A} and {\tt B} have been
 defined, with intersections at positions {\tt AB} and {\tt BA} found
 using the macro {\tt cintersect} from Circuit\_macros, for example.
@@ -522,7 +523,7 @@ define lozenge {
 A macro argument is referenced as {\tt\$}$n$,
 where $n$ must be an integer and
 may not be an integer expression.  Consequently, the following does
-not work in a \dpic\ macro:
+not work in a \dpic macro:
 \ntt{for i=1 to \$+ do \tLB\ c[i] = \$i \tRB}\\
 Instead, use the dpic statement
 \ntt{exec {\sl string}}\\
@@ -796,7 +797,7 @@ that encloses the box in {\tt [}, {\tt ]} brackets is given by the
 Circuit\_macros {\tt rotbox} macro.
 
 \subsection{Subscripts}
-\Dpic\ allows variables and capitalized labels to have subscripts; thus
+\Dpic allows variables and capitalized labels to have subscripts; thus
 {\tt x} and {\tt x[4]} are distinct variable names, and can be employed
 in expressions as usual.  Similarly, {\tt P} and {\tt P[3]} are distinct
 labels.
@@ -832,12 +833,12 @@ $\ldots$ so that, for example,
 assigns the second to sixteenth arguments to {\tt x[1]} to {\tt x[15]}
 respectively.
 
-\Dpic\ does not define vector operations, but it is easy to define macros
+\Dpic does not define vector operations, but it is easy to define macros
 for them. For example, macros can be used to define 3-dimensional vectors,
 transform them, and to project them onto a drawing plane.
 
 \subsection{Splines}
-\Dpic\ implements standard pic splines by default, as on the left in the
+\Dpic implements standard pic splines by default, as on the left in the
 following figure, which shows the result of the command
 \ntt{spline up 1.5 then right 2 then down 1.5}\\[-1.5\baselineskip]
 \input spline.tex
@@ -868,13 +869,59 @@ have to be calculated.  These points satisfy the following equations:
 The Circuit\_macros {\tt fitcurve} macro performs the required calculations
 and draws the spline to pass through the given points.
 
+\subsection{Text}
+Pic interpreters are not wordprocessors, but feed their output to \groff
+in the case of \gpic and \LaTeX in the case of \dpic.  \Dpic also generates
+output formats in which font choice and formatting, if any, must be done
+according to the context, as for example, postscript output containing psfrag
+strings, or SVG output formatted by hand or by macros.
+The result is that the size and position of text may need to be adjusted
+by hand for the particular workflow and postprocessor to be employed.
+
+  The \dpic\ {\tt textht} environmental variable often gives \dpic a
+  good estimate
+  of the actual height of embedded text, but the width of the text is more
+  difficult to estimate.
+  Consequently, text is sometimes truncated by the figure 
+  bounding box at the left or right edge of the figure.
+  Setting the width of strategic strings by hand,
+  e.g., {\tt "{\it text}" wid 0.65}
+  can serve as a quick cure in specific cases, but is better done
+  automatically as described in the Circuit\_macros documentation
+  \cite{Aplevich09}.
+  Briefly summarized, LaTeX can write the exact height, width, and depth
+  of formatted text (or anything that creats a text box) to a file.
+  The file is read during a second processing by dpic of the diagram, so that
+  the width $x$ and height $y$ are known values in the phrase  
+  \ntt{"{\sl text}" wid $x$ ht $y$}
+
+  There is apparently no reliable way to know the exact bounding box of
+  arbitrary SVG text, so \dpic uses an approximation, and text placement
+  on diagrams may have to be adjusted by hand.
+
+Justified text deserves special mention.  The second line in
+  \ntt{A: circle rad 0.01 at (0,0)}
+  \ntt{S: "Hello" at A}
+  \ntt{   box wid S.wid ht S.ht at S}\\
+produces a greeting centered at {\tt A} as expected. The bounding
+box of the text is also centered at {\tt A} but has default
+height and width {\tt textht} and {\tt textwid} (that is, zero in
+most cases) respectively.
+The revised version
+  \ntt{S: "Hello" wid 24.7/72 ht 7.6/72 at A}\\
+(where the formatted size in points has been obtained automatically
+or by measurement) produces a correct bounding box.
+There are minor differences in the way \gpic and \dpic handle
+justification, as discussed in Section \ref{Justified:}. 
+
+
 \subsection{Postprocessor commands and color}
 Arbitrary postprocessor commands can be interspersed with pic
 statements  to achieve effects such as gradient fills, clipping,
 and transformations. There are two ways of passing
 commands into dpic output.
 
-\Dpic\ lines beginning with the backslash \tBS\ are passed through to the
+\Dpic lines beginning with the backslash \tBS\ are passed through to the
 output without modification.  This method works well for TeX statements,
 LaTeX statements, and commands to postprocessors that rely on the TeX macro
 processing.
@@ -895,7 +942,7 @@ the challenge of designing a single macro that
 produces appropriate postprocessor code to have
 identical effect with different postprocessors.
 
-%The gradient fill operations for PSTricks or SVG, for example, are a good use
+%The gradient fill operations for \PSTricks or SVG, for example, are a good use
 %of this facility.  Path operations such as clipping can also be used,
 %depending on the postprocessor.
 %It is more of a challenge to design
@@ -904,7 +951,7 @@ identical effect with different postprocessors.
 The Circuit\_macros library contains
 several routines that produce equivalent or nearly equivalent results
 for several postprocessors.  It is probably a good rule to stick with
-one or two postprocessors such as Tikz-pgf or PSTricks.
+one or two postprocessors such as Tikz-pgf or \PSTricks.
 
   Dpic defines a number of internal variables for controlling
   actions that depend on output format. Internal variables
@@ -967,7 +1014,7 @@ so that the following produces a circle filled in gold, for example:
   with \TPGF output, the command
     \ntt{box shaded "orange, opacity=0.5"}\\
   sets the opacity of the fill,
-  and with PSTricks output, the sequence
+  and with \PSTricks output, the sequence
     \ntt{box shaded "lightgray,fillstyle=hlines*,linecolor=blue,}
     \ntt{hatchwidth=0.5pt,hatchsep=5pt,hatchcolor=red,hatchangle=45"}\\
   produces a hatched multicoloured fill and is equivalent to
@@ -1005,7 +1052,7 @@ For example, the command
 \ntt{slantbox(0.1,0.5,0,0.1,shaded "Dandelion" outlined "black")}\\
 is equivalent to the gpic example.  The above macro can be
 modified easily to produce arbitrary polygons, for example.
-The color {\tt Dandelion} is automatically defined for PSTricks
+The color {\tt Dandelion} is automatically defined for \PSTricks
 by the LaTeX line
 \ntt{\tBS{}usepackage[dvipsnames]\tLB{}pstricks\tRB}\\
 For TikZ-PGF, try
@@ -1043,12 +1090,12 @@ For TikZ-PGF, try
 
 \section{SVG, PDF, and Postscript output}\label{SVG:}
 
-The {\tt-r} (raw Postscript),
+The {\tt-r} (raw \Postscript),
 {\tt-v} (SVG),
 {\tt-d} (PDF),
-and {\tt-x} (xfig) options
+and {\tt-x} (\xfig) options
 of dpic produce output that is not intended to be processed directly by LaTeX
-or, in some cases, printed on paper.  Postscript output can be inserted
+or, in some cases, printed on paper.  \Postscript output can be inserted
 into a document with the {\tt \tBS{}includegraphics} macro. This command
 will also import pdf for processing by pdflatex. 
 
@@ -1056,26 +1103,11 @@ will also import pdf for processing by pdflatex.
   The bounding box of a diagram is not always known exactly or even defined
   exactly, since it can depend on the context in which the diagram is to be
   used.  Within a diagram, different line widths, mitred joints, splines,
-  colored output, over-painting, arbitrary text, arbitrary Postscript or SVG,
+  colored output, overpainting, arbitrary text, arbitrary \Postscript or SVG,
   and other complications are allowed; consequently dpic can only provide an
   estimate of the exact bounding box.
 
-  There is apparently no reliable way to know the exact bounding box of
-  arbitrary SVG text, so \dpic\ uses an approximation, and text placement
-  on diagrams may have to be adjusted by hand.
-
-  {\em Truncated text:}
-  The dpic {\tt textht} environmental variable often gives dpic a good estimate
-  of the actual height of embedded text, but the width of the text is more
-  difficult to estimate.
-  Consequently, text is often truncated by the figure 
-  bounding box at the left or right edge of the figure.
-  Setting the width of strategic strings by hand, e.g. 
-  {\tt "string" wid 0.75}
-  often serves as a quick cure in specific cases, but is better done
-  automatically as described in the Circuit\_macros documentation
-  \cite{Aplevich09}.
-  Otherwise, strategic {\tt move} commands can be used
+  Strategic {\tt move} commands can be used
   to enlarge the bounding box as illustrated at the end of the discussion
   below.
 
@@ -1105,11 +1137,11 @@ will also import pdf for processing by pdflatex.
   .PE
 \end{verbatim}
   which draws a box with southwest corner line centres intersecting at
-  Postscript coordinates 0,0 and northeast intersection at 54,36.
+  \Postscript coordinates 0,0 and northeast intersection at 54,36.
   Dpic {\tt -r} augments this nominal bounding box by half of the last
   {\tt linethick} value (default {\tt linethick} is 0.8 bp)
   in the outermost diagram scope to
-  produce the Postscript bounding-box definitions
+  produce the \Postscript bounding-box definitions
 \begin{verbatim}
   %%BoundingBox: -1 -1 55 37
   %%HiResBoundingBox: -0.4 -0.4 54.4 36.4
@@ -1146,9 +1178,9 @@ are summarized below.  Normally, the
 only changes required to process correct pic or gpic input with dpic are
 changes to \tLB$\ldots$\tRB\ instead of {\tt X}$\ldots${\tt X}
 syntax as explained below, together with text formatting
-if the original code was written for groff.  The remaining
+if the original code was written for \groff.  The remaining
 differences documented below are small syntactical differences or
-relate to the use of PSTricks or the other dpic output formats.
+relate to the use of \PSTricks or the other dpic output formats.
 Sometimes, differences in default syntax (such as for arcs) must be
 considered.
 
@@ -1273,7 +1305,7 @@ to older versions.
   and, of course, {\tt arrow}.
 
   The compass corners of multisegmented linear objects are not
-  defined in descriptions of the \pic\ grammar
+  defined in descriptions of the \pic grammar
   and they should be used with care.
 
 \subsection{Arc defaults}  Gpic and dpic have different algorithms for picking
@@ -1287,7 +1319,8 @@ to older versions.
   Instead, use
    \ntt{arc cw from A to B with .c at C}
 
-\subsection{Strings}
+\subsection{Strings} 
+% and justified text\label{Strings:}}
 Strings are arbitrary character sequences between double quotes, with double
 quotes in strings preceded by the backslash character.  Equivalently, a
 string is produced by the C-like sprintf function
@@ -1359,9 +1392,9 @@ arguments can be arbitrary expressions rather than the constants shown.
    \ntt{if (sh "{\sl shell command}") == 0 then \tLB\ldots\tRB }
 
 \subsection{{\tt copy}}
-  \Dpic\ supports the command
+  \Dpic supports the command
     \ntt{copy "{\sl filename}"}\\
-  but does not directly support the \gpic\ commands
+  but does not directly support the \gpic commands
     \ntt{copy {\rm[}{\sl filename}{\rm]}
       thru X {\sl body} X {\rm[} until {\sl word} {\rm]}}
     \ntt{copy {\rm[}{\sl filename}{\rm]}
@@ -1417,7 +1450,7 @@ macro can be replaced by one customized to suit.
 \subsection{{\tt fill}}
   In gpic, a fill value of 0 means white, 1 means black.
   Dpic uses 0 as black and 1 as
-  white as do Postscript and the original ATT pic.
+  white as do \Postscript and the original ATT pic.
 
   The pic language specifies fill only for box, ellipse, and circle, but fill is
   supported by dpic using the {\tt shaded} directive.  The concept of a path
@@ -1501,11 +1534,31 @@ macro can be replaced by one customized to suit.
   cases, treating arrowhead parameters like line thickness (unscaled)
   parameters on final output.
 
-\subsection{Compass corners}
+\subsection{Compass corners and justified text\label{Justified:}}
   Dpic consistently requires a dot before compass corners, so the gpic line
     \ntt{x at center of last box}\\
   should be written for dpic as
     \ntt{x at .center of last box}
+
+Justification is performed by the postprocessor, and combining
+justified text with drawing elements requires special consideration.
+The lines
+  \ntt{S: "Hello" wid 24.7/72 ht 7.6/72 at A ljust}
+  \ntt{box wid S.wid ht S.ht at S}\\
+produce a box of the correct size but centered at {\tt A} because
+the location ({\tt A}) and a justification command are given to the postprocessor.
+This behavior could be easily changed but would affect much legacy
+code and has been kept for \dpic, which will produce a justified
+box using
+  \ntt{box wid S.wid ht S.ht with .w at S.w}
+
+\Gpic and \dpic place justified text slightly differently.  In the
+previous example, \gpic places the text with its left edge exactly
+at {\tt A}, with similar effect for right justification.  \Dpic
+uses the environmental variable {\tt textoffset}, which is 2\,pt by
+default, to place the left edge of the text at {\tt A + (textoffset,0)}
+with a similar gap for other relative positioning.  Assigning {\tt textoffset}
+to 0 sets the gap added by \dpic to zero.
 
 \subsection{{\tt continue}}
   In dpic, the {\tt continue} command appends a linear drawn object to
@@ -1530,7 +1583,7 @@ macro can be replaced by one customized to suit.
   Input parsing would be possible if {\tt continue} were to be replaced by
   {\tt then}:
    \ntt{move to (0,0); line right 1; then to (Here,(2,1))}\\
-  The keyword {\tt continue} would not have been necessary
+  The keyword {\tt continue} is not strictly necessary
   but it has been retained for historical compatibility.
 
 \subsection{Subscripted variables and locations}
@@ -1557,10 +1610,10 @@ macro can be replaced by one customized to suit.
   first segment to the end of the last segment.
 
 \subsection{Arithmetic}
-  In an expression, \gpic\ allows terms of the form {\tt x*-y}, whereas
-  \dpic\ produces an error message. Use {\tt x*(-y)} or the equivalent.
+  In an expression, \gpic allows terms of the form {\tt x*-y}, whereas
+  \dpic produces an error message. Use {\tt x*(-y)} or the equivalent.
 
-  \Dpic\ allows the assignment operators {\tt +=}, {\tt -=}, {\tt *=}, 
+  \Dpic allows the assignment operators {\tt +=}, {\tt -=}, {\tt *=}, 
     {\tt /=}, {\tt \%=}, which do not create a new variable but update
     the value of the variable already defined.
     Thus, the assignment {\tt x += 1} is equivalent to
@@ -1609,7 +1662,7 @@ A few additional mathematical functions are defined in dpic:
 
 \subsection{PSTricks anomaly}
   At some time in the mid 2000 to 2010 interval,
-  the behaviour of the low-level PSTricks command
+  the behaviour of the low-level \PSTricks command
   {\tt \tBS{}psbezier}
   was changed to match the existing context-dependent behavior
   of the {\tt \tBS{}pscurve} command within the\verb|\pscustom| environment%
@@ -1627,9 +1680,9 @@ A few additional mathematical functions are defined in dpic:
 % orthogonality by the use of command options or additional commands.
   Such are the difficulties of software library maintenance.%
 }.
-  \Dpic\ does not generate the {\tt \tBS{}pscurve} command,
+  \Dpic does not generate the {\tt \tBS{}pscurve} command,
   but the new behaviour affects \dpic-defined filled splines.
-  The ``normal'' PSTricks spline syntax is
+  The ``normal'' \PSTricks spline syntax is
    \ntt{\tBS psbezier(x1,y1)(x2,y2)(x3,y3)(x4,y4)~$\ldots$}\\
   However, if a correctly defined path containing this spline as its second
   or later subpath is now enclosed in a\verb|\pscustom| environment, the
@@ -1646,7 +1699,7 @@ A few additional mathematical functions are defined in dpic:
 
 % Within the pic language in particular, the\verb|\pscustom| command may be
 % introduced via {\tt command} {\sl string} independently of anything else,
-% so \dpic\ cannot know automatically
+% so \dpic cannot know automatically
 % whether\verb|\pscustom| has been invoked.
 
   Dpic always generates four (or
@@ -1654,24 +1707,24 @@ A few additional mathematical functions are defined in dpic:
   resulting in the addition of an extraneous path segment produced
   within\verb|\pscustom|.
 
-  For some versions of PSTricks,
+  For some versions of \PSTricks,
   a workaround for the problem has been to insert a
-  PSTricks patch in your LaTeX code if you are enclosing splines
+  \PSTricks patch in your LaTeX code if you are enclosing splines
   within\verb|\pscustom| commands.
-  More recent versions of the PSTricks package have changed
+  More recent versions of the \PSTricks package have changed
   again but, starting from the
   August~27, 2010 {\tt pstricks.tex} distribution file, a parameter
   {\tt noCurrentPoint} has been introduced,
   which prevents\verb|\psbezier| (and other commands)
   from taking the current point as the first coordinate pair.
   The following line inserted into a latex document avoids an
-  error message if the PSTricks version is August 2010 or later:
+  error message if the \PSTricks version is August 2010 or later:
 \begin{verbatim}
  \psset{noCurrentPoint}
 \end{verbatim}
 %  As a result, the following file inserted into a latex document seems
 %  to handle both cases in which a workaround is possible: 
-  Older versions of PSTricks are handled using the following workaround:
+  Older versions of \PSTricks are handled using the following workaround:
 \begin{verbatim}
 command "\makeatletter\@ifundefined{ifPst@noCurrentPoint}%
 {\@ifundefined{MPS@Patch}{\gdef\MPS@Patch{}%
@@ -1692,13 +1745,13 @@ command "\makeatletter\@ifundefined{ifPst@noCurrentPoint}%
   environment, {\em unless} the spline is the first path segment. It is probably
   safe to say that this anomaly does not occur very often, but it
   can cause considerable difficulty when it does; the cure is to update your
-  PSTricks files.
+  \PSTricks files.
 
   Legacy diagrams can often be treated in the following way, if pstricks97.tex
   is available on your machine as in MiKTeX distributions, for example.
   Replace the line\verb|\usepackage{pstricks}|
   with\verb|\usepackage[97]{pstricks}| or\verb|\input{pstricks97.tex}|.
-  However, this method precludes using the newer PSTricks facilities.
+  However, this method precludes using the newer \PSTricks facilities.
 
 \pdfbookmark[section]{\refname}{refs}
 \bibliographystyle{plain}

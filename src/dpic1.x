@@ -168,7 +168,8 @@ begin
    XDnw: writeln(log,'.nw'); XDne: writeln(log,'.ne');
    XDse: writeln(log,'.se'); XDsw: writeln(log,'.sw');
    XDc: writeln(log,'.c');
-   XDstart: writeln(log,'.start'); XDend: writeln(log,'.end')
+   XDstart: writeln(log,'.start'); XDend: writeln(log,'.end');
+   XEMPTY: writeln(log,'XEMPTY')
    otherwise writeln(log,'unknown corner lexv=',lexv:1)
    end
    end;
@@ -911,10 +912,12 @@ begin
 procedure corner(pr: primitivep; lexv: integer; var x,y: real);
 var pe: primitivep;
   sb: boolean;
+  (* A,B,L,R: boolean;
+  offst: real; *)
 begin
    if pr <> nil then with pr@ do begin
       (*D if debuglevel>0 then begin write(log,
-          'Corner: ptype(',ordp(pr):1,'): ptype='); printptype(ptype);
+          'Corner: ptype(',ordp(pr):1,')='); printptype(ptype);
          write(log,' corner='); printcorner(lexv) end; D*)
       x := aat.xpos;
       y := aat.ypos;
@@ -925,19 +928,31 @@ begin
          x := 0.5 * (aat.xpos + pe@.endpos.xpos);
          y := 0.5 * (aat.ypos + pe@.endpos.ypos)
          end
-      else if (lexv = XEMPTY) and (not (ptype = XLaTeX))
-         then begin end
+   (* else if (lexv = XEMPTY) and (not (ptype = XLaTeX)) then begin *)
+    else if (lexv = XEMPTY) and (not (ptype in [XLaTeX,XLstring])) then begin
+            (*D if debuglevel>0 then write(log,' XEMPTY'); D*)
+            end
       else case ptype of
          XLbox,XLstring,XBLOCK,XLcircle,XLellipse,XLarc: begin
             x := aat.xpos; y := aat.ypos;
             initnesw; nesw(pr);
+            (* Compass corners of justified strings not implemented:
+            if ptype = XLstring then begin
+               checkjust(textp,A,B,L,R);
+               offst := venv(pr,XLtextoffset);
+               if L then x := x+boxwidth/2 + offst
+               else if R then x := x-boxwidth/2 - offst;
+               if A then y := y+boxheight/2 + offst
+               else if B then y := y-boxheight/2 - offst;
+               end; *)
             (*D if debuglevel>0 then begin
                 write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
                 write(log,' n,s'); wpair(log,north,south);
-                write(log,' w,e'); wpair(log,west,east)
+                write(log,' w,e'); wpair(log,west,east);
+                write(log,' x,y'); wpair(log,x,y)
                 end; D*)
             if (ptype in [XLbox,XLellipse,XLcircle,XLarc])
-            and (lexv in [XDne,XDse,XDsw,XDnw]) then begin
+               and (lexv in [XDne,XDse,XDsw,XDnw]) then begin
                case ptype of
                   XLbox: begin
                      y :=Min(boxradius,
@@ -980,7 +995,8 @@ begin
                XDsw: begin y := south; x := west end;
                XDnw: begin y := north; x := west end;
                XDc: begin y := aat.ypos; x := aat.xpos end;
-               XDstart,XDend: markerror(858)
+               XDstart,XDend: markerror(858);
+               otherwise
                end
             end;
          XLline,XLarrow,XLmove,XLspline: if lexv = XDstart then begin end
@@ -3080,10 +3096,10 @@ assignlist2: xval := attstack@[newp+2].xval ;
          i := round(namptr@.val); if i > 8 then i := 0;
          case attstack@[newp+1].lexval of
             XLcenter: namptr@.val := 15;
-            XLrjust: namptr@.val := (i/4)*4+1;
-            XLljust: namptr@.val := (i/4)*4+2;
-            XLbelow: namptr@.val := (i mod 4)+4;
-            XLabove: namptr@.val := (i mod 4)+8
+            XLrjust: namptr@.val := (i div 4)*4 + 1;
+            XLljust: namptr@.val := (i div 4)*4 + 2;
+            XLbelow: namptr@.val := (i mod 4) + 4;
+            XLabove: namptr@.val := (i mod 4) + 8
             end
          end
       else markerror(861)
