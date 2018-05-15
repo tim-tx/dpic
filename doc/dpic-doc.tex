@@ -6,9 +6,9 @@
 \usepackage{multicol}
 \usepackage{xspace}
 \usepackage{wrapfig}
-%\usepackage{datetime}
 \usepackage{troffman}
 \usepackage{tikz}
+\usepackage{boxdims}
 %                               Fix the table of contents:
 \usepackage{tocloft}
 %                               For links
@@ -872,11 +872,13 @@ The Circuit\_macros {\tt fitcurve} macro performs the required calculations
 and draws the spline to pass through the given points.
 
 \subsection{Text}
-Pic interpreters are not wordprocessors, but feed their output to \groff
-in the case of \gpic and \LaTeX in the case of \dpic.  \Dpic also generates
+Pic interpreters are not wordprocessors, but
+generate output compatible with \LaTeX
+in the case of \dpic and \groff or \LaTeX in the case of \gpic.
+\Dpic also generates
 output formats in which font choice and formatting, if any, must be done
 according to the context, as for example, postscript output containing psfrag
-strings, or SVG output formatted by hand or by macros.
+strings, or SVG output formatted by macros or by hand.
 The result is that the size and position of text may need to be adjusted
 by hand for the particular workflow and postprocessor to be employed.
 
@@ -892,14 +894,11 @@ by hand for the particular workflow and postprocessor to be employed.
   automatically as described in the Circuit\_macros documentation
   \cite{Aplevich09}.
   Briefly summarized, LaTeX can write the exact height, width, and depth
-  of formatted text (or anything that creats a text box) to a file.
-  The file is read during a second processing by dpic of the diagram, so that
-  the width $x$ and height $y$ are known values in the phrase  
-  \ntt{"{\sl text}" wid $x$ ht $y$}
-
-  There is apparently no reliable way to know the exact bounding box of
-  arbitrary SVG text, so \dpic uses an approximation, and text placement
-  on diagrams may have to be adjusted by hand.
+  of formatted text (or anything that creates a box) to a file.
+  The file is read by dpic during a second processing of the diagram, so that
+  the width $x$ and height $y$ are known numerical values in the phrase  
+  \ntt{"{\sl text}" wid $x$ ht $y$}\\
+  Text in PDF and SVG output is mentioned further in Section \ref{SVGtext:}.
 
 Justified text deserves special mention.  The second line in
   \ntt{A: circle rad 0.01 at (0,0)}
@@ -1098,9 +1097,103 @@ The {\tt-r} (raw \Postscript),
 {\tt-d} (PDF),
 and {\tt-x} (\xfig) options
 of dpic produce output that is not intended to be processed directly by LaTeX
-or, in some cases, printed on paper.  \Postscript output can be inserted
-into a document with the {\tt \tBS{}includegraphics} macro. This command
-will also import pdf for processing by pdflatex. 
+or, in some cases, printed on paper.
+%  \Postscript output can be inserted
+%into a document with the {\tt \tBS{}includegraphics} macro. This command
+%will also import pdf for processing by pdflatex. 
+
+  As a ``little language,'' \Pic and its interpreters 
+  leave text sizing and formatting to word processors, which are
+  flavours of \LaTeX in the case of \dpic, and \groff or \LaTeX in the case
+  of \gpic.
+  Text formatting is specified by the text content itself or by
+  the string contents of {\tt command} lines.
+  The exception to this is that text is also a
+  graphical element; its size and location is sometimes required,
+  and the interpreter must also be able to stack multiple text strings
+  vertically.
+  
+  In most cases, placing text using
+    \ntt{"{\sl Text}" wid {\it x} ht {\it y} at {\it location}}\\
+  is sufficient.
+  \LaTeX can write the height and width of the formatted text
+  (which can be anything that produces a TeX box)
+  to an external file, which is passed to the \pic processor for use
+  on a second pass over a diagram, as described in
+  detail in reference \cite{Aplevich09}, so the values of
+  {\it x} and {\it y} can
+  be obtained automatically and macros can generate the
+  above line without intervention by hand.
+
+  Other output formats, however, require different treatment.
+  This is specially true of SVG output for the web.
+% There are several issues: selecting the font and determining the
+% height, width, and position of text.
+
+\subsection{SVG text\label{SVGtext:}}
+  At least until an automatic way of returning formatted sizes from
+  renderer back to \pic interpreter is established, there is need
+  of a mechanism for the \pic interpreter to set the size of text,
+\begin{wrapfigure}[9]{r}{0.3\textwidth}%
+  \vspace*{-\baselineskip}%
+  \hspace*{1em}%
+  \parbox{0.3\textwidth}{\input{Xtest.tex}}%
+ \end{wrapfigure}%
+  assuming plain text only without significant mathematics, for example.
+  One difficulty is that
+  the formatted height of text is generally a fraction of the nominal size.
+  For example, the Times letter X at 100\,bp placed on a 100\,bp by
+  100\,bp grid is shown at the right.
+  The height of the X is
+  approximately 66\,bp or 0.66 of the nominal height.
+  This ratio depends on the font.
+  Consequently,
+  a language issue arises: if the attribute {\tt ht {\it y}}
+  is to be used to set text size,
+  should the value of {\it y} be the nominal height (the point size) or
+  the formatted height of the text? Initial versions of the experimental
+  SVG output of \dpic used the
+  nominal height but later versions now conform to \LaTeX usage
+  by assuming that {\it y} is the
+  true graphical height in drawing units.  (This might require
+  minor changes to legacy diagrams but the changes are usually small.)
+
+  To assist with the above and similar issues
+  when the {\tt -v} option is invoked, \dpic performs the equivalent
+  of
+    \ntt{dpPPI = 96}
+    \ntt{dptextratio = 0.66}\\
+  in the outermost scope of a diagram.  These are ordinary variables
+  that can be referenced as usual or changed by, for example,
+    \ntt{dpPPI := {\it value}}.
+
+  The variable {\tt dpPPI} is given the inital value 96 which is
+  pixels per inch
+  on a 20-inch wide computer monitor of 1920 pixels width.
+  On such a monitor, dpic output should be close to true size.
+  This parameter can be reset using the assignmnent
+    \ntt{dpPPI := {\sl value}}\\
+  for different screen resolution. 
+
+  When \dpic sees the {\tt ht {\it y}} attribute attached to SVG text,
+  it sets the text size using
+  the variable {\tt dptextratio} to estimate the nominal height
+  required.  Otherwise \dpic uses the current value of the environment
+  variable {\tt textht}, which has default value $11/72 \times 0.66,$
+  to set the size to 11\,bp.
+
+  By default, \dpic sets the width of text
+  to the current value of {\tt textwid} but,
+  as always, it is best not to rely on
+  default behaviour. Specify the object (text in this case) completely
+  using {\tt wid {\it expression} ht {\it expression}}.
+
+  In the absence of an automatic means of determining it, text width can
+  be measured approximately when displayed full-size on a monitor.
+  Fortunately on many diagrams, knowing the width is unnecessary or
+  is required for only a few key strings.
+  In principle, this might be automated using suitable macros and scripting
+  (JavaScript, probably).
 
 \subsection{Bounding boxes}
   The bounding box of a diagram is not always known exactly or even defined
@@ -1304,7 +1397,7 @@ relate to the use of \LaTeX\ or the other dpic output formats.
   In gpic, the location corresponding to {\tt last line} is
     {\tt last line.start}.
 
-  In dpic version 2017.01.01 and later,
+  In current versions of dpic,
   {\tt last line.wid} returns the arrowhead width of the line or the default
   arrowhead width if the line has not been given an arrowhead;
   similarly for {\tt .ht} and for the other linear objects including {\tt move}
@@ -1562,7 +1655,7 @@ box using
 \Gpic and \dpic place justified text slightly differently.  In the
 previous example, \gpic places the text with its left edge exactly
 at {\tt A}, with similar effect for right justification.  \Dpic
-uses the environmental variable {\tt textoffset}, which is two points by
+uses the environmental variable {\tt textoffset}, which is 2\,pt by
 default, to place the left edge of the text at {\tt A + (textoffset,0)}
 with a similar gap for other relative positioning.  Assigning {\tt textoffset}
 to 0 sets the gap added by \dpic to zero.
@@ -1645,8 +1738,9 @@ to 0 sets the gap added by \dpic to zero.
   if you need this construction.
 
 \subsection{{\tt int()}}
-  Gpic {\tt int()} up to version 1.19 computed the floor of its argument
-  rather than the integer part as specified by ATT pic.  Dpic provides
+% Gpic {\tt int()} up to version 1.19 computed the floor of its argument
+% rather than the integer part as specified by ATT pic.
+  Dpic provides
   both the {\tt floor()} and {\tt int()} functions but {\tt int()}
   does not compute the
   same value as these versions of gpic {\tt int()} for non-integer negative

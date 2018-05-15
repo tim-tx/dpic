@@ -85,13 +85,13 @@ begin
    write(log,'state=',st:1);
    if (st mod 4)<>0 then
    case (st mod 4) of
-      1: write(log,',XL','to');
-      2: write(log,',XL','from');
-      3: write(log,',XL','at');
+      1: write(log,',XLto');
+      2: write(log,',XLfrom');
+      3: write(log,',XLat');
       otherwise
       end;
-   if odd(st div 4) then write(log,',XL','chop');
-   if odd(st div 8) then write(log,',XL','directon')
+   if odd(st div 4) then write(log,',XLchop');
+   if odd(st div 8) then write(log,',XLdirecton')
    end;
 
 procedure snapname( chbu:chbufp; inx,ll:chbufinx);
@@ -546,6 +546,16 @@ begin
                          (*D; if debuglevel > 0 then writeln(log) D*)
    end;
 
+function findvar(s: string; ln: integer): real;
+var i,k: integer;
+   last,np: strptr;
+begin
+   if tmpfmt = nil then new(tmpfmt);
+   for i := 1 to ln do tmpfmt@[i] := s[i]; 
+   np := findname(globalenv,tmpfmt,1,ln,last,k);
+   if np = nil then findvar := 0 else findvar := np@.val
+   end;
+
 procedure marknotfound(eno:integer; chb:chbufp; inx,len:chbufinx);
 var i: integer;
 begin
@@ -691,7 +701,8 @@ var ph: real;
 begin
    if pr = nil then ph := 0.0
    else with pr@ do case ptype of
-      XLbox,XLstring: ph := boxheight;
+      XLbox: ph := boxheight;
+      XLstring: ph := boxheight;
       XBLOCK: ph := blockheight;
       XLellipse: ph := elheight;
       XLcircle: ph := 2.0 * radius;
@@ -746,9 +757,15 @@ begin
    else begin
       pe := aat;
       case ptype of
-         XLbox,XLstring: case direction of
+         XLbox: case direction of
             XLup: pe.ypos := aat.ypos + boxheight * 0.5;
             XLdown: pe.ypos := aat.ypos - boxheight * 0.5;
+            XLleft: pe.xpos := aat.xpos - boxwidth * 0.5;
+            XLright: pe.xpos := aat.xpos + boxwidth * 0.5
+            end;
+         XLstring: case direction of
+            XLup: pe.ypos := aat.ypos + boxradius * 0.5;
+            XLdown: pe.ypos := aat.ypos - boxradius * 0.5;
             XLleft: pe.xpos := aat.xpos - boxwidth * 0.5;
             XLright: pe.xpos := aat.xpos + boxwidth * 0.5
             end;
@@ -873,7 +890,9 @@ begin
 
 procedure shift(pr: primitivep; x,y: real);
 begin
-   while pr <> nil do with pr@ do begin
+   (*D if debuglevel > 0 then begin
+      write(log,' shift='); wpair(log, x,y); writeln(log) end; D*)
+   if (x<>0) or (y<>0) then while pr <> nil do with pr@ do begin
       aat.xpos := aat.xpos + x; aat.ypos := aat.ypos + y;
       if ptype in [XLline,XLarrow,XLmove,XLspline] then begin
          endpos.xpos := endpos.xpos + x; endpos.ypos := endpos.ypos + y
@@ -912,13 +931,13 @@ begin
 procedure corner(pr: primitivep; lexv: integer; var x,y: real);
 var pe: primitivep;
   sb: boolean;
-  (* A,B,L,R: boolean;
-  offst: real; *)
+  A,B,L,R: boolean;
+  (* offst: real; *)
 begin
    if pr <> nil then with pr@ do begin
       (*D if debuglevel>0 then begin write(log,
           'Corner: ptype(',ordp(pr):1,')='); printptype(ptype);
-         write(log,' corner='); printcorner(lexv) end; D*)
+         writeln(log); write(log,' corner='); printcorner(lexv) end; D*)
       x := aat.xpos;
       y := aat.ypos;
       pe := pr;
@@ -928,7 +947,6 @@ begin
          x := 0.5 * (aat.xpos + pe@.endpos.xpos);
          y := 0.5 * (aat.ypos + pe@.endpos.ypos)
          end
-   (* else if (lexv = XEMPTY) and (not (ptype = XLaTeX)) then begin *)
     else if (lexv = XEMPTY) and (not (ptype in [XLaTeX,XLstring])) then begin
             (*D if debuglevel>0 then write(log,' XEMPTY'); D*)
             end
@@ -936,8 +954,8 @@ begin
          XLbox,XLstring,XBLOCK,XLcircle,XLellipse,XLarc: begin
             x := aat.xpos; y := aat.ypos;
             initnesw; nesw(pr);
-            (* Compass corners of justified strings not implemented:
-            if ptype = XLstring then begin
+            (* Compass corners of justified strings not implemented: *)
+         (* if ptype = XLstring then begin
                checkjust(textp,A,B,L,R);
                offst := venv(pr,XLtextoffset);
                if L then x := x+boxwidth/2 + offst
@@ -945,13 +963,23 @@ begin
                if A then y := y+boxheight/2 + offst
                else if B then y := y-boxheight/2 - offst;
                end; *)
-            (*D if debuglevel>0 then begin
-                write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
-                write(log,' n,s'); wpair(log,north,south);
-                write(log,' w,e'); wpair(log,west,east);
-                write(log,' x,y'); wpair(log,x,y)
-                end; D*)
-            if (ptype in [XLbox,XLellipse,XLcircle,XLarc])
+            if (ptype=XLstring) and (drawmode=SVG) then begin
+               case lexv of
+                  XDn: y := north; XDs: y := south;
+                  XDe: x := east; XDw: x := west;
+                  XDne: begin y := north; x := east end;
+                  XDse: begin y := south; x := east end;
+                  XDsw: begin y := south; x := west end;
+                  XDnw: begin y := north; x := west end;
+                  XDc: begin y := aat.ypos; x := aat.xpos end;
+                  XDstart,XDend: markerror(858);
+                  otherwise
+                  end;
+               checkjust(textp,A,B,L,R);
+               if L then boxradius := -(east-west)/2
+               else if R then boxradius := (east-west)/2
+               end
+            else if (ptype in [XLbox,XLellipse,XLcircle,XLarc])
                and (lexv in [XDne,XDse,XDsw,XDnw]) then begin
                case ptype of
                   XLbox: begin
@@ -998,6 +1026,12 @@ begin
                XDstart,XDend: markerror(858);
                otherwise
                end
+            (*D; if debuglevel>0 then begin
+                write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
+                write(log,' n,s'); wpair(log,north,south);
+                write(log,' w,e'); wpair(log,west,east);
+                write(log,' x,y'); wpair(log,x,y)
+                end D*)
             end;
          XLline,XLarrow,XLmove,XLspline: if lexv = XDstart then begin end
             else if lexv = XDend then begin
@@ -1109,9 +1143,12 @@ begin
          XLlinewid:    env@[i] := 0.5;
          XLmoveht:     env@[i] := 0.5;
          XLmovewid:    env@[i] := 0.5;
-         XLtextht: if drawmode in [SVG,PDF] then env@[i] := DFONT/72
-                   else env@[i] := 0.0;
-         XLtextoffset: env@[i] := 2.5/72 (*.27*);
+         XLtextht: case drawmode of
+            PDF: env@[i] := DFONT/72;
+            SVG: env@[i] := DFONT/72*0.66;
+            otherwise env@[i] := 0.0
+            end;
+         XLtextoffset: env@[i] := 2.0/72 (*.27*);
          XLtextwid:    env@[i] := 0.0;
                                             (* The following are unscaled *)
          XLarrowhead:  env@[i] := 1.0;
@@ -1167,6 +1204,7 @@ begin
    lastfillval := mdistmax;
    gslinethick := mdistmax;
    newprim(envblock,XBLOCK,nil);
+   globalenv := envblock;
    resetenv(0,envblock)
    (*D; if debuglevel > 0 then printobject(envblock) D*)
    end;
@@ -1441,7 +1479,7 @@ begin
   hasshade := hs
   end;
 
-procedure makevar(s: string; ln,nameval: integer );
+procedure makevar(s: string; ln: integer; varval: real );
 var vn,lastvar,namptr: strptr;
    j,k: integer;
 begin
@@ -1479,7 +1517,7 @@ begin
          end;
       nvars[j] := nvars[j]+1
       end;
-   vn@.val := nameval
+   vn@.val := varval
    end;
 
 (*                   This is the syntactic action routine. *)
@@ -1591,7 +1629,14 @@ begin (*produce*)
               writeln(log);
               snaptree(envblock,0);
               writeln(log); flush(log) end; D*)
+         if drawmode in [SVG,PDF,PS] then begin
+            dptextratio := findvar('dptextratio',11);
+            if dptextratio = 0 then dptextratio := 1;
+            dpPPI := findvar('dpPPI',5)
+            end;
          drawtree(north,south,east,west,envblock)
+         (*D; if debuglevel > 0 then
+            writeln(log,' drawtree done ================= ') D*)
          end
       end;
 
@@ -1618,6 +1663,10 @@ begin (*produce*)
       makevar('optTeX',      6, TeX);
       makevar('opttTeX',     7, tTeX);
       makevar('optxfig',     7, xfig);
+      if drawmode in [SVG,PDF,PS] then begin
+         makevar('dptextratio',11, 0.66);
+         makevar('dpPPI', 5, 96)
+         end;
       if p<>start1 then begin
          xval := attstack@[newp+1].xval;
          if p=start3 then yval := attstack@[newp+2].xval
@@ -1842,8 +1891,8 @@ begin (*produce*)
       state := envblock@.direction
       end;
 
-(*      namedobj = object   *)
-   namedobj1: if prim <> nil then begin (* then, arc, deferred shift *)
+(*      namedobj = object   *) (* then, arc, deferred shift *)
+   namedobj1: if prim <> nil then begin
       prp := prim;
       while isthen(prim) do prim := prim@.parent;
       if prp=prim then begin end
@@ -1858,7 +1907,26 @@ begin (*produce*)
          else if internal <> nil then corner(internal,i,dx,dy)
          else corner(prim,i,dx,dy);
          internal := nil;
-         if ptype <> XLarc then shift(prim,xval-dx,yval-dy)
+         if (drawmode=SVG) and (ptype=XLstring) then begin
+            ts := venv(prim,XLtextoffset);
+            (*D if debuglevel > 0 then writeln(log, ' namedobj1: i=',i:1,
+              ' dx=',dx:8:3,' dy=',dy:8:3,' textoffset=',ts:8:3); D*)
+            if teststflag(state,XLcw) then case i of  (* textpos *)
+               XDe: dx:=dx+ts; XDne: begin dx:=dx+ts; dy:=dy+ts end;
+               XDn: dy:=dy+ts; XDnw: begin dx:=dx-ts; dy:=dy+ts end;
+               XDw: dx:=dx-ts; XDsw: begin dx:=dx-ts; dy:=dy-ts end;
+               XDs: dy:=dy-ts; XDse: begin dx:=dx+ts; dy:=dy-ts end;
+               otherwise
+               end;
+            (*D if debuglevel > 0 then begin
+               write(log,' (xval,yval)='); wpair(log, xval,yval);
+               write(log,' (dx,dy)='); wpair(log, dx,dy);
+               writeln(log,
+               ' boxradius=',boxradius:8:3,' aat.xpos=',aat.xpos:8:3)
+               end; D*)
+            shift(prim,xval-dx,yval-dy)  (* shift by arg2,arg3 *)
+            end
+         else if ptype <> XLarc then shift(prim,xval-dx,yval-dy)
          else begin
             x1 := aat.xpos + aradius * cos(|startangle|); (* from *)
             y1 := aat.ypos + aradius * sin(|startangle|);
@@ -1881,7 +1949,6 @@ begin (*produce*)
                end
             else shift(prim,xval-dx,yval-dy)
             end
-         (*D; if debuglevel > 0 then printobject(prim); D*)
          end
       end;
 (*               | "<Label>" suffix ":" object   *)
@@ -2002,13 +2069,13 @@ assignlist2: xval := attstack@[newp+2].xval ;
 
 (*      elsehead = ifpart "else"   *)
    elsehead1: if xval = 0.0 then begin
-         attstack@[newp+1].lexval := XLBRACE;
-         lexval := XLBRACE
-         end
-      else begin
-         currprod := elsehead1;
-         skiptobrace
-         end;
+      attstack@[newp+1].lexval := XLBRACE;
+      lexval := XLBRACE
+      end
+   else begin
+      currprod := elsehead1;
+      skiptobrace
+      end;
 
 (*      for = forhead "lbrace" elementlist optnl   *)
 (*          | for forincr "<endfor>" elementlist optnl   *)
@@ -2018,24 +2085,25 @@ assignlist2: xval := attstack@[newp+2].xval ;
    stringexpr1: ;
 (*                 | stringexpr "+" string   *)
    stringexpr2: if attstack@[newp+2].prim <> nil then with prim@ do begin
-   prp := attstack@[newp+2].prim;
-   boxwidth := boxwidth + prp@.boxwidth;
-   boxheight := Max(boxheight,prp@.boxheight);
-   if prp@.textp = nil then begin end
-   else if textp = nil then begin textp := prp@.textp; prp@.textp := nil end
-   else if (textp@.segmnt = prp@.textp@.segmnt) and
-           (textp@.seginx+textp@.len = prp@.textp@.seginx) then begin
-      (*D if debuglevel > 0 then writeln(log,' stringexpr2 branch 1,',
-         ' seginx,length=',textp@.seginx:1,',',textp@.len:1,
-         ' seginx,length=',prp@.textp@.seginx:1,',',prp@.textp@.len:1); D*)
-      textp@.len := textp@.len + prp@.textp@.len;
-      putbval(textp@.segmnt,bval(textp@.segmnt)-1);
-      prp@.textp@.segmnt := nil
-      end
-   else appendstring(
-      textp,prp@.textp@.segmnt,prp@.textp@.seginx,prp@.textp@.len);
-   deletetree(attstack@[newp+2].prim)
-   end;
+      prp := attstack@[newp+2].prim;
+      boxwidth := boxwidth + prp@.boxwidth;
+      boxheight := Max(boxheight,prp@.boxheight);
+      if prp@.textp = nil then begin end
+      else if textp = nil then begin textp := prp@.textp; prp@.textp := nil end
+      else if (textp@.segmnt = prp@.textp@.segmnt) and
+              (textp@.seginx+textp@.len = prp@.textp@.seginx) then begin
+         (*D if debuglevel > 0 then writeln(log,' stringexpr2 branch 1,',
+            ' seginx,length=',textp@.seginx:1,',',textp@.len:1,
+            ' seginx,length=',prp@.textp@.seginx:1,',',prp@.textp@.len:1); D*)
+         textp@.len := textp@.len + prp@.textp@.len;
+         putbval(textp@.segmnt,bval(textp@.segmnt)-1);
+         prp@.textp@.segmnt := nil
+         end
+      else appendstring(
+         textp,prp@.textp@.segmnt,prp@.textp@.seginx,prp@.textp@.len);
+      deletetree(attstack@[newp+2].prim)
+      end;
+
 (*      string = "<string>"   *)
    string1: begin
       newprim(prim,XLstring,envblock);
@@ -2043,17 +2111,21 @@ assignlist2: xval := attstack@[newp+2].xval ;
       with prim@ do begin
          boxheight := eb@.env@[XLtextht];
          boxwidth := eb@.env@[XLtextwid];
-         if (drawmode = xfig) and (boxwidth = 0.0) then begin
-            (* To keep xfig from crashing, assume text height is 0.1
-               and a character is 0.1*0.75 wide *)
-            eb := findenv(envblock);
-            if boxheight = 0.0 then boxheight := 0.1*eb@.env@[XLscale];
-            boxwidth := boxheight*length*0.75
+         if boxwidth = 0.0 then case drawmode of
+            xfig: begin
+               (* To keep xfig from crashing, assume text height is 0.1
+                  and a character is 0.1*0.75 wide *)
+               eb := findenv(envblock);
+               if boxheight = 0.0 then boxheight := 0.1*eb@.env@[XLscale];
+               boxwidth := boxheight*length*0.75
+               end;
+            PDF: boxwidth := boxheight*length*0.6;
+            otherwise
             end;
-         if (drawmode=PDF) and (boxwidth=0.0) then
-            boxwidth := boxheight*length*0.6;
-         boxradius := 0.0;
-         (*D if debuglevel > 0 then write(log,'string1 '); D*)
+         (* if drawmode = SVG then
+            boxheight := boxheight*findvar('dptextratio',11); *)
+         (*D if debuglevel > 0 then write(log,
+            'string1 boxheight=',boxheight:8:3,' '); D*)
          newstr(textp);
          storestring(textp,chbuf,chbufx,length)
          end
@@ -2375,6 +2447,8 @@ assignlist2: xval := attstack@[newp+2].xval ;
              else if eb=nil then writeln(log,' ! sprintf2: eb=nil')
              else if eb@.env=nil then writeln(log,' ! sprintf2: env=nil'); D*)
          boxheight := eb@.env@[XLtextht];
+         (* if drawmode = SVG then
+            boxheight := boxheight*findvar('dptextratio',11); *)
          boxwidth := eb@.env@[XLtextwid];
          boxradius := 0.0;
          newstr(textp)
@@ -2382,7 +2456,7 @@ assignlist2: xval := attstack@[newp+2].xval ;
       if p=sprintf1 then nexprs := 0    (* no of expression arguments *)
       else nexprs := attstack@[newp+4].state;
       if tmpbuf = nil then begin
-         (*P2CP new(tmpfmt); *)
+         (*P2CP if tmpfmt=nil then new(tmpfmt); *)
          new(tmpbuf);
          (*D if debuglevel > 0 then begin write(log,'sprintf1,2 tmpbuf[');
             writeln(log,ordp(tmpbuf):1,']') end; D*)
@@ -2539,7 +2613,7 @@ assignlist2: xval := attstack@[newp+2].xval ;
    object1: ;
 (*                          | object "height" expression    *)
    object2: if prim <> nil then with prim@ do case ptype of
-      XLbox,XBLOCK: begin
+      XLbox,XBLOCK,XLstring: begin
          if ptype = XBLOCK then begin
             r := 0.5*(attstack@[newp+2].xval - blockheight);
             blockheight := attstack@[newp+2].xval end
@@ -2550,12 +2624,13 @@ assignlist2: xval := attstack@[newp+2].xval ;
             XLleft,XLright: ;
             XLup: shift(prim,0,r);
             XLdown: shift(prim,0,-r)
+            end;
+         if ptype = XLstring then begin
+            (* if drawmode=SVG then
+               boxheight := boxheight*findvar('dptextratio',11)
+            else *) if (drawmode=PDF) and (textp<>nil) then
+               boxwidth := boxheight*textp@.len*0.6
             end
-         end;
-      XLstring: begin
-         boxheight := attstack@[newp+2].xval;
-         if (drawmode=PDF) and (textp<>nil) then
-            boxwidth := boxheight*textp@.len*0.6
          end;
       XLcircle: begin
          if not teststflag(state,XLat) then case direction of
@@ -2962,8 +3037,19 @@ assignlist2: xval := attstack@[newp+2].xval ;
                i := i + 1
                end;
             namptr@.next := attstack@[newp+1].prim@.textp;
-            if ptype = XLstring then boxheight := boxheight*(i+1)/i
-            (* boxheight/((i-1)*TEXTRATIO+1)*(i*TEXTRATIO+1) *)
+            if ptype = XLstring then begin
+               if drawmode = SVG then begin
+                  eb := findenv(envblock);
+                  if eb <> nil then begin
+                     r := findvar('dptextratio',11);
+                     if r = 0 then r := 1;
+                     boxheight := boxheight + eb@.env@[XLtextht]/r
+                     end
+                  end
+               else boxheight := boxheight*(i+1)/i;
+               (*D if debuglevel > 0 then
+                  write(log,' object17 boxheight=',boxheight:8:3,' ') D*)
+               end
             end;
          if drawmode in [PS,PDF,PSfrag] then
             (* output contains text *)
@@ -3081,26 +3167,45 @@ assignlist2: xval := attstack@[newp+2].xval ;
    object21: if prim <> nil then with prim@ do begin
       xval := attstack@[newp+2].xval;
       yval := attstack@[newp+2].yval;
-      setstval(state,XDc);
+      if (drawmode<>SVG) or (getstval(state)=0) then setstval(state,XDc);
       setstflag(state,XLat)
+      (*D; if debuglevel > 0 then begin
+         write(log,' (xval,yval)='); wpair(log,xval,yval);
+         writeln(log,' state=',state:1,
+         ' val=',(state div 256):1,' flag=',(state mod 256):1) end; D*)
       end;
 (*                          | object "<textpos>"    *)
-(* This might be altered (in the case of strings, not other objects with text),
-     so that aat is changed as a function of textpos.  Then
-     the output routines have to take that into account.   The alternative
-     is to alter nesw for strings, as now. *)
    object22: if prim <> nil then begin
       namptr := prim@.textp;
       if namptr <> nil then begin
          while namptr@.next <> nil do namptr := namptr@.next;
-         i := round(namptr@.val); if i > 8 then i := 0;
-         case attstack@[newp+1].lexval of
-            XLcenter: namptr@.val := 15;
-            XLrjust: namptr@.val := (i div 4)*4 + 1;
-            XLljust: namptr@.val := (i div 4)*4 + 2;
-            XLbelow: namptr@.val := (i mod 4) + 4;
-            XLabove: namptr@.val := (i mod 4) + 8
+         setjust(namptr,attstack@[newp+1].lexval);
+         if drawmode = SVG then with prim@ do begin
+            if not teststflag(state,XLat) then begin
+               xval := aat.xpos; yval := aat.ypos;
+               setstflag(state,XLat)
+               end;
+            setstflag(state,XLcw);
+            i := getstval(state);
+            if ptype in [XLline,XLarrow,XLspline,XLmove] then begin end
+            else case attstack@[newp+1].lexval of
+               XLljust: if i = XDn then setstval(state,XDnw)
+                  else if i = XDs then setstval(state,XDsw)
+                  else setstval(state,XDw);
+               XLrjust: if i = XDn then setstval(state,XDne)
+                  else if i = XDs then setstval(state,XDse)
+                  else setstval(state,XDe);
+               XLbelow: if i = XDe then setstval(state,XDne)
+                  else if i = XDw then setstval(state,XDnw)
+                  else setstval(state,XDn);
+               XLabove: if i = XDe then setstval(state,XDse)
+                  else if i = XDw then setstval(state,XDsw)
+                  else setstval(state,XDs);
+               otherwise
+               end
             end
+            (*D; if debuglevel > 0 then writeln(log,' state=',state:1,
+               ' val=',(state div 256):1,' flag=',(state mod 256):1) D*)
          end
       else markerror(861)
       end;
@@ -3145,6 +3250,8 @@ assignlist2: xval := attstack@[newp+2].xval ;
    object25,object26: if prim <> nil then begin
       xval := attstack@[newp+3].xval;
       yval := attstack@[newp+3].yval;
+      (*D if debuglevel > 0 then begin write(log,' object25: (xval,yval)=');
+         wpair(log,xval,yval); writeln(log) end; D*)
       if p = object25 then setstval(state,attstack@[newp+1].lexval)
       else if not (prim@.ptype in
          [XLbox,XLstring,XBLOCK,XLcircle,XLellipse,XLarc]) then markerror(858)
@@ -3709,10 +3816,12 @@ closeblock1: if (prim <> nil) and (envblock@.env <> nil) then begin
 
       end; (* case *)
 
-   (*D with attstack@[newp] do if (debuglevel = 2) and (
+   (*D with attstack@[newp] do if (debuglevel > 0) and (
       ((p >= block1) and (p <= block3)) or
       ((p > object1) and (p <= object27))
-      or (p in [sprintf2,string2,element5,element11,namedobj2]))
+      or (p in [sprintf2,string2,element5,element11,
+           namedobj1,
+           namedobj2]))
         then printobject(prim);
    if debuglevel > 0 then with attstack@[newp] do
       if p in [ assignment1..assignment4,

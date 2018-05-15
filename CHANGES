@@ -1,6 +1,8 @@
 Distribution dates other than those shown correspond to changes (usually of
 documentation) not involving functionality.
 
+2018 05 15 Revised SVG code so that the ht attribute sets absolute size
+           of formatted text instead of nominal size.
 2018 04 03 SVG fix for better ljust and rjust on multiple browsers. Minor
            additions to the manual.
 2018 02 01 Enabled the use of snprintf for some (at least) 64-bit compilers.

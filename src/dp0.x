@@ -58,12 +58,10 @@ const
     SPLT = 0.551784;            (* optimum spline tension for arcs    *)
     pointd = 72;
                                 (* postprocessor constants (vars?)    *)
-    SVGPX = 90;                 (* SVG pixels per inch                *)
     xfigres = 1200;
     xdispres = 80;
                                 (* Text parameters (vars?)            *)
-    DFONT = 11;                 (* default svg textht, pt;            *)
-    TEXTRATIO = 1.6;            (* baseline to text height ratio      *)
+    DFONT = 11;                 (* default svg font size, pt          *)
    
 type
                                 (* Lexical types                      *)
@@ -245,13 +243,16 @@ type
 
     floatvalue: real;           (* numerical value of floats read     *)
     envblock: primitivep;       (* block containing the current scope *)
+    globalenv: primitivep;      (* the global environment block       *)
+    dptextratio: real;          (* text parameters for SVG,PDF,PS    *)
+    dpPPI: real;                (* pixels per inch                    *)
 
     north,south,east,west: real;(* compass corners of a primitive     *)
     xfheight: real;             (* for calculating xfig coordinates   *)
     freeseg: chbufp;            (* segment open to store strings      *)
     freex: 0..CHBUFSIZ+1;       (* next free location                 *)
     tmpbuf: chbufp;             (* buffer for snprintf or sprintf     *)
-    (*P2CP tmpfmt: chbufp; *)   (* format buffer for snprintf         *)
+    tmpfmt: chbufp;             (* snprintf, findvar buffer           *)
     scale,fsc: real;            (* scale factor and final scale factor*)
     splcount,spltot: integer;   (* spline depth counter               *)
     pdfobjcount: integer;       (* pdf objects                        *)

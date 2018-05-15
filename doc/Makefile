@@ -10,11 +10,13 @@ DPIC = dpic
 	m4 pdf.m4 $*.m4 > $*.pic
 	$(DPIC) -d $*.pic > $*.pdf
 
-PICS = spline.tex arrow.tex circles.tex Spiral.tex
+PICS = spline.tex arrow.tex circles.tex Spiral.tex Xtest.tex
 PDFLATEX = pdflatex --quiet
 
 Dpicdoc.pdf: dpic-doc.aux
 	$(PDFLATEX) dpic-doc
+	rm Xtest.pic Xtest.tex
+	make Xtest.tex
 	$(PDFLATEX) dpic-doc
 
 dpic-doc.aux: dpic-doc.tex dpic-doc.bib $(PICS) dpic_man.tex VERSION.tex

@@ -56,6 +56,8 @@ define sample
   natwidth=8.200
   scale=$2/natwidth*scale
   dist=0.2*scale
+  boxwid = 1.5*boxwid
+  ellipsewid = 1.5*ellipsewid
   [ 
     left
     line <-
@@ -86,11 +88,5 @@ define sample
   scale=oscale
 }
 
-#down
-#sample(3, 7.0, 0.3)
-#box invis width last[].width sprintf("Figure is %.3f x %.3f inches", last[].width, last[].height)
-#move
-# dpic and pic use 0 for black, 1 for white
 sample(3, 6.0, 1-0.3)
-#box invis width last[].width sprintf("Figure is %.3f x %.3f inches", last[].width, last[].height)
 .PE 

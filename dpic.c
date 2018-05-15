@@ -454,13 +454,10 @@
 
 #define pointd          72
 /* postprocessor constants (vars?) */
-#define SVGPX           90                             /* SVG pixels per inch */
 #define xfigres         1200
 #define xdispres        80
 /* Text parameters (vars?) */
-#define DFONT           11                         /* default svg textht, pt; */
-
-#define TEXTRATIO       1.6                  /* baseline to text height ratio */
+#define DFONT           11                       /* default svg font size, pt */
 
 
 /* Lexical types */
@@ -684,13 +681,15 @@ redubufrange reduinx, redutop;
 reduelem redubuf[REDUMAX + REDUMAX + 1];           /* reduction buffer */
 double floatvalue;                   /* numerical value of floats read */
 primitive *envblock;             /* block containing the current scope */
+primitive *globalenv;                  /* the global environment block */
+double dptextratio;                  /* text parameters for SVG,PDF,PS */
+double dpPPI;                                       /* pixels per inch */
 double north, south, east, west;     /* compass corners of a primitive */
 double xfheight;                   /* for calculating xfig coordinates */
 Char *freeseg;                        /* segment open to store strings */
 short freex;                                     /* next free location */
 Char *tmpbuf;                        /* buffer for snprintf or sprintf */
-Char *tmpfmt;
-/* format buffer for snprintf */
+Char *tmpfmt;                              /* snprintf, findvar buffer */
 double scale, fsc;               /* scale factor and final scale factor*/
 int splcount, spltot;                          /* spline depth counter */
 int pdfobjcount;                                        /* pdf objects */
@@ -1326,6 +1325,39 @@ wbrace(double x)
 
 
 void
+setjust(nametype *tp, int v)
+{ int i;
+
+  if (tp == NULL) {
+      return;
+  }
+  i = (long)floor(tp->val + 0.5);
+  switch (v) {
+
+  case XLrjust:
+    tp->val = ((i >> 2) * 4.0) + 1;
+    break;
+
+  case XLljust:
+    tp->val = ((i >> 2) * 4.0) + 2;
+    break;
+
+  case XLbelow:
+    tp->val = ((i >> 4) * 16.0) + (i & 3) + 4;
+    break;
+
+  case XLabove:
+    tp->val = ((i >> 4) * 16.0) + (i & 3) + 8;
+    break;
+
+  case XLcenter:
+    tp->val = (i >> 4) * 16.0;
+    break;
+  }
+}
+
+
+void
 checkjust(nametype *tp, boolean *A, boolean *B, boolean *L, boolean *R)
 { int i;
 
@@ -1337,13 +1369,23 @@ checkjust(nametype *tp, boolean *A, boolean *B, boolean *L, boolean *R)
       return;
   }
   i = (long)floor(tp->val + 0.5);
-  *A = ((i >> 2) == 2);
-  *B = ((i >> 2) == 1);
-  *L = ((i & 3) == 2);
-  *R = ((i & 3) == 1);
+  *R = i & 1;
+  *L = (i >> 1) & 1;
+  *B = (i >> 2) & 1;
+  *A = (i >> 3) & 1;
 }
 
 
+/* Test if ht of string has been set
+function checkht( tp: strptr ): boolean;
+var i: integer;
+begin
+   if tp=nil then checkht := false
+   else begin
+      i := round(tp^.val);
+      checkht := odd(i div 16)
+      end
+   end; */
 int
 lspec(int n)
 { /* if ((n div 16) mod 2) <> 0 then lspec := XLsolid
@@ -1608,8 +1650,12 @@ nesw(primitive *ptmp)
   }
   switch (ptmp->ptype) {
 
-  case XLbox:
   case XLstring:
+    hight = ptmp->Upr.Ubox.boxheight;
+    wdth = ptmp->Upr.Ubox.boxwidth;
+    break;
+
+  case XLbox:
     hight = ptmp->Upr.Ubox.boxheight;
     wdth = ptmp->Upr.Ubox.boxwidth;
     break;
@@ -1647,7 +1693,15 @@ nesw(primitive *ptmp)
     break;
 
   case XLstring:
-    neswstring(ptmp, hight, wdth);
+    if (drawmode == SVG) {
+	north = Max(north, ptmp->aat.ypos + (hight * 0.5));
+	south = Min(south, ptmp->aat.ypos - (hight * 0.5));
+	west = Min(west, ptmp->aat.xpos - (wdth * 0.5));
+	east = Max(east, ptmp->aat.xpos + (wdth * 0.5));
+    }
+    else {
+	neswstring(ptmp, hight, wdth);
+    }
     break;
 
   case XLline:
@@ -2256,7 +2310,7 @@ xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2018.04.03 option -x for Fig 3.1')
+     writeln('# dpic version 2018.05.15 option -x for Fig 3.1')
      */
   printf("#FIG 3.2\n");
   printf("Landscape\n");
@@ -2266,7 +2320,7 @@ xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2018.04.03 option -x for Fig 3.2\n");
+  printf("# dpic version 2018.05.15 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 }
 
@@ -2703,7 +2757,7 @@ svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2018.04.03 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2018.05.15 option -v for SVG 1.1 -->\n");
   hsize = (e - w + (2 * lth)) / fsc;
   vsize = (n - s + (2 * lth)) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -2733,7 +2787,7 @@ svgprelude(double n, double s, double e, double w, double lth)
   printf(" stroke=\"black\"");
   printf(" stroke-miterlimit=\"10\"");
   printf(" stroke-width=\"");
-  wfloat(&output, (0.8 / 72) * SVGPX);
+  wfloat(&output, (0.8 / 72) * dpPPI);
   printf("\" fill=\"none\">\n");
   printf("<g>\n");
 }
@@ -2752,7 +2806,7 @@ svgsetstroke(double lth)
       return;
   }
   printf(" stroke-width=\"");
-  wfloat(&output, (lth / 72) * SVGPX);
+  wfloat(&output, (lth / 72) * dpPPI);
   printf("\"\n");
 }
 
@@ -2836,7 +2890,7 @@ svglineoptions(primitive *node, int lnspec)
     break;
 
   case XLinvis:
-    printf(" stroke=\"none\"");
+    printf(" stroke=\"none\"\n");
     break;
   }
 }
@@ -2882,7 +2936,7 @@ svgfilloptions(primitive *node, double fill, nametype *sh, int lnspec,
   if (sh != NULL) {
       printf(" fill=\"");
       wstring(&output, sh);
-      printf("\"\n");
+      putchar('"');
   }
   else if ((fill >= 0.0) && (fill <= 1.0)) {
       fillgray(fill);
@@ -2969,76 +3023,85 @@ svgwtext(primitive *node, nametype *tp, double x, double y)
 { int nstr = 0;
   nametype *tx;
   boolean L, R, A, B;
-  double textht, textoff, dx, dy;
+  double v, lineskip, xheight, dx, dy;
 
-  if (tp == NULL) {
+  if ((tp == NULL) || (node == NULL)) {
       return;
   }
   tx = tp;
-  textht = venv(node, XLtextht);
   while (tx != NULL) {
       nstr++;
       tx = tx->next_;
   }
-  /* boxheight = nstrings * textht */
-  if ((node->ptype == XLstring) && (nstr > 0)) {
-      textht = node->Upr.Ubox.boxheight / nstr;
+  v = nstr - 1 + dptextratio;
+  if ((node->ptype == XLstring) && (nstr > 0) && (v != 0)) {
+      lineskip = node->Upr.Ubox.boxheight / v;
   }
-  textoff = venv(node, XLtextoffset);
+  else {
+      lineskip = venv(node, XLtextht) / dptextratio;
+  }
+  xheight = lineskip * dptextratio;
   /*D if debuglevel>0 then begin
-    writeln(log,' svgwtext: x=',x:8:3,'[',x/fsc:8:3,'] y=',y:8:3,
-     '[',(xfheight-y)/fsc:8:3,']');
+    writeln(log,'svgwtext: x=',x:8:3,'[',x/fsc:8:3,
+     '] y=',y:8:3,'[',(xfheight-y)/fsc:8:3,']');
+    writeln(log,' boxheight=',boxheight:8:3);
     writeln(log,' xfheight=',xfheight:8:3);
-    writeln(log,' textoff=',textoff:8:3,'[',textoff/fsc:8:3,
-     '] textht=',textht:8:3,'[',textht/fsc:8:3,']')
-    end; D*/
-  y += ((nstr / 2.0) - (4.0 / 5)) * textht;
+    writeln(log,' boxradius=',boxradius:8:3,'[',boxradius/fsc:8:3,']');
+    writeln(log,' lineskip=',lineskip:8:3,'[',lineskip/fsc:8:3,']');
+    writeln(log,' dptextratio=',dptextratio:8:3,
+                ' xheight=',xheight:8:3,'[',xheight/fsc:8:3,']') end; D*/
+  y += (v * lineskip / 2) - xheight;                         /* string bottom */
   do {
-      checkjust(tp, &A, &B, &L, &R);
-      printf("<text");
+      printf("<text font-size=\"");
+      wfloat(&output, (lineskip / scale) * 72);
+      printf("pt\"");
       if (node->ptype != XLstring) {
 	  printf(" stroke-width=\"0.2pt\" fill=\"black\"");
       }
       else {
-	  printf(" font-size=\"");
-	  wfloat(&output, (textht / scale) * 72);
-	  printf("pt\"");
-	  svgfilloptions(node, node->Upr.Ubox.boxfill, node->shadedp,
-			 lspec(node->spec), false);
 	  if (node->lthick < 0) {
 	      svgsetstroke(0.2);
 	  }
+	  svgfilloptions(node, node->Upr.Ubox.boxfill, node->shadedp,
+			 lspec(node->spec), false);
       }
-      if (L) {
-	  printf(" text-anchor=\"start\"");
-	  dx = textoff;
-      }
-      else if (R) {
-	  printf(" text-anchor=\"end\"");
-	  dx = -textoff;
+      v = venv(node, XLtextoffset);
+      if (node->ptype == XLstring) {
+	  dx = node->Upr.Ubox.boxradius;
       }
       else {
 	  dx = 0.0;
       }
-      dy = textht / (-20);
-      if (A) {
-	  dy += textoff + (textht / 2);
+      checkjust(tp, &A, &B, &L, &R);
+      if (L) {
+	  printf(" text-anchor=\"start\"\n");
+	  dx += v;
       }
-      else if (B) {
-	  dy += (textht * (1 - TEXTRATIO) / 2) - textoff;
+      else if (R) {
+	  printf(" text-anchor=\"end\"\n");
+	  dx -= v;
+      }
+      dy = 0.0;
+      if (node->ptype != XLstring) {
+	  if (A) {
+	      dy = (xheight / 2) + v;
+	  }
+	  else if (B) {
+	      dy = (xheight / (-2)) - v;
+	  }
       }
       /*D if debuglevel>0 then begin
-        writeln(log,' A=',A,' B=',B,' L=',L,' R=',R,
-         ' dy=',dy:8:3,'[',dy/fsc:8:3,']');
-        writeln(log,' x=',x:8:3,'[',x/fsc:8:3,
-         '] y=',y:8:3,'[',(xfheight-y)/fsc:8:3);
-        writeln(log,' x+dx=',(x+dx):8:3,'[',(x+dx)/fsc:8:3,']',
-         ' y+dy=',(y+dy):8:3,'[',(xfheight-(y+dy))/fsc:8:3,']') end; D*/
+        writeln(log,' A=',A,' B=',B,' L=',L,' R=',R);
+        writeln(log,' x+dx=',x+dx:8:3, '[',(x+dx)/fsc:8:3,
+          '] y+dy=',y+dy:8:3,'[',(xfheight-y-dy)/fsc:8:3,']') end; D*/
       svgcoord("x", "y", Max(0.0, x + dx), Max(0.0, y + dy));
-      printf("\n>");
+      if (tp->len > 40) {
+	  putchar('\n');
+      }
+      putchar('>');
       svgwstring(tp);
       printf("</text>\n");
-      y -= textht;
+      y -= lineskip;
       tp = tp->next_;
   } while (tp != NULL);
 }
@@ -3326,8 +3389,15 @@ svgdraw(primitive *node)
   /*D
            write(log,' lth='); wfloat(log,lth);
            write(log,' aat=(');wfloat(log,aat.xpos); write(log,',');
-           wfloat(log,aat.ypos); write(log,')');
-           writeln(log)
+           wfloat(log,aat.ypos); write(log,')[',aat.xpos/fsc:8:3,
+            '],[',(xfheight-aat.ypos)/fsc:8:3,']');
+           writeln(log);
+           if ptype in [XLline,XLarrow,XLspline,XLarc] then begin
+              write(log,' endpos=(');wfloat(log,endpos.xpos); write(log,',');
+              wfloat(log,endpos.ypos); write(log,')[',endpos.xpos/fsc:8:3,
+               '],[',(xfheight-endpos.ypos)/fsc:8:3,']');
+              writeln(log)
+              end
            end;
         if linesignal > 0 then begin write(errout,'svgdraw: ');
            snaptype(errout,ptype); writeln(errout) end D*/
@@ -3598,7 +3668,7 @@ pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2018.04.03 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2018.05.15 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -4379,7 +4449,7 @@ mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2018.04.03 option -m for mfpic\n");
+  printf("\n%% dpic version 2018.05.15 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -5091,7 +5161,7 @@ mfpdraw(primitive *node)
 void
 mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2018.04.03 option -s for MetaPost\n");
+  printf("%% dpic version 2018.05.15 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -5768,7 +5838,7 @@ mpodraw(primitive *node)
 void
 pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2018.04.03 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2018.05.15 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -6495,7 +6565,7 @@ psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2018.04.03 option ");
+  printf("\n%%%%Creator: dpic version 2018.05.15 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -7416,7 +7486,7 @@ pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2018.04.03 option -d for PDF\n");
+  printf("%% Creator: dpic version 2018.05.15 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
   /* 1. 2. 3. 4. 5. 6. */
@@ -8386,7 +8456,7 @@ texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2018.04.03 option ");
+  printf("%% dpic version 2018.05.15 option ");
   switch (drawmode) {
 
   case TeX:
@@ -9040,7 +9110,6 @@ treedraw(primitive *node)
       soutline = NULL;
       node = node->next_;
   }
-  /*D; if debuglevel > 0 then writeln(log,' treedraw done') D*/
 }
 
 
@@ -9090,9 +9159,6 @@ begin
       node^.ptype := node^.ptype - 2*XLlastenv;
       node := node^.parent
       end
-   */
-/* D; if debuglevel > 0 then writeln(log,' treedraw done') D */
-/*
    end; */
 void
 drawtree(double n, double s, double e, double w, primitive *eb)
@@ -9105,7 +9171,7 @@ drawtree(double n, double s, double e, double w, primitive *eb)
 
   case SVG:
     fsctmp = fsc;
-    fsc /= SVGPX;                                            /* output pixels */
+    fsc /= dpPPI;                                            /* output pixels */
     svgprelude(n, s, e, w, (venv(eb, XLlinethick) / 72) * scale);
     treedraw(eb);
     svgpostlude();
@@ -9286,13 +9352,13 @@ begin
    write(log,'state=',st:1);
    if (st mod 4)<>0 then
    case (st mod 4) of
-      1: write(log,',XL','to');
-      2: write(log,',XL','from');
-      3: write(log,',XL','at');
+      1: write(log,',XLto');
+      2: write(log,',XLfrom');
+      3: write(log,',XLat');
       otherwise
       end;
-   if odd(st div 4) then write(log,',XL','chop');
-   if odd(st div 8) then write(log,',XL','directon')
+   if odd(st div 4) then write(log,',XLchop');
+   if odd(st div 8) then write(log,',XLdirecton')
    end;
 procedure snapname( chbu:chbufp; inx,ll:chbufinx);
 var j: integer;
@@ -9959,6 +10025,27 @@ findname(primitive *eb, Char *chb, chbufinx chbufx, chbufinx length,
 }
 
 
+double
+findvar(Char *s, int ln)
+{ int i, k;
+  nametype *last, *np;
+
+  if (tmpfmt == NULL) {
+      tmpfmt = Malloc(sizeof(chbufarray));
+  }
+  for (i = 1; i <= ln; i++) {
+      tmpfmt[i] = s[i-1];
+  }
+  np = findname(globalenv, tmpfmt, 1, ln, &last, &k);
+  if (np == NULL) {
+      return 0.0;
+  }
+  else {
+      return (np->val);
+  }
+}
+
+
 void
 marknotfound(int eno, Char *chb, chbufinx inx, chbufinx len)
 { int i;
@@ -10179,6 +10266,9 @@ pheight(primitive *pr)
   switch (pr->ptype) {
 
   case XLbox:
+    ph = pr->Upr.Ubox.boxheight;
+    break;
+
   case XLstring:
     ph = pr->Upr.Ubox.boxheight;
     break;
@@ -10296,7 +10386,6 @@ FindExitPoint(primitive *pr, postype *pe)
   switch (pr->ptype) {
 
   case XLbox:
-  case XLstring:
     switch (pr->direction) {
 
     case XLup:
@@ -10305,6 +10394,27 @@ FindExitPoint(primitive *pr, postype *pe)
 
     case XLdown:
       pe->ypos = pr->aat.ypos - (pr->Upr.Ubox.boxheight * 0.5);
+      break;
+
+    case XLleft:
+      pe->xpos = pr->aat.xpos - (pr->Upr.Ubox.boxwidth * 0.5);
+      break;
+
+    case XLright:
+      pe->xpos = pr->aat.xpos + (pr->Upr.Ubox.boxwidth * 0.5);
+      break;
+    }
+    break;
+
+  case XLstring:
+    switch (pr->direction) {
+
+    case XLup:
+      pe->ypos = pr->aat.ypos + (pr->Upr.Ubox.boxradius * 0.5);
+      break;
+
+    case XLdown:
+      pe->ypos = pr->aat.ypos - (pr->Upr.Ubox.boxradius * 0.5);
       break;
 
     case XLleft:
@@ -10591,6 +10701,11 @@ void
 shift(primitive *pr, double x, double y)
 { primitive *With;
 
+  /*D if debuglevel > 0 then begin
+     write(log,' shift='); wpair(log, x,y); writeln(log) end; D*/
+  if ((x == 0) && (y == 0)) {
+      return;
+  }
   while (pr != NULL) {
       With = pr;
       With->aat.xpos += x;
@@ -10653,16 +10768,15 @@ scaleobj(primitive *pr, double s)
 void
 corner(primitive *pr, int lexv, double *x, double *y)
 { primitive *pe;
-  boolean sb;
+  boolean sb, A, B, L, R;
 
-  /* A,B,L,R: boolean;
-  offst: real; */
+  /* offst: real; */
   if (pr == NULL) {
       return;
   }
   /*D if debuglevel>0 then begin write(log,
       'Corner: ptype(',ordp(pr):1,')='); printptype(ptype);
-     write(log,' corner='); printcorner(lexv) end; D*/
+     writeln(log); write(log,' corner='); printcorner(lexv) end; D*/
   *x = pr->aat.xpos;
   *y = pr->aat.ypos;
   pe = pr;
@@ -10676,7 +10790,6 @@ corner(primitive *pr, int lexv, double *x, double *y)
       *y = 0.5 * (pr->aat.ypos + pe->Upr.Uline.endpos.ypos);
       return;
   }
-  /* else if (lexv = XEMPTY) and (not (ptype = XLaTeX)) then begin */
   if ((lexv == XEMPTY) && (pr->ptype != XLstring) && (pr->ptype != XLaTeX)) {
       return;
   }
@@ -10693,25 +10806,76 @@ corner(primitive *pr, int lexv, double *x, double *y)
     *y = pr->aat.ypos;
     initnesw();
     nesw(pr);
-    /* Compass corners of justified strings not implemented:
-    if ptype = XLstring then begin
-       checkjust(textp,A,B,L,R);
-       offst := venv(pr,XLtextoffset);
-       if L then x := x+boxwidth/2 + offst
-       else if R then x := x-boxwidth/2 - offst;
-       if A then y := y+boxheight/2 + offst
-       else if B then y := y-boxheight/2 - offst;
-       end; */
-    /*D if debuglevel>0 then begin
-        write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
-        write(log,' n,s'); wpair(log,north,south);
-        write(log,' w,e'); wpair(log,west,east);
-        write(log,' x,y'); wpair(log,x,y)
-        end; D*/
-    if (((pr->ptype == XLarc) || (pr->ptype == XLcircle) ||
-	 (pr->ptype == XLellipse) ||
-	 (pr->ptype == XLbox)) && ((lexv == XDnw) || (lexv == XDsw) ||
-				   (lexv == XDse) || (lexv == XDne))) {
+    /* Compass corners of justified strings not implemented: */
+    /* if ptype = XLstring then begin
+          checkjust(textp,A,B,L,R);
+          offst := venv(pr,XLtextoffset);
+          if L then x := x+boxwidth/2 + offst
+          else if R then x := x-boxwidth/2 - offst;
+          if A then y := y+boxheight/2 + offst
+          else if B then y := y-boxheight/2 - offst;
+          end; */
+    if ((pr->ptype == XLstring) && (drawmode == SVG)) {
+	switch (lexv) {
+
+	case XDn:
+	  *y = north;
+	  break;
+
+	case XDs:
+	  *y = south;
+	  break;
+
+	case XDe:
+	  *x = east;
+	  break;
+
+	case XDw:
+	  *x = west;
+	  break;
+
+	case XDne:
+	  *y = north;
+	  *x = east;
+	  break;
+
+	case XDse:
+	  *y = south;
+	  *x = east;
+	  break;
+
+	case XDsw:
+	  *y = south;
+	  *x = west;
+	  break;
+
+	case XDnw:
+	  *y = north;
+	  *x = west;
+	  break;
+
+	case XDc:
+	  *y = pr->aat.ypos;
+	  *x = pr->aat.xpos;
+	  break;
+
+	case XDstart:
+	case XDend:
+	  markerror(858);
+	  break;
+	}
+	checkjust(pr->textp, &A, &B, &L, &R);
+	if (L) {
+	    pr->Upr.Ubox.boxradius = (west - east) / 2;
+	}
+	else if (R) {
+	    pr->Upr.Ubox.boxradius = (east - west) / 2;
+	}
+    }
+    else if (((pr->ptype == XLarc) || (pr->ptype == XLcircle) ||
+	      (pr->ptype == XLellipse) || (pr->ptype == XLbox)) &&
+	     ((lexv == XDnw) || (lexv == XDsw) || (lexv == XDse) ||
+	      (lexv == XDne))) {
 	switch (pr->ptype) {
 
 	case XLbox:
@@ -10844,6 +11008,12 @@ corner(primitive *pr, int lexv, double *x, double *y)
 	  markerror(858);
 	  break;
 	}
+	/*D; if debuglevel>0 then begin
+	    write(log,' aat'); wpair(log,aat.xpos,aat.ypos);
+	    write(log,' n,s'); wpair(log,north,south);
+	    write(log,' w,e'); wpair(log,west,east);
+	    write(log,' x,y'); wpair(log,x,y)
+	    end D*/
     }
     break;
 
@@ -11080,17 +11250,24 @@ resetenv(int envval, primitive *envbl)
 	break;
 
       case XLtextht:
-	if ((drawmode >= 0) && (drawmode < 32) &&
-	    (((1L << drawmode) & ((1L << SVG) | (1L << PDF))) != 0)) {
-	    envbl->Upr.UBLOCK.env[i - XLenvvar] = DFONT / 72.0;
-	}
-	else {
-	    envbl->Upr.UBLOCK.env[i - XLenvvar] = 0.0;
+	switch (drawmode) {
+
+	case PDF:
+	  envbl->Upr.UBLOCK.env[i - XLenvvar] = DFONT / 72.0;
+	  break;
+
+	case SVG:
+	  envbl->Upr.UBLOCK.env[i - XLenvvar] = (DFONT / 72.0) * 0.66;
+	  break;
+
+	default:
+	  envbl->Upr.UBLOCK.env[i - XLenvvar] = 0.0;
+	  break;
 	}
 	break;
 
       case XLtextoffset:
-	envbl->Upr.UBLOCK.env[i - XLenvvar] = 2.5 / 72;                      /*.27*/
+	envbl->Upr.UBLOCK.env[i - XLenvvar] = 2.0 / 72;                      /*.27*/
 	break;
 
       case XLtextwid:
@@ -11181,6 +11358,7 @@ inittwo(void)
   lastfillval = mdistmax;
   gslinethick = mdistmax;
   newprim(&envblock, XBLOCK, NULL);
+  globalenv = envblock;
   /*D; if debuglevel > 0 then printobject(envblock) D*/
   resetenv(0, envblock);
 }
@@ -11588,7 +11766,7 @@ hasshade(int lx, boolean warn)
 
 
 void
-makevar(Char *s, int ln, int nameval)
+makevar(Char *s, int ln, double varval)
 { nametype *vn, *lastvar, *namptr;
   int j, k;
   primitive *With;
@@ -11633,7 +11811,7 @@ makevar(Char *s, int ln, int nameval)
       vn->next_ = lastvar;
   }
   With->Upr.UBLOCK.nvars[j]++;
-  vn->val = nameval;
+  vn->val = varval;
 }
 
 
@@ -11666,10 +11844,12 @@ produce(stackinx newp, int p)
         flush(log)
         end; D*/
   With = &attstack[newp];
-  /*D with attstack^[newp] do if (debuglevel = 2) and (
+  /*D with attstack^[newp] do if (debuglevel > 0) and (
      ((p >= block1) and (p <= block3)) or
      ((p > object1) and (p <= object27))
-     or (p in [sprintf2,string2,element5,element11,namedobj2]))
+     or (p in [sprintf2,string2,element5,element11,
+          namedobj1,
+          namedobj2]))
        then printobject(prim);
   if debuglevel > 0 then with attstack^[newp] do
      if p in [ assignment1..assignment4,
@@ -11801,6 +11981,16 @@ produce(stackinx newp, int p)
       writeln(log);
       snaptree(envblock,0);
       writeln(log); flush(log) end; D*/
+    if ((drawmode >= 0) && (drawmode < 32) &&
+	(((1L << drawmode) & ((1L << SVG) | (1L << PDF) | (1L << PS))) != 0)) {
+	dptextratio = findvar("dptextratio", 11);
+	if (dptextratio == 0) {
+	    dptextratio = 1.0;
+	}
+	dpPPI = findvar("dpPPI", 5);
+    }
+    /*D; if debuglevel > 0 then
+       writeln(log,' drawtree done ================= ') D*/
     drawtree(north, south, east, west, envblock);
     break;
 
@@ -11836,6 +12026,11 @@ produce(stackinx newp, int p)
     makevar("optTeX", 6, TeX);
     makevar("opttTeX", 7, tTeX);
     makevar("optxfig", 7, xfig);
+    if ((drawmode >= 0) && (drawmode < 32) &&
+	(((1L << drawmode) & ((1L << SVG) | (1L << PDF) | (1L << PS))) != 0)) {
+	makevar("dptextratio", 11, 0.66);
+	makevar("dpPPI", 5, 96.0);
+    }
     if (p != start1) {
 	With->xval = attstack[newp+1].xval;
 	if (p == start3) {
@@ -12143,8 +12338,9 @@ produce(stackinx newp, int p)
     break;
 
   /* namedobj = object */
+  /* then, arc, deferred shift */
   case namedobj1:
-    if (With->prim != NULL) {  /* then, arc, deferred shift */
+    if (With->prim != NULL) {
 	prp = With->prim;
 	while (isthen(With->prim)) {
 	    With->prim = With->prim->parent;
@@ -12173,7 +12369,59 @@ produce(stackinx newp, int p)
 		corner(With->prim, i, &dx, &dy);
 	    }
 	    With->internal = NULL;
-	    if (With2->ptype != XLarc) {
+	    if ((drawmode == SVG) && (With2->ptype == XLstring)) {
+		ts = venv(With->prim, XLtextoffset);
+		/*D if debuglevel > 0 then writeln(log, ' namedobj1: i=',i:1,
+		  ' dx=',dx:8:3,' dy=',dy:8:3,' textoffset=',ts:8:3); D*/
+		if (teststflag(With->state, XLcw)) {    /* shift by arg2,arg3 */
+		    switch (i) {                                   /* textpos */
+
+		    case XDe:
+		      dx += ts;
+		      break;
+
+		    case XDne:
+		      dx += ts;
+		      dy += ts;
+		      break;
+
+		    case XDn:
+		      dy += ts;
+		      break;
+
+		    case XDnw:
+		      dx -= ts;
+		      dy += ts;
+		      break;
+
+		    case XDw:
+		      dx -= ts;
+		      break;
+
+		    case XDsw:
+		      dx -= ts;
+		      dy -= ts;
+		      break;
+
+		    case XDs:
+		      dy -= ts;
+		      break;
+
+		    case XDse:
+		      dx += ts;
+		      dy -= ts;
+		      break;
+		    }
+		}
+		/*D if debuglevel > 0 then begin
+		   write(log,' (xval,yval)='); wpair(log, xval,yval);
+		   write(log,' (dx,dy)='); wpair(log, dx,dy);
+		   writeln(log,
+		   ' boxradius=',boxradius:8:3,' aat.xpos=',aat.xpos:8:3)
+		   end; D*/
+		shift(With->prim, With->xval - dx, With->yval - dy);
+	    }
+	    else if (With2->ptype != XLarc) {
 		shift(With->prim, With->xval - dx, With->yval - dy);
 	    }
 	    else {
@@ -12225,7 +12473,6 @@ produce(stackinx newp, int p)
     }
     break;
 
-  /*D; if debuglevel > 0 then printobject(prim); D*/
   /* | "<Label>" suffix ":" object */
   case namedobj2:
     if (attstack[newp+3].prim != NULL) {
@@ -12484,20 +12731,29 @@ produce(stackinx newp, int p)
     With2 = With->prim;
     With2->Upr.Ubox.boxheight = eb->Upr.UBLOCK.env[XLtextht - XLenvvar - 1];
     With2->Upr.Ubox.boxwidth = eb->Upr.UBLOCK.env[XLtextwid - XLenvvar - 1];
-    if ((drawmode == xfig) && (With2->Upr.Ubox.boxwidth == 0.0)) {
-	/* To keep xfig from crashing, assume text height is 0.1
-	   and a character is 0.1*0.75 wide */
-	eb = findenv(envblock);
-	if (With2->Upr.Ubox.boxheight == 0.0) {
-	    With2->Upr.Ubox.boxheight = 0.1 * eb->Upr.UBLOCK.env[XLscale - XLenvvar - 1];
+    if (With2->Upr.Ubox.boxwidth == 0.0) {
+	switch (drawmode) {
+
+	case xfig:
+	  /* To keep xfig from crashing, assume text height is 0.1
+	     and a character is 0.1*0.75 wide */
+	  eb = findenv(envblock);
+	  if (With2->Upr.Ubox.boxheight == 0.0) {
+	      With2->Upr.Ubox.boxheight =
+		0.1 * eb->Upr.UBLOCK.env[XLscale - XLenvvar - 1];
+	  }
+	  With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight * With->length * 0.75;
+	  break;
+
+	case PDF:
+	  With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight * With->length * 0.6;
+	  break;
 	}
-	With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight * With->length * 0.75;
     }
-    if ((drawmode == PDF) && (With2->Upr.Ubox.boxwidth == 0.0)) {
-	With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight * With->length * 0.6;
-    }
-    With2->Upr.Ubox.boxradius = 0.0;
-    /*D if debuglevel > 0 then write(log,'string1 '); D*/
+    /* if drawmode = SVG then
+       boxheight := boxheight*findvar('dptextratio',11); */
+    /*D if debuglevel > 0 then write(log,
+       'string1 boxheight=',boxheight:8:3,' '); D*/
     newstr(&With2->textp);
     storestring(With2->textp, chbuf, With->chbufx, With->length);
     break;
@@ -13000,6 +13256,8 @@ produce(stackinx newp, int p)
         else if eb=nil then writeln(log,' ! sprintf2: eb=nil')
         else if eb^.env=nil then writeln(log,' ! sprintf2: env=nil'); D*/
     With2->Upr.Ubox.boxheight = eb->Upr.UBLOCK.env[XLtextht - XLenvvar - 1];
+    /* if drawmode = SVG then
+       boxheight := boxheight*findvar('dptextratio',11); */
     With2->Upr.Ubox.boxwidth = eb->Upr.UBLOCK.env[XLtextwid - XLenvvar - 1];
     With2->Upr.Ubox.boxradius = 0.0;
     newstr(&With2->textp);
@@ -13010,7 +13268,9 @@ produce(stackinx newp, int p)
 	nexprs = attstack[newp+4].state;
     }
     if (tmpbuf == NULL) {
-	tmpfmt = Malloc(sizeof(chbufarray));
+	if (tmpfmt == NULL) {
+	    tmpfmt = Malloc(sizeof(chbufarray));
+	}
 	tmpbuf = Malloc(sizeof(chbufarray));
 	/*D if debuglevel > 0 then begin write(log,'sprintf1,2 tmpbuf[');
 	   writeln(log,ordp(tmpbuf):1,']') end; D*/
@@ -13227,6 +13487,7 @@ produce(stackinx newp, int p)
 
 	case XLbox:
 	case XBLOCK:
+	case XLstring:
 	  if (With2->ptype == XBLOCK) {
 	      r = 0.5 * (attstack[newp+2].xval - With2->Upr.UBLOCK.blockheight);
 	      With2->Upr.UBLOCK.blockheight = attstack[newp+2].xval;
@@ -13252,13 +13513,14 @@ produce(stackinx newp, int p)
 		break;
 	      }
 	  }
-	  break;
-
-	case XLstring:
-	  With2->Upr.Ubox.boxheight = attstack[newp+2].xval;
-	  if ((drawmode == PDF) && (With2->textp != NULL)) {
-	      With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight *
-					With2->textp->len * 0.6;
+	  if (With2->ptype == XLstring) {
+	      /* if drawmode=SVG then
+	         boxheight := boxheight*findvar('dptextratio',11)
+	      else */
+	      if ((drawmode == PDF) && (With2->textp != NULL)) {
+		  With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight *
+					    With2->textp->len * 0.6;
+	      }
 	  }
 	  break;
 
@@ -14165,9 +14427,23 @@ produce(stackinx newp, int p)
 		}
 		namptr->next_ = attstack[newp+1].prim->textp;
 		if (With2->ptype == XLstring) {
-		    With2->Upr.Ubox.boxheight = With2->Upr.Ubox.boxheight *
-					       (i + 1) / i;
-		    /* boxheight/((i-1)*TEXTRATIO+1)*(i*TEXTRATIO+1) */
+		    if (drawmode == SVG) {
+			eb = findenv(envblock);
+			if (eb != NULL) {
+			    r = findvar("dptextratio", 11);
+			    if (r == 0) {
+				r = 1.0;
+			    }
+			    With2->Upr.Ubox.boxheight +=
+			      eb->Upr.UBLOCK.env[XLtextht - XLenvvar - 1] / r;
+			}
+		    }
+		    else {
+			With2->Upr.Ubox.boxheight = With2->Upr.Ubox.boxheight *
+						   (i + 1) / i;
+			/*D if debuglevel > 0 then
+			   write(log,' object17 boxheight=',boxheight:8:3,' ') D*/
+		    }
 		}
 	    }
 	    if ((drawmode >= 0) && (drawmode < 32) &&
@@ -14362,16 +14638,18 @@ produce(stackinx newp, int p)
 	With2 = With->prim;
 	With->xval = attstack[newp+2].xval;
 	With->yval = attstack[newp+2].yval;
-	setstval(&With->state, XDc);
+	if ((drawmode != SVG) | (getstval(With->state) == 0)) {
+	    setstval(&With->state, XDc);
+	}
+	/*D; if debuglevel > 0 then begin
+	   write(log,' (xval,yval)='); wpair(log,xval,yval);
+	   writeln(log,' state=',state:1,
+	   ' val=',(state div 256):1,' flag=',(state mod 256):1) end; D*/
 	setstflag(&With->state, XLat);
     }
     break;
 
   /* | object "<textpos>" */
-  /* This might be altered (in the case of strings, not other objects with text),
-       so that aat is changed as a function of textpos. Then
-       the output routines have to take that into account. The alternative
-       is to alter nesw for strings, as now. */
   case object22:
     if (With->prim != NULL) {
 	namptr = With->prim->textp;
@@ -14379,31 +14657,71 @@ produce(stackinx newp, int p)
 	    while (namptr->next_ != NULL) {
 		namptr = namptr->next_;
 	    }
-	    i = (long)floor(namptr->val + 0.5);
-	    if (i > 8) {
-		i = 0;
-	    }
-	    switch (attstack[newp+1].lexval) {
+	    setjust(namptr, attstack[newp+1].lexval);
+	    if (drawmode == SVG) {
+		With2 = With->prim;
+		/*D; if debuglevel > 0 then writeln(log,' state=',state:1,
+		   ' val=',(state div 256):1,' flag=',(state mod 256):1) D*/
+		if (!teststflag(With->state, XLat)) {
+		    With->xval = With2->aat.xpos;
+		    With->yval = With2->aat.ypos;
+		    setstflag(&With->state, XLat);
+		}
+		setstflag(&With->state, XLcw);
+		i = getstval(With->state);
+		if ((With2->ptype != XLmove) && (With2->ptype != XLspline) &&
+		    (With2->ptype != XLarrow) && (With2->ptype != XLline)) {
+		    switch (attstack[newp+1].lexval) {
 
-	    case XLcenter:
-	      namptr->val = 15.0;
-	      break;
+		    case XLljust:
+		      if (i == XDn) {
+			  setstval(&With->state, XDnw);
+		      }
+		      else if (i == XDs) {
+			  setstval(&With->state, XDsw);
+		      }
+		      else {
+			  setstval(&With->state, XDw);
+		      }
+		      break;
 
-	    case XLrjust:
-	      namptr->val = ((i >> 2) * 4.0) + 1;
-	      break;
+		    case XLrjust:
+		      if (i == XDn) {
+			  setstval(&With->state, XDne);
+		      }
+		      else if (i == XDs) {
+			  setstval(&With->state, XDse);
+		      }
+		      else {
+			  setstval(&With->state, XDe);
+		      }
+		      break;
 
-	    case XLljust:
-	      namptr->val = ((i >> 2) * 4.0) + 2;
-	      break;
+		    case XLbelow:
+		      if (i == XDe) {
+			  setstval(&With->state, XDne);
+		      }
+		      else if (i == XDw) {
+			  setstval(&With->state, XDnw);
+		      }
+		      else {
+			  setstval(&With->state, XDn);
+		      }
+		      break;
 
-	    case XLbelow:
-	      namptr->val = (i & 3) + 4.0;
-	      break;
-
-	    case XLabove:
-	      namptr->val = (i & 3) + 8.0;
-	      break;
+		    case XLabove:
+		      if (i == XDe) {
+			  setstval(&With->state, XDse);
+		      }
+		      else if (i == XDw) {
+			  setstval(&With->state, XDsw);
+		      }
+		      else {
+			  setstval(&With->state, XDs);
+		      }
+		      break;
+		    }
+		}
 	    }
 	}
 	else {
@@ -14474,6 +14792,8 @@ produce(stackinx newp, int p)
     if (With->prim != NULL) {
 	With->xval = attstack[newp+3].xval;
 	With->yval = attstack[newp+3].yval;
+	/*D if debuglevel > 0 then begin write(log,' object25: (xval,yval)=');
+	   wpair(log,xval,yval); writeln(log) end; D*/
 	if (p == object25) {
 	    setstval(&With->state, attstack[newp+1].lexval);
 	}
@@ -14553,8 +14873,8 @@ produce(stackinx newp, int p)
 	        wfloat(log,prim^.lthick); writeln(log) end D*/
 	}
 	if ((attstack[newp+1].lexval != XEMPTY) && (With->lexval != XLmove) &&
-	    (With->lexval != XLspline) && (With->lexval != XLarrow) &&
-	    (With->lexval != XLline)) {
+	    (With->lexval != XLspline) &&
+	    (With->lexval != XLarrow) && (With->lexval != XLline)) {
 	    markerror(858);
 	}
 	With2 = With->prim;
@@ -18997,7 +19317,7 @@ getoptions(void)
 	  FMHGD*/
       }
       else if ((cht == 'h') || (cht == '-')) {
-	  fprintf(errout, " *** dpic version 2018.04.03\n");
+	  fprintf(errout, " *** dpic version 2018.05.15\n");
 	  /*DGHMF
 	  writeln(errout,' Debug is enabled');
 	  FMHGD*/
@@ -19053,6 +19373,7 @@ int main(int argc, Char *argv[])
   inputeof = false;
   attstack = Malloc(sizeof(attstacktype));
   tmpbuf = NULL;
+  tmpfmt = NULL;
   parse();
   epilog();
   if (input != NULL) {

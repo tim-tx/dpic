@@ -34,7 +34,7 @@ begin
    write  (' font-size="'); wfloat(output,DFONT);
    writeln('pt" text-anchor="middle"');
    write  (' stroke="black"'); write(' stroke-miterlimit="10"');
-   write  (' stroke-width="'); wfloat(output,0.8/72*SVGPX);
+   write  (' stroke-width="'); wfloat(output,0.8/72*dpPPI);
    writeln('" fill="none">');
    writeln('<g>')
    end;
@@ -48,7 +48,7 @@ begin
 procedure svgsetstroke( lth: real );
 begin
    if lth <> gslinethick then begin
-      write(' stroke-width="'); wfloat(output,lth/72*SVGPX); writeln('"')
+      write(' stroke-width="'); wfloat(output,lth/72*dpPPI); writeln('"')
       end
    end;
 
@@ -97,7 +97,7 @@ begin
             write(' stroke-dasharray="0.5,');
             wfloat(output,param/fsc); writeln('"')
             end;
-         XLinvis: write(' stroke="none"');
+         XLinvis: writeln(' stroke="none"');
          otherwise
          end
       end
@@ -119,7 +119,7 @@ begin
    if sh<>nil then begin
       write(' fill="');
       wstring(output, sh);
-      writeln('"')
+      write('"')
       end
    else if (fill >= 0.0) and (fill <= 1.0) then fillgray(fill)
    else if node@.ptype=XLstring then fillgray(0.0);
@@ -183,52 +183,51 @@ procedure svgwtext(node: primitivep; tp: strptr; x,y: real );
 var nstr: integer;
    tx: strptr;
    L,R,A,B: boolean;
-   textht,textoff,dx,dy: real;
+   v,lineskip,xheight,dx,dy: real;
 begin
-  if (tp <> nil) then with node@ do begin
-     tx := tp; nstr := 0; textht := venv(node,XLtextht);
+  if (tp <> nil) and (node <> nil) then with node@ do begin
+     tx := tp; nstr := 0;
      while tx<>nil do begin nstr := nstr+1; tx := tx@.next end;
-                           (* boxheight = nstrings * textht *)
-     if (ptype=XLstring) and (nstr > 0) then textht := boxheight/nstr;
-     textoff := venv(node,XLtextoffset);
+     v := nstr-1+dptextratio;
+     if (ptype = XLstring) and (nstr > 0) and (v <> 0) then
+        lineskip := boxheight/v
+     else lineskip := venv(node,XLtextht)/dptextratio;
+     xheight := lineskip*dptextratio;
        (*D if debuglevel>0 then begin
-         writeln(log,' svgwtext: x=',x:8:3,'[',x/fsc:8:3,'] y=',y:8:3,
-          '[',(xfheight-y)/fsc:8:3,']');
+         writeln(log,'svgwtext: x=',x:8:3,'[',x/fsc:8:3,
+          '] y=',y:8:3,'[',(xfheight-y)/fsc:8:3,']');
+         writeln(log,' boxheight=',boxheight:8:3);
          writeln(log,' xfheight=',xfheight:8:3);
-         writeln(log,' textoff=',textoff:8:3,'[',textoff/fsc:8:3,
-          '] textht=',textht:8:3,'[',textht/fsc:8:3,']')
-         end; D*)
-     y := y + (nstr/2-4/5)*textht;
-     with node@ do repeat
-        checkjust(tp, A,B,L,R );
-        write('<text');
+         writeln(log,' boxradius=',boxradius:8:3,'[',boxradius/fsc:8:3,']');
+         writeln(log,' lineskip=',lineskip:8:3,'[',lineskip/fsc:8:3,']');
+         writeln(log,' dptextratio=',dptextratio:8:3,
+                     ' xheight=',xheight:8:3,'[',xheight/fsc:8:3,']') end; D*)
+     y := y+v*lineskip/2-xheight;   (* string bottom *)
+     repeat
+        write('<text font-size="');
+        wfloat(output,lineskip/scale*72);write('pt"');
         if ptype<>XLstring then write(' stroke-width="0.2pt" fill="black"')
         else begin
-           write  (' font-size="'); wfloat(output,textht/scale*72);
-           write('pt"');
-           svgfilloptions(node,boxfill,shadedp,lspec(spec),false);
-           if lthick < 0 then svgsetstroke(0.2)
+           if lthick < 0 then svgsetstroke(0.2);
+           svgfilloptions(node,boxfill,shadedp,lspec(spec),false)
            end;
-        if L then begin
-          write(' text-anchor="start"'); dx := textoff end
-        else if R then begin
-          write(' text-anchor="end"'); dx := -textoff end
-        else dx := 0;
-        dy := -textht/20;
-        if A then dy := dy+textoff+textht/2
-        else if B then dy := dy-textoff-textht*(TEXTRATIO-1)/2;
+        v := venv(node,XLtextoffset);
+        if ptype = XLstring then dx := boxradius else dx := 0;
+        checkjust(tp, A,B,L,R );
+        if L then begin writeln(' text-anchor="start"');   dx := dx + v end
+        else if R then begin writeln(' text-anchor="end"');dx := dx - v end;
+        dy := 0;
+        if ptype = XLstring then begin end
+        else if A then dy := xheight/2+v
+        else if B then dy := -xheight/2-v;
           (*D if debuglevel>0 then begin
-            writeln(log,' A=',A,' B=',B,' L=',L,' R=',R,
-             ' dy=',dy:8:3,'[',dy/fsc:8:3,']');
-            writeln(log,' x=',x:8:3,'[',x/fsc:8:3,
-             '] y=',y:8:3,'[',(xfheight-y)/fsc:8:3);
-            writeln(log,' x+dx=',(x+dx):8:3,'[',(x+dx)/fsc:8:3,']',
-             ' y+dy=',(y+dy):8:3,'[',(xfheight-(y+dy))/fsc:8:3,']') end; D*)
-        svgcoord('x','y',Max(0,x+dx),Max(0,y+dy)); writeln;
-        write('>');
-        svgwstring( tp );
-        writeln('</text>');
-        y := y-textht;
+            writeln(log,' A=',A,' B=',B,' L=',L,' R=',R);
+            writeln(log,' x+dx=',x+dx:8:3, '[',(x+dx)/fsc:8:3,
+              '] y+dy=',y+dy:8:3,'[',(xfheight-y-dy)/fsc:8:3,']') end; D*)
+        svgcoord('x','y',Max(0,x+dx),Max(0,y+dy));
+        if tp@.len > 40 then writeln;
+        write('>'); svgwstring( tp ); writeln('</text>');
+        y := y-lineskip;
         tp := tp@.next
      until tp = nil
      end
@@ -414,8 +413,15 @@ begin
          snaptype(log,ptype); D*) (* printobject(node); *) (*D
          write(log,' lth='); wfloat(log,lth);
          write(log,' aat=(');wfloat(log,aat.xpos); write(log,',');
-         wfloat(log,aat.ypos); write(log,')');
-         writeln(log)
+         wfloat(log,aat.ypos); write(log,')[',aat.xpos/fsc:8:3,
+          '],[',(xfheight-aat.ypos)/fsc:8:3,']');
+         writeln(log);
+         if ptype in [XLline,XLarrow,XLspline,XLarc] then begin
+            write(log,' endpos=(');wfloat(log,endpos.xpos); write(log,',');
+            wfloat(log,endpos.ypos); write(log,')[',endpos.xpos/fsc:8:3,
+             '],[',(xfheight-endpos.ypos)/fsc:8:3,']');
+            writeln(log)
+            end
          end;
       if linesignal > 0 then begin write(errout,'svgdraw: ');
          snaptype(errout,ptype); writeln(errout) end D*)

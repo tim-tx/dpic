@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl i.e. autoconf configure.ac > ../Makefile
 
-AC_INIT(dpic,2018.04.03)
+AC_INIT(dpic,2018.05.15)
 AC_CONFIG_AUX_DIR(autoconf/scripts)
 m4_include(m4/ax_check_compile_flag.m4)
 
@@ -9,7 +9,7 @@ AC_LANG_C
 
 PACKAGE=dpic
 UCPACKAGE=DPIC
-VERSION=2018.04.03
+VERSION=2018.05.15
 AC_SUBST(PACKAGE)
 AC_SUBST(VERSION)
 AC_SUBST(UCPACKAGE)

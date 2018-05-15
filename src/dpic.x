@@ -457,6 +457,22 @@ begin
    write('{'); wfloat(output,x); write('}')
    end;
 
+procedure setjust( tp: strptr; v: integer );
+   var i: integer;
+begin
+   if tp <> nil then with tp@ do begin
+      i := round(val);
+      case v of
+         XLrjust: val := (i div 4)*4 + 1;
+         XLljust: val := (i div 4)*4 + 2;
+         XLbelow: val := (i div 16)*16 + 4 + (i mod 4);
+         XLabove: val := (i div 16)*16 + 8 + (i mod 4);
+         XLcenter:val := (i div 16)*16;
+         otherwise
+         end
+      end
+   end;
+
 procedure checkjust( tp: strptr; var A,B,L,R: boolean );
 var i: integer;
 begin
@@ -464,12 +480,22 @@ begin
       A := false; B := false; L := false; R := false end
    else begin
       i := round(tp@.val);
-      A := (i div 4) = 2;
-      B := (i div 4) = 1;
-      L := (i mod 4) = 2;
-      R := (i mod 4) = 1
+      R := odd(i);
+      L := odd(i div 2);
+      B := odd(i div 4);
+      A := odd(i div 8)
       end
    end;
+(*                                  Test if ht of string has been set
+function checkht( tp: strptr ): boolean;
+var i: integer;
+begin
+   if tp=nil then checkht := false
+   else begin
+      i := round(tp@.val);
+      checkht := odd(i div 16)
+      end
+   end; *)
 
 function lspec( n: integer): integer;
 begin
@@ -652,8 +678,9 @@ var hight,wdth,sang,eang: real;
 begin
    if ptmp <> nil then begin
       with ptmp@ do case ptype of
-         XLbox,XLstring:begin hight := boxheight;    wdth := boxwidth end;
-         XBLOCK:        begin hight := blockheight;  wdth := blockwidth end;
+         XLstring:  begin hight := boxheight;    wdth := boxwidth end;
+         XLbox:     begin hight := boxheight;    wdth := boxwidth end;
+         XBLOCK:    begin hight := blockheight;  wdth := blockwidth end;
          XLcircle:  begin hight := 2.0 * radius; wdth := hight end;
          XLellipse: begin hight := elheight;     wdth := elwidth end;
          otherwise begin hight := 0; wdth := 0 end
@@ -665,7 +692,13 @@ begin
             west := Min(west,aat.xpos-wdth*0.5);
             east := Max(east,aat.xpos+wdth*0.5)
             end;
-         XLstring: neswstring( ptmp,hight,wdth );
+         XLstring: if drawmode = SVG then begin
+               north := Max(north,aat.ypos+hight*0.5);
+               south := Min(south,aat.ypos-hight*0.5);
+               west := Min(west,aat.xpos-wdth*0.5);
+               east := Max(east,aat.xpos+wdth*0.5)
+               end
+            else neswstring( ptmp,hight,wdth );
          XLline,XLarrow,XLmove,XLspline: neswline( ptmp );
          XLaTeX,XLabel: ;
          XLarc: begin
@@ -1090,7 +1123,6 @@ begin
       bfill := false; sshade := nil; soutline := nil;
       node := node@.next
       end
-   (*D; if debuglevel > 0 then writeln(log,' treedraw done') D*)
    end;
                                 (* without recursion: *)
 (*
@@ -1138,7 +1170,6 @@ begin
       node@.ptype := node@.ptype - 2*XLlastenv;
       node := node@.parent
       end
-   *)(* D; if debuglevel > 0 then writeln(log,' treedraw done') D *)(*
    end; *)
 
 procedure drawtree( n,s,e,w: real; eb: primitivep );
@@ -1147,7 +1178,7 @@ begin
    bfill := false; sshade := nil; soutline := nil;
    case drawmode of
       SVG: begin
-         fsctmp := fsc; fsc := fsc/SVGPX;         (* output pixels *)
+         fsctmp := fsc; fsc := fsc/dpPPI;       (* output pixels *)
          svgprelude(n,s,e,w,venv(eb,XLlinethick)/72*scale);
          treedraw( eb );
          svgpostlude;
@@ -3043,6 +3074,7 @@ begin (* dpic *)
    inputeof := false;
    new(attstack);
    tmpbuf := nil;
+   tmpfmt := nil;
    parse;
    (*P2CIP*)
    (*MGH 999: HGM*)

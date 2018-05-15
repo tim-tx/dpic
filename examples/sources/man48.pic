@@ -1,5 +1,5 @@
 .PS
-define cross {
+define Cross {
 A: [
     circle;
     line up 1 from last circle .n;
@@ -9,9 +9,9 @@ A: [
     box dashed with .nw at last circle .se + (0.2, -0.2);
     Caption: .center of last box;
 ] }
-  cross
+  Cross
   move
-  cross
+  Cross
 
 define label { circle rad 0.02 fill at A$1
   "$1" at last circle $2 }

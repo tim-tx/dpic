@@ -20,9 +20,7 @@ Unix installation:
    options are required to process C but not all compilers have identical
    options or libraries so you may have to change the Makefile by hand
    accordingly.  You might also look at the file Makefile.default, and
-   use it instead.  Problems, if any, might arise with system routines;
-   e.g. if 'print sprintf("%g",2.0)' does not print 2, recompile using
-   -DNO_SNPRINTF
+   use it instead.
 
 Web-server installation:
    You probably should disable the sh and copy commands in dpic for security
