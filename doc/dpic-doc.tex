@@ -798,12 +798,18 @@ that encloses the box in {\tt [}, {\tt ]} brackets is given by the
 Circuit\_macros {\tt rotbox} macro.
 
 \subsection{Subscripts}
-\Dpic allows variables and capitalized labels to have subscripts; thus
-{\tt x} and {\tt x[4]} are distinct variable names, and can be employed
-in expressions as usual.  Similarly, {\tt P} and {\tt P[3]} are distinct
-labels.
+\Dpic allows variables and labels to have a single or double subscript; thus
+{\tt x,} {\tt x[4],} and {\tt x[4,2]} are distinct variable names,
+and can be employed in expressions as usual.
+Similarly, {\tt P} and {\tt P[3]} are distinct labels.
+Writing the subscript as {\tt [{\sl position}]} for any defined
+position is the same as {\tt [{\sl position}.x, {\sl position}.y]}.
+In cases where the subscripted variable or label is part of a macro
+argument, it is wise to protect the comma in the subscript
+with parentheses
+by writing, for example, {\tt x[(i,j)]} instead of {\tt x[i,j]}.
 
-
+\pagebreak
 \subsubsection{Assigning an array of numbers}
 We can assign an array of numbers to subscripted variables using
 statements such as
@@ -1030,7 +1036,6 @@ arcs.
 \Dpic, however, extends the {\tt shaded} and {\tt outlined} directives to
 linear objects such as lines or splines where the output postprocessor allows.
 Consider, for example, the following macro:
-\pagebreak
 \begin{verbatim}
 define slantbox { [ # wid, ht, xslant, yslant, attributes
   w = $1 ; h = $2 ; xs = $3 ; ys = $4
@@ -1299,7 +1304,7 @@ relate to the use of \LaTeX\ or the other dpic output formats.
   Dpic does not generate tpic specials.
   See the option list in \SR{Usage:} for output formats.
 
-\subsection{. lines and program-generated pic}
+\subsection{`{.}' lines and program-generated pic}
   Gpic passes lines beginning with {\tt.}\ through to the output,
   thereby allowing
   arbitrary Troff macros to be interspersed with pic drawing commands.  Some
@@ -1312,7 +1317,7 @@ relate to the use of \LaTeX\ or the other dpic output formats.
   {\tt.PS}, {\tt.PE} delimiters.  These
   lines must be dealt with separately.
 
-\subsection{\tBS\ lines}
+\subsection{`\textbackslash'\ lines}
   Both gpic and dpic pass lines beginning with \tBS\ to the output but
   dpic does not automatically append a {\tt\%} at the end as gpic does.
 
@@ -1551,8 +1556,10 @@ macro can be replaced by one customized to suit.
   Dpic uses 0 as black and 1 as
   white as do \Postscript and the original ATT pic.
 
-  The pic language specifies fill only for box, ellipse, and circle, but fill is
-  supported by dpic using the {\tt shaded} directive.  The concept of a path
+  The pic language specifies fill only for box, ellipse, and circle.
+  With dpic, the {\tt shaded} directive fills a path defined by a linear
+  object, where allowed by the postprocessor.
+  The concept of a path
   containing several arbitrary linear objects does not exist in the pic
   language but can be implemented using postprocessor commands inserted
   into {\tt command {\sl string}} statements.
@@ -1995,198 +2002,199 @@ The expanded dpic grammar follows:
 
    32   suffix = "<EMPTY>" 
    33          | "[" expression "]" 
+   34          | "[" position "]" 
 
-   34   position = pair 
-   35            | expression "between" position "and" position 
-   36            | expression "of" "the" "way" "between" position "and" position 
-   37            | expression "<" position "," position "<compare>" shift 
+   35   position = pair 
+   36            | expression "between" position "and" position 
+   37            | expression "of" "the" "way" "between" position "and" position 
+   38            | expression "<" position "," position "<compare>" shift 
 
-   38   assignlist = assignment 
-   39              | assignlist "," assignment 
+   39   assignlist = assignment 
+   40              | assignlist "," assignment 
 
-   40   command = "print" expression redirect 
-   41           | "print" position redirect 
-   42           | "print" stringexpr redirect 
-   43           | "reset" 
-   44           | "reset" resetlist 
-   45           | systemcmd 
-   46           | "copy" stringexpr 
-   47           | defhead optnl "{" "}" 
-   48           | "undefine" "<name>" 
-   49           | "undefine" "<Label>" 
+   41   command = "print" expression redirect 
+   42           | "print" position redirect 
+   43           | "print" stringexpr redirect 
+   44           | "reset" 
+   45           | "reset" resetlist 
+   46           | systemcmd 
+   47           | "copy" stringexpr 
+   48           | defhead optnl "{" "}" 
+   49           | "undefine" "<name>" 
+   50           | "undefine" "<Label>" 
 
-   50   optnl = "<EMPTY>" 
-   51         | NL 
+   51   optnl = "<EMPTY>" 
+   52         | NL 
 
-   52   ifpart = ifhead "{" elementlist optnl "}" 
+   53   ifpart = ifhead "{" elementlist optnl "}" 
 
-   53   elsehead = ifpart "else" 
+   54   elsehead = ifpart "else" 
 
-   54   for = forhead "{" elementlist optnl 
-   55       | for forincr "<endfor>" elementlist optnl 
+   55   for = forhead "{" elementlist optnl 
+   56       | for forincr "<endfor>" elementlist optnl 
 
-   56   stringexpr = string 
-   57              | stringexpr "+" string 
+   57   stringexpr = string 
+   58              | stringexpr "+" string 
 
-   58   string = "<string>" 
-   59          | sprintf ")" 
+   59   string = "<string>" 
+   60          | sprintf ")" 
 
-   60   assignment = "<name>" suffix "=" expression 
-   61              | "<name>" suffix "=" assignment 
-   62              | "<envvar>" "=" expression 
-   63              | "<envvar>" "=" assignment 
+   61   assignment = "<name>" suffix "=" expression 
+   62              | "<name>" suffix "=" assignment 
+   63              | "<envvar>" "=" expression 
+   64              | "<envvar>" "=" assignment 
 
-   64   expression = term 
-   65              | "+" term 
-   66              | "-" term 
-   67              | expression "+" term 
-   68              | expression "-" term 
+   65   expression = term 
+   66              | "+" term 
+   67              | "-" term 
+   68              | expression "+" term 
+   69              | expression "-" term 
 
-   69   ifhead = setlogic "if" logexpr "then" 
+   70   ifhead = setlogic "if" logexpr "then" 
 
-   70   setlogic = "<EMPTY>" 
+   71   setlogic = "<EMPTY>" 
 
-   71   logexpr = logprod 
-   72           | logexpr "||" logprod 
+   72   logexpr = logprod 
+   73           | logexpr "||" logprod 
 
-   73   forhead = "for" assignlist "to" expression do 
+   74   forhead = "for" assignlist "to" expression do 
 
-   74   forincr = "<EMPTY>" 
+   75   forincr = "<EMPTY>" 
 
-   75   do = "do" 
-   76      | by expression "do" 
+   76   do = "do" 
+   77      | by expression "do" 
 
-   77   by = "by" 
-   78      | "by" "*" 
+   78   by = "by" 
+   79      | "by" "*" 
 
-   79   redirect = "<EMPTY>" 
-   80            | "<compare>" stringexpr 
-   81            | "<compare>" "<compare>" stringexpr 
+   80   redirect = "<EMPTY>" 
+   81            | "<compare>" stringexpr 
+   82            | "<compare>" "<compare>" stringexpr 
 
-   82   resetlist = "<envvar>" 
-   83             | resetlist "," "<envvar>" 
+   83   resetlist = "<envvar>" 
+   84             | resetlist "," "<envvar>" 
 
-   84   systemcmd = "sh" stringexpr 
+   85   systemcmd = "sh" stringexpr 
 
-   85   defhead = "define" "<name>" 
-   86           | "define" "<Label>" 
+   86   defhead = "define" "<name>" 
+   87           | "define" "<Label>" 
 
-   87   sprintf = "sprintf" "(" stringexpr 
-   88           | "sprintf" "(" stringexpr "," exprlist 
+   88   sprintf = "sprintf" "(" stringexpr 
+   89           | "sprintf" "(" stringexpr "," exprlist 
 
-   89   exprlist = expression 
-   90            | expression "," exprlist 
+   90   exprlist = expression 
+   91            | expression "," exprlist 
 
-   91   object = block 
-   92          | object "height" expression 
-   93          | object "width" expression 
-   94          | object "radius" expression 
-   95          | object "diameter" expression 
-   96          | object "thickness" expression 
-   97          | object "scaled" expression 
-   98          | object "<directon>" optexp 
-   99          | object "<linetype>" optexp 
-  100          | object "chop" optexp 
-  101          | object "filled" optexp 
-  102          | object "<arrowhd>" optexp 
-  103          | object "then" 
-  104          | object "cw" 
-  105          | object "ccw" 
-  106          | object "same" 
-  107          | object stringexpr 
-  108          | object "by" position 
-  109          | object "from" position 
-  110          | object "to" position 
-  111          | object "at" position 
-  112          | object "<textpos>" 
-  113          | object "<colrspec>" stringexpr 
-  114          | objectwith "at" position 
-  115          | objectwith "<corner>" "at" position 
-  116          | objectwith pair "at" position 
-  117          | "continue" 
+   92   object = block 
+   93          | object "height" expression 
+   94          | object "width" expression 
+   95          | object "radius" expression 
+   96          | object "diameter" expression 
+   97          | object "thickness" expression 
+   98          | object "scaled" expression 
+   99          | object "<directon>" optexp 
+  100          | object "<linetype>" optexp 
+  101          | object "chop" optexp 
+  102          | object "filled" optexp 
+  103          | object "<arrowhd>" optexp 
+  104          | object "then" 
+  105          | object "cw" 
+  106          | object "ccw" 
+  107          | object "same" 
+  108          | object stringexpr 
+  109          | object "by" position 
+  110          | object "from" position 
+  111          | object "to" position 
+  112          | object "at" position 
+  113          | object "<textpos>" 
+  114          | object "<colrspec>" stringexpr 
+  115          | objectwith "at" position 
+  116          | objectwith "<corner>" "at" position 
+  117          | objectwith pair "at" position 
+  118          | "continue" 
 
-  118   openblock = "<EMPTY>" 
+  119   openblock = "<EMPTY>" 
 
-  119   block = "<primitiv>" optexp 
-  120         | stringexpr 
-  121         | openblock "[" closeblock "]" 
-  122         | openblock "[]" 
+  120   block = "<primitiv>" optexp 
+  121         | stringexpr 
+  122         | openblock "[" closeblock "]" 
+  123         | openblock "[]" 
 
-  123   optexp = "<EMPTY>" 
-  124          | expression 
+  124   optexp = "<EMPTY>" 
+  125          | expression 
 
-  125   closeblock = elementlist optnl 
+  126   closeblock = elementlist optnl 
 
-  126   objectwith = object "with" 
-  127              | objectwith "." "<Label>" suffix 
-  128              | objectwith "." nth primobj 
+  127   objectwith = object "with" 
+  128              | objectwith "." "<Label>" suffix 
+  129              | objectwith "." nth primobj 
 
-  129   pair = expression "," expression 
-  130        | location shift 
+  130   pair = expression "," expression 
+  131        | location shift 
 
-  131   nth = ncount "th" 
-  132       | ncount "th" "last" 
-  133       | "last" 
+  132   nth = ncount "th" 
+  133       | ncount "th" "last" 
+  134       | "last" 
 
-  134   primobj = "<primitiv>" 
-  135           | "[]" 
-  136           | "<string>" 
-  137           | "[" "]" 
+  135   primobj = "<primitiv>" 
+  136           | "[]" 
+  137           | "<string>" 
+  138           | "[" "]" 
 
-  138   shift = "<EMPTY>" 
-  139         | shift "+" location 
-  140         | shift "-" location 
+  139   shift = "<EMPTY>" 
+  140         | shift "+" location 
+  141         | shift "-" location 
 
-  141   location = "(" position ")" 
-  142            | "(" position "," position ")" 
-  143            | place 
-  144            | location "*" factor 
-  145            | location "/" factor 
+  142   location = "(" position ")" 
+  143            | "(" position "," position ")" 
+  144            | place 
+  145            | location "*" factor 
+  146            | location "/" factor 
 
-  146   place = placename 
-  147         | placename "<corner>" 
-  148         | "<corner>" placename 
-  149         | "<corner>" "of" placename 
-  150         | "Here" 
+  147   place = placename 
+  148         | placename "<corner>" 
+  149         | "<corner>" placename 
+  150         | "<corner>" "of" placename 
+  151         | "Here" 
 
-  151   factor = primary 
-  152          | "!" primary 
-  153          | primary "^" factor 
+  152   factor = primary 
+  153          | "!" primary 
+  154          | primary "^" factor 
 
-  154   placename = "<Label>" suffix 
-  155             | nth primobj 
-  156             | placename "." "<Label>" suffix 
-  157             | placename "." nth primobj 
+  155   placename = "<Label>" suffix 
+  156             | nth primobj 
+  157             | placename "." "<Label>" suffix 
+  158             | placename "." nth primobj 
 
-  158   ncount = "<float>" 
-  159          | "`" expression "'" 
-  160          | "{" expression "}" 
+  159   ncount = "<float>" 
+  160          | "`" expression "'" 
+  161          | "{" expression "}" 
 
-  161   logprod = logval 
-  162           | logprod "&&" logval 
+  162   logprod = logval 
+  163           | logprod "&&" logval 
 
-  163   logval = lcompare 
-  164          | stringexpr "<" stringexpr 
-  165          | expression "<" expression 
+  164   logval = lcompare 
+  165          | stringexpr "<" stringexpr 
+  166          | expression "<" expression 
 
-  166   lcompare = expression 
-  167            | stringexpr 
-  168            | lcompare "<compare>" expression 
-  169            | lcompare "<compare>" stringexpr 
+  167   lcompare = expression 
+  168            | stringexpr 
+  169            | lcompare "<compare>" expression 
+  170            | lcompare "<compare>" stringexpr 
 
-  170   primary = "<envvar>" 
-  171           | "<name>" suffix 
-  172           | "<float>" 
-  173           | "(" logexpr ")" 
-  174           | location ".x" 
-  175           | location ".y" 
-  176           | placename "<param>" 
-  177           | "rand" "(" ")" 
-  178           | "rand" "(" expression ")" 
-  179           | "<func1>" "(" expression ")" 
-  180           | "<func2>" "(" expression "," expression ")" 
-  181           | "(" assignlist ")" 
-  182           | "(" systemcmd ")" 
+  171   primary = "<envvar>" 
+  172           | "<name>" suffix 
+  173           | "<float>" 
+  174           | "(" logexpr ")" 
+  175           | location ".x" 
+  176           | location ".y" 
+  177           | placename "<param>" 
+  178           | "rand" "(" ")" 
+  179           | "rand" "(" expression ")" 
+  180           | "<func1>" "(" expression ")" 
+  181           | "<func2>" "(" expression "," expression ")" 
+  182           | "(" assignlist ")" 
+  183           | "(" systemcmd ")" 
 \end{verbatim}
 
 \end{document}\endinput

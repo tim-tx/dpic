@@ -2761,7 +2761,7 @@ begin (* perform reductions *)
        end;D*)
 
     if (redutop > 0) and (j < oldbufi)
-      and (not (redubuf[redutop].prod in [suffix1,suffix2,closeblock1]))
+      and (not (redubuf[redutop].prod in [suffix1,suffix2,suffix3,closeblock1]))
       then begin
 
         (*D if debuglevel > 0 then begin write(log,

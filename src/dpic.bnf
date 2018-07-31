@@ -291,5 +291,5 @@ primary = "<envvar>"
         | "(" systemcmd ")"
         .
 
-suffix = [ "[" expression "]" ] .
+suffix = [ "[" (expression | position) "]" ] .
 .

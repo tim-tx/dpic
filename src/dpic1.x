@@ -1388,43 +1388,51 @@ begin
    deletetree(pr)
    end;
 
-(*        addsuffix(chbuf,chbufx,length,attstack@[newp+1].xval); *)
-procedure addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; suff:real);
+procedure appendsuff(buf:chbufp; inx:chbufinx; var len:integer; x:real );
 var i,j,k: integer;
 begin
-   (*D if debuglevel <> 0 then begin writeln(log,
-     'addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; suff:real)');
-      write(log,D*)(*DGHF ordp FHGD*)(*DM ord MD*)(*D(buf):1,
-       ' inx=',inx:1,' len=',len:1,' suff=');
-      wfloat(log,suff); write(log,' chbufi=',chbufi:1);
-      snapname(buf,inx,len); writeln(log) end; D*)
-
-   if chbufi-1+len > CHBUFSIZ then fatal(4);
-   if inx+len <> chbufi then begin
-      for i:=0 to len-1 do buf@[chbufi+i] := buf@[inx+i];
-      inx := chbufi
-      end;
-   i := round(suff); if i < 0 then begin len := len+1; i := -i end;
-   repeat
-      len := len+1;
-      i := i div 10
-   until i = 0;
-   len := len+2;
+   (*D if debuglevel <> 0 then begin
+      write(log,' appendsuf x='); wfloat(log,x) end; D*)
+   i := round(x); if i < 0 then begin
+      buf@[inx+len] := '-'; len := len+1; i := -i end;
+   k := i;
+   repeat len := len+1; k := k div 10 until k = 0;
    if inx-1+len > CHBUFSIZ then fatal(4);
-   buf@[inx-1+len] := ']';
-   j := len-2;
-   i := round(suff); if i < 0 then i := -i;
+   j := len-1;
    repeat
       k := i div 10;
       buf@[inx+j] := chr(i-k*10 + ord('0'));
       i := k;
       j := j-1
-   until i = 0;
-   if round(suff) < 0 then begin buf@[inx+j] := '-'; j := j-1 end;
-   buf@[inx+j] := '[';
-   chbufi := inx+len (* ?? *)
+   until i = 0
+   end;
+
+procedure addsuffix(buf:chbufp; var inx:chbufinx; var len:integer;
+   np:integer );
+var i,j,k: integer;
+begin
+   (*D if debuglevel <> 0 then begin writeln(log,
+     'addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; np:integer)');
+      write(log,D*)(*DGHF ordp FHGD*)(*DM ord MD*)(*D(buf):1,
+       ' inx=',inx:1,' len=',len:1,' np=',np:1,' x=');
+      wfloat(log,attstack@[np].xval); writeln(log,' chbufi=',chbufi:1);
+      write(log,' lexval=',attstack@[np].lexval:1,' presuffix=');
+      snapname(buf,inx,len); writeln(log) end; D*)
+   if chbufi-1+len > CHBUFSIZ then fatal(4);
+   if inx+len <> chbufi then begin
+      for i:=0 to len-1 do buf@[chbufi+i] := buf@[inx+i];
+      inx := chbufi
+      end;
+   if inx+2+len > CHBUFSIZ then fatal(4);
+   buf@[inx+len] := '['; len := len+1;
+   appendsuff(buf,inx,len,attstack@[np].xval);
+   if attstack@[np].lexval = Xcomma then begin
+      buf@[inx+len] := ','; len := len+1;
+      appendsuff(buf,inx,len,attstack@[np].yval) end;
+   buf@[inx+len] := ']'; len := len+1;
+   chbufi := inx+len
    (*D ; if debuglevel <> 0 then begin
-      snapname(buf,inx,len); writeln(log) end D*)
+      write(log,'postsuffix='); snapname(buf,inx,len); writeln(log) end D*)
    end; (* addsuffix *)
 
 procedure appendthen(var pr: primitivep);
@@ -1806,7 +1814,7 @@ begin (*produce*)
 (*              | "<Label>" suffix ":" position   *)
    element2: begin
       if attstack@[newp+1].lexval <> XEMPTY then
-         addsuffix(chbuf,chbufx,length,attstack@[newp+1].xval);
+         addsuffix(chbuf,chbufx,length,newp+1);
       prp := findplace(envblock@.son,chbuf,chbufx,length);
       if prp = nil then begin
          newprim(prim,XLabel,envblock);
@@ -1954,7 +1962,7 @@ begin (*produce*)
 (*               | "<Label>" suffix ":" object   *)
    namedobj2: if attstack@[newp+3].prim <> nil then begin
       if attstack@[newp+1].lexval <> XEMPTY then
-         addsuffix(chbuf,chbufx,length,attstack@[newp+1].xval);
+         addsuffix(chbuf,chbufx,length,newp+1);
       primp := findplace(envblock@.son,chbuf,chbufx,length);
       if primp <> nil then begin
          attstack@[newp+3].prim@.name := primp@.name;
@@ -1972,9 +1980,16 @@ begin (*produce*)
 
 (*      suffix = "<EMPTY>"   *)
 (*             | "[" expression "]"   *)
+(*             | "[" position "]"   *)
    suffix1: lexval := XEMPTY;
    suffix2: if abs(attstack@[newp+1].xval) > maxint then fatal(9)
       else xval := attstack@[newp+1].xval;
+   suffix3: begin
+      lexval := Xcomma;
+      xval := attstack@[newp+1].xval;
+      yval := attstack@[newp+1].yval;
+      if (abs(xval) > maxint) or (abs(yval) > maxint) then fatal(9)
+      end;
 
 (*      position = pair   *)
    position1: ;
@@ -2122,8 +2137,6 @@ assignlist2: xval := attstack@[newp+2].xval ;
             PDF: boxwidth := boxheight*length*0.6;
             otherwise
             end;
-         (* if drawmode = SVG then
-            boxheight := boxheight*findvar('dptextratio',11); *)
          (*D if debuglevel > 0 then write(log,
             'string1 boxheight=',boxheight:8:3,' '); D*)
          newstr(textp);
@@ -2137,7 +2150,7 @@ assignlist2: xval := attstack@[newp+2].xval ;
 (*                 | "<name>" suffix "=" assignment   *)
    assignment1,assignment2: begin
       if attstack@[newp+1].lexval <> XEMPTY then
-         addsuffix(chbuf,chbufx,length,attstack@[newp+1].xval);
+         addsuffix(chbuf,chbufx,length,newp+1);
       varname := findname(envblock,chbuf,chbufx,length,lastvar,k);
       if (varname = nil) and (attstack@[newp+2].lexval <> XEQ) then
          varname := glfindname(envblock@.parent,chbuf,chbufx,length,namptr,kk);
@@ -2447,8 +2460,6 @@ assignlist2: xval := attstack@[newp+2].xval ;
              else if eb=nil then writeln(log,' ! sprintf2: eb=nil')
              else if eb@.env=nil then writeln(log,' ! sprintf2: env=nil'); D*)
          boxheight := eb@.env@[XLtextht];
-         (* if drawmode = SVG then
-            boxheight := boxheight*findvar('dptextratio',11); *)
          boxwidth := eb@.env@[XLtextwid];
          boxradius := 0.0;
          newstr(textp)
@@ -2626,9 +2637,7 @@ assignlist2: xval := attstack@[newp+2].xval ;
             XLdown: shift(prim,0,-r)
             end;
          if ptype = XLstring then begin
-            (* if drawmode=SVG then
-               boxheight := boxheight*findvar('dptextratio',11)
-            else *) if (drawmode=PDF) and (textp<>nil) then
+            if (drawmode=PDF) and (textp<>nil) then
                boxwidth := boxheight*textp@.len*0.6
             end
          end;
@@ -3478,7 +3487,7 @@ closeblock1: if (prim <> nil) and (envblock@.env <> nil) then begin
    objectwith1: ;
    objectwith2: if prim <> nil then begin
       if attstack@[newp+3].lexval <> XEMPTY then with attstack@[newp+2] do
-         addsuffix(chbuf,chbufx,length,attstack@[newp+3].xval);
+         addsuffix(chbuf,chbufx,length,newp+3);
       if internal = nil then prp := prim else prp := internal;
       internal := findplace(prp@.son,chbuf,
          attstack@[newp+2].chbufx,attstack@[newp+2].length);
@@ -3568,7 +3577,7 @@ closeblock1: if (prim <> nil) and (envblock@.env <> nil) then begin
 (*     placename = "<Label>" suffix   *)
    placename1: begin
       if attstack@[newp+1].lexval <> XEMPTY then
-         addsuffix(chbuf,chbufx,length,attstack@[newp+1].xval);
+         addsuffix(chbuf,chbufx,length,newp+1);
       prp := nil; primp := envblock;
       while primp <> prp do begin
          prp := findplace(primp@.son,chbuf,chbufx,length);
@@ -3589,7 +3598,7 @@ closeblock1: if (prim <> nil) and (envblock@.env <> nil) then begin
 (*            | placename "." "<Label>" suffix  *)
    placename3: if prim <> nil then begin
       if attstack@[newp+3].lexval <> XEMPTY then with attstack@[newp+2] do
-         addsuffix(chbuf,chbufx,length,attstack@[newp+3].xval);
+         addsuffix(chbuf,chbufx,length,newp+3);
       (*D if debuglevel > 0 then begin
          write(log,'Searching:'); printobject(prim);
          with attstack@[newp+2] do snapname(chbuf,chbufx,length);
@@ -3714,7 +3723,7 @@ closeblock1: if (prim <> nil) and (envblock@.env <> nil) then begin
 (*                           | "<name>" suffix    *)
    primary2: begin
       if attstack@[newp+1].lexval <> XEMPTY then
-         addsuffix(chbuf,chbufx,length,attstack@[newp+1].xval);
+         addsuffix(chbuf,chbufx,length,newp+1);
       namptr := glfindname(envblock,chbuf,chbufx,length,lastvar,k);
       if namptr = nil then xval := 0.0 else xval := namptr@.val
       end;

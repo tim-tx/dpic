@@ -64,6 +64,20 @@ long x;
 
 
 #if defined(__STDC__) && __STDC__
+    Anyptr my_memcpy(Anyptr d, Const Anyptr s, size_t n)
+#else
+    Anyptr my_memcpy(d, s, n)
+    Anyptr d, s;
+    register int n;
+#endif
+{
+    register char *ss = (char *)s, *dd = (char *)d;
+    while (n-- > 0) *dd++ = *ss++;
+    return d;
+}
+
+
+#if defined(__STDC__) && __STDC__
     Anyptr my_memmove(Anyptr d, Const Anyptr s, size_t n)
 #else
     Anyptr my_memmove(d, s, n)
@@ -75,7 +89,7 @@ long x;
     if (dd < ss || dd - ss >= n) {
 #if defined(bcopy) && defined(memcpy)
 {   Anyptr q; /* DA */
-    q = my_memcpy(dd, ss, n); /* DA */ }
+    q = my_memcpy(dd, ss, n); /* DA */ } /* line 78 in legacy p2clib.c */
 #else
 	memcpy(dd, ss, n);
 #endif
@@ -85,20 +99,6 @@ long x;
 	while (n-- > 0)
 	    *--dd = *--ss;
     }
-    return d;
-}
-
-
-#if defined(__STDC__) && __STDC__
-    Anyptr my_memcpy(Anyptr d, Const Anyptr s, size_t n)
-#else
-    Anyptr my_memcpy(d, s, n)
-    Anyptr d, s;
-    register int n;
-#endif
-{
-    register char *ss = (char *)s, *dd = (char *)d;
-    while (n-- > 0) *dd++ = *ss++;
     return d;
 }
 

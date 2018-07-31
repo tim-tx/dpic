@@ -65,8 +65,8 @@
 #define lb              3
 /* include parscst.i */
 #define symbmax         242
-#define prodmax         182
-#define lrmax           4788
+#define prodmax         183
+#define lrmax           4851
 #define lxmax           456
 /* include parscdc.i */
 #define METAGOAL1       0
@@ -103,155 +103,156 @@
 #define namedobj2       31
 #define suffix1         32
 #define suffix2         33
-#define position1       34
-#define position2       35
-#define position3       36
-#define position4       37
-#define assignlist1     38
-#define assignlist2     39
-#define command1        40
-#define command2        41
-#define command3        42
-#define command4        43
-#define command5        44
-#define command6        45
-#define command7        46
-#define command8        47
-#define command9        48
-#define command10       49
-#define optnl1          50
-#define optnl2          51
-#define ifpart1         52
-#define elsehead1       53
-#define for1            54
-#define for2            55
-#define stringexpr1     56
-#define stringexpr2     57
-#define string1         58
-#define string2         59
-#define assignment1     60
-#define assignment2     61
-#define assignment3     62
-#define assignment4     63
-#define expression1     64
-#define expression2     65
-#define expression3     66
-#define expression4     67
-#define expression5     68
-#define ifhead1         69
-#define setlogic1       70
-#define logexpr1        71
-#define logexpr2        72
-#define forhead1        73
-#define forincr1        74
-#define do1             75
-#define do2             76
-#define by1             77
-#define by2             78
-#define redirect1       79
-#define redirect2       80
-#define redirect3       81
-#define resetlist1      82
-#define resetlist2      83
-#define systemcmd1      84
-#define defhead1        85
-#define defhead2        86
-#define sprintf1        87
-#define sprintf2        88
-#define exprlist1       89
-#define exprlist2       90
-#define object1         91
-#define object2         92
-#define object3         93
-#define object4         94
-#define object5         95
-#define object6         96
-#define object7         97
-#define object8         98
-#define object9         99
-#define object10        100
-#define object11        101
-#define object12        102
-#define object13        103
-#define object14        104
-#define object15        105
-#define object16        106
-#define object17        107
-#define object18        108
-#define object19        109
-#define object20        110
-#define object21        111
-#define object22        112
-#define object23        113
-#define object24        114
-#define object25        115
-#define object26        116
-#define object27        117
-#define openblock1      118
-#define block1          119
-#define block2          120
-#define block3          121
-#define block4          122
-#define optexp1         123
-#define optexp2         124
-#define closeblock1     125
-#define objectwith1     126
-#define objectwith2     127
-#define objectwith3     128
-#define pair1           129
-#define pair2           130
-#define nth1            131
-#define nth2            132
-#define nth3            133
-#define primobj1        134
-#define primobj2        135
-#define primobj3        136
-#define primobj4        137
-#define shift1          138
-#define shift2          139
-#define shift3          140
-#define location1       141
-#define location2       142
-#define location3       143
-#define location4       144
-#define location5       145
-#define place1          146
-#define place2          147
-#define place3          148
-#define place4          149
-#define place5          150
-#define factor1         151
-#define factor2         152
-#define factor3         153
-#define placename1      154
-#define placename2      155
-#define placename3      156
-#define placename4      157
-#define ncount1         158
-#define ncount2         159
-#define ncount3         160
-#define logprod1        161
-#define logprod2        162
-#define logval1         163
-#define logval2         164
-#define logval3         165
-#define lcompare1       166
-#define lcompare2       167
-#define lcompare3       168
-#define lcompare4       169
-#define primary1        170
-#define primary2        171
-#define primary3        172
-#define primary4        173
-#define primary5        174
-#define primary6        175
-#define primary7        176
-#define primary8        177
-#define primary9        178
-#define primary10       179
-#define primary11       180
-#define primary12       181
-#define primary13       182
+#define suffix3         34
+#define position1       35
+#define position2       36
+#define position3       37
+#define position4       38
+#define assignlist1     39
+#define assignlist2     40
+#define command1        41
+#define command2        42
+#define command3        43
+#define command4        44
+#define command5        45
+#define command6        46
+#define command7        47
+#define command8        48
+#define command9        49
+#define command10       50
+#define optnl1          51
+#define optnl2          52
+#define ifpart1         53
+#define elsehead1       54
+#define for1            55
+#define for2            56
+#define stringexpr1     57
+#define stringexpr2     58
+#define string1         59
+#define string2         60
+#define assignment1     61
+#define assignment2     62
+#define assignment3     63
+#define assignment4     64
+#define expression1     65
+#define expression2     66
+#define expression3     67
+#define expression4     68
+#define expression5     69
+#define ifhead1         70
+#define setlogic1       71
+#define logexpr1        72
+#define logexpr2        73
+#define forhead1        74
+#define forincr1        75
+#define do1             76
+#define do2             77
+#define by1             78
+#define by2             79
+#define redirect1       80
+#define redirect2       81
+#define redirect3       82
+#define resetlist1      83
+#define resetlist2      84
+#define systemcmd1      85
+#define defhead1        86
+#define defhead2        87
+#define sprintf1        88
+#define sprintf2        89
+#define exprlist1       90
+#define exprlist2       91
+#define object1         92
+#define object2         93
+#define object3         94
+#define object4         95
+#define object5         96
+#define object6         97
+#define object7         98
+#define object8         99
+#define object9         100
+#define object10        101
+#define object11        102
+#define object12        103
+#define object13        104
+#define object14        105
+#define object15        106
+#define object16        107
+#define object17        108
+#define object18        109
+#define object19        110
+#define object20        111
+#define object21        112
+#define object22        113
+#define object23        114
+#define object24        115
+#define object25        116
+#define object26        117
+#define object27        118
+#define openblock1      119
+#define block1          120
+#define block2          121
+#define block3          122
+#define block4          123
+#define optexp1         124
+#define optexp2         125
+#define closeblock1     126
+#define objectwith1     127
+#define objectwith2     128
+#define objectwith3     129
+#define pair1           130
+#define pair2           131
+#define nth1            132
+#define nth2            133
+#define nth3            134
+#define primobj1        135
+#define primobj2        136
+#define primobj3        137
+#define primobj4        138
+#define shift1          139
+#define shift2          140
+#define shift3          141
+#define location1       142
+#define location2       143
+#define location3       144
+#define location4       145
+#define location5       146
+#define place1          147
+#define place2          148
+#define place3          149
+#define place4          150
+#define place5          151
+#define factor1         152
+#define factor2         153
+#define factor3         154
+#define placename1      155
+#define placename2      156
+#define placename3      157
+#define placename4      158
+#define ncount1         159
+#define ncount2         160
+#define ncount3         161
+#define logprod1        162
+#define logprod2        163
+#define logval1         164
+#define logval2         165
+#define logval3         166
+#define lcompare1       167
+#define lcompare2       168
+#define lcompare3       169
+#define lcompare4       170
+#define primary1        171
+#define primary2        172
+#define primary3        173
+#define primary4        174
+#define primary5        175
+#define primary6        176
+#define primary7        177
+#define primary8        178
+#define primary9        179
+#define primary10       180
+#define primary11       181
+#define primary12       182
+#define primary13       183
 /* include lxcst.h */
 #define XBLOCK          26
 #define XBRACKETL       21
@@ -2310,7 +2311,7 @@ xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2018.05.15 option -x for Fig 3.1')
+     writeln('# dpic version 2018.07.30 option -x for Fig 3.1')
      */
   printf("#FIG 3.2\n");
   printf("Landscape\n");
@@ -2320,7 +2321,7 @@ xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2018.05.15 option -x for Fig 3.2\n");
+  printf("# dpic version 2018.07.30 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 }
 
@@ -2757,7 +2758,7 @@ svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2018.05.15 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2018.07.30 option -v for SVG 1.1 -->\n");
   hsize = (e - w + (2 * lth)) / fsc;
   vsize = (n - s + (2 * lth)) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -3668,7 +3669,7 @@ pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2018.05.15 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2018.07.30 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -4449,7 +4450,7 @@ mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2018.05.15 option -m for mfpic\n");
+  printf("\n%% dpic version 2018.07.30 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -5161,7 +5162,7 @@ mfpdraw(primitive *node)
 void
 mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2018.05.15 option -s for MetaPost\n");
+  printf("%% dpic version 2018.07.30 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -5838,7 +5839,7 @@ mpodraw(primitive *node)
 void
 pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2018.05.15 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2018.07.30 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -6565,7 +6566,7 @@ psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2018.05.15 option ");
+  printf("\n%%%%Creator: dpic version 2018.07.30 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -7486,7 +7487,7 @@ pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2018.05.15 option -d for PDF\n");
+  printf("%% Creator: dpic version 2018.07.30 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
   /* 1. 2. 3. 4. 5. 6. */
@@ -8456,7 +8457,7 @@ texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2018.05.15 option ");
+  printf("%% dpic version 2018.07.30 option ");
   switch (drawmode) {
 
   case TeX:
@@ -11615,19 +11616,49 @@ deletestringbox(primitive **pr)
 }
 
 
-/* addsuffix(chbuf,chbufx,length,attstack^[newp+1].xval); */
 void
-addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
+appendsuff(Char *buf, chbufinx inx, int *len, double x)
+{ int i, j, k;
+
+  /*D if debuglevel <> 0 then begin
+     write(log,' appendsuf x='); wfloat(log,x) end; D*/
+  i = (long)floor(x + 0.5);
+  if (i < 0) {
+      buf[inx + (*len)] = '-';
+      (*len)++;
+      i = -i;
+  }
+  k = i;
+  do {
+      (*len)++;
+      k /= 10;
+  } while (k != 0);
+  if (inx + (*len) - 1 > CHBUFSIZ) {
+      fatal(4);
+  }
+  j = (*len) - 1;
+  do {
+      k = i / 10;
+      buf[inx + j] = i - (k * 10) + '0';
+      i = k;
+      j--;
+  } while (i != 0);
+}
+
+
+void
+addsuffix(Char *buf, chbufinx *inx, int *len, int np)
 {                                                             /*DGHF ordp FHGD*/
-  int i, j, k, FORLIM;
+  int i, FORLIM;
 
   /*D if debuglevel <> 0 then begin writeln(log,
-    'addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; suff:real)');
+    'addsuffix(buf:chbufp; var inx:chbufinx; var len:integer; np:integer)');
      write(log,D*/
   /*DM ord MD*/
   /*D(buf):1,
-         ' inx=',inx:1,' len=',len:1,' suff=');
-        wfloat(log,suff); write(log,' chbufi=',chbufi:1);
+         ' inx=',inx:1,' len=',len:1,' np=',np:1,' x=');
+        wfloat(log,attstack^[np].xval); writeln(log,' chbufi=',chbufi:1);
+        write(log,' lexval=',attstack^[np].lexval:1,' presuffix=');
         snapname(buf,inx,len); writeln(log) end; D*/
   if (chbufi + (*len) - 1 > CHBUFSIZ) {
       fatal(4);
@@ -11639,39 +11670,22 @@ addsuffix(Char *buf, chbufinx *inx, int *len, double suff)
       }
       *inx = chbufi;
   }
-  i = (long)floor(suff + 0.5);
-  if (i < 0) {
-      (*len)++;
-      i = -i;
-  }
-  do {
-      (*len)++;
-      i /= 10;
-  } while (i != 0);
-  *len += 2;
-  if ((*inx) + (*len) - 1 > CHBUFSIZ) {
+  if ((*inx) + (*len) + 2 > CHBUFSIZ) {
       fatal(4);
   }
-  buf[(*inx) + (*len) - 1] = ']';
-  j = (*len) - 2;
-  i = (long)floor(suff + 0.5);
-  if (i < 0) {
-      i = -i;
+  buf[(*inx) + (*len)] = '[';
+  (*len)++;
+  appendsuff(buf, *inx, len, attstack[np].xval);
+  if (attstack[np].lexval == Xcomma) {
+      buf[(*inx) + (*len)] = ',';
+      (*len)++;
+      appendsuff(buf, *inx, len, attstack[np].yval);
   }
-  do {
-      k = i / 10;
-      buf[(*inx) + j] = i - (k * 10) + '0';
-      i = k;
-      j--;
-  } while (i != 0);
-  if (((long)floor(suff + 0.5)) < 0) {
-      buf[(*inx) + j] = '-';
-      j--;
-  }
-  buf[(*inx) + j] = '[';
-  chbufi = (*inx) + (*len);                                             /* ?? */
+  buf[(*inx) + (*len)] = ']';
+  (*len)++;
+  chbufi = (*inx) + (*len);
   /*D ; if debuglevel <> 0 then begin
-     snapname(buf,inx,len); writeln(log) end D*/
+     write(log,'postsuffix='); snapname(buf,inx,len); writeln(log) end D*/
 }  /* addsuffix */
 
 
@@ -12218,7 +12232,7 @@ produce(stackinx newp, int p)
   /* | "<Label>" suffix ":" position */
   case element2:
     if (attstack[newp+1].lexval != XEMPTY) {
-	addsuffix(chbuf, &With->chbufx, &With->length, attstack[newp+1].xval);
+	addsuffix(chbuf, &With->chbufx, &With->length, newp + 1);
     }
     prp = findplace(envblock->son, chbuf, With->chbufx, With->length);
     if (prp == NULL) {
@@ -12477,8 +12491,7 @@ produce(stackinx newp, int p)
   case namedobj2:
     if (attstack[newp+3].prim != NULL) {
 	if (attstack[newp+1].lexval != XEMPTY) {
-	    addsuffix(chbuf, &With->chbufx, &With->length,
-		      attstack[newp+1].xval);
+	    addsuffix(chbuf, &With->chbufx, &With->length, newp + 1);
 	}
 	primp = findplace(envblock->son, chbuf, With->chbufx, With->length);
 	if (primp != NULL) {
@@ -12499,6 +12512,7 @@ produce(stackinx newp, int p)
 
   /* suffix = "<EMPTY>" */
   /* | "[" expression "]" */
+  /* | "[" position "]" */
   case suffix1:
     With->lexval = XEMPTY;
     break;
@@ -12509,6 +12523,15 @@ produce(stackinx newp, int p)
     }
     else {
 	With->xval = attstack[newp+1].xval;
+    }
+    break;
+
+  case suffix3:
+    With->lexval = Xcomma;
+    With->xval = attstack[newp+1].xval;
+    With->yval = attstack[newp+1].yval;
+    if ((fabs(With->xval) > maxint) || (fabs(With->yval) > maxint)) {
+	fatal(9);
     }
     break;
 
@@ -12750,8 +12773,6 @@ produce(stackinx newp, int p)
 	  break;
 	}
     }
-    /* if drawmode = SVG then
-       boxheight := boxheight*findvar('dptextratio',11); */
     /*D if debuglevel > 0 then write(log,
        'string1 boxheight=',boxheight:8:3,' '); D*/
     newstr(&With2->textp);
@@ -12767,7 +12788,7 @@ produce(stackinx newp, int p)
   case assignment1:
   case assignment2:
     if (attstack[newp+1].lexval != XEMPTY) {
-	addsuffix(chbuf, &With->chbufx, &With->length, attstack[newp+1].xval);
+	addsuffix(chbuf, &With->chbufx, &With->length, newp + 1);
     }
     With->varname = findname(envblock, chbuf, With->chbufx, With->length,
 			     &lastvar, &k);
@@ -13256,8 +13277,6 @@ produce(stackinx newp, int p)
         else if eb=nil then writeln(log,' ! sprintf2: eb=nil')
         else if eb^.env=nil then writeln(log,' ! sprintf2: env=nil'); D*/
     With2->Upr.Ubox.boxheight = eb->Upr.UBLOCK.env[XLtextht - XLenvvar - 1];
-    /* if drawmode = SVG then
-       boxheight := boxheight*findvar('dptextratio',11); */
     With2->Upr.Ubox.boxwidth = eb->Upr.UBLOCK.env[XLtextwid - XLenvvar - 1];
     With2->Upr.Ubox.boxradius = 0.0;
     newstr(&With2->textp);
@@ -13514,9 +13533,6 @@ produce(stackinx newp, int p)
 	      }
 	  }
 	  if (With2->ptype == XLstring) {
-	      /* if drawmode=SVG then
-	         boxheight := boxheight*findvar('dptextratio',11)
-	      else */
 	      if ((drawmode == PDF) && (With2->textp != NULL)) {
 		  With2->Upr.Ubox.boxwidth = With2->Upr.Ubox.boxheight *
 					    With2->textp->len * 0.6;
@@ -15182,8 +15198,7 @@ produce(stackinx newp, int p)
     if (With->prim != NULL) {
 	if (attstack[newp+3].lexval != XEMPTY) {
 	    With1 = &attstack[newp+2];
-	    addsuffix(chbuf, &With1->chbufx, &With1->length,
-		      attstack[newp+3].xval);
+	    addsuffix(chbuf, &With1->chbufx, &With1->length, newp + 3);
 	}
 	if (With->internal == NULL) {
 	    prp = With->prim;
@@ -15338,7 +15353,7 @@ produce(stackinx newp, int p)
   /* placename = "<Label>" suffix */
   case placename1:
     if (attstack[newp+1].lexval != XEMPTY) {
-	addsuffix(chbuf, &With->chbufx, &With->length, attstack[newp+1].xval);
+	addsuffix(chbuf, &With->chbufx, &With->length, newp + 1);
     }
     prp = NULL;
     primp = envblock;
@@ -15374,8 +15389,7 @@ produce(stackinx newp, int p)
     if (With->prim != NULL) {
 	if (attstack[newp+3].lexval != XEMPTY) {
 	    With1 = &attstack[newp+2];
-	    addsuffix(chbuf, &With1->chbufx, &With1->length,
-		      attstack[newp+3].xval);
+	    addsuffix(chbuf, &With1->chbufx, &With1->length, newp + 3);
 	}
 	/*D if debuglevel > 0 then begin
 	   write(log,'Searching:'); printobject(prim);
@@ -15628,7 +15642,7 @@ produce(stackinx newp, int p)
   /* | "<name>" suffix */
   case primary2:
     if (attstack[newp+1].lexval != XEMPTY) {
-	addsuffix(chbuf, &With->chbufx, &With->length, attstack[newp+1].xval);
+	addsuffix(chbuf, &With->chbufx, &With->length, newp + 1);
     }
     namptr = glfindname(envblock, chbuf, With->chbufx, With->length, &lastvar,
 			&k);
@@ -17022,7 +17036,7 @@ markerror(int emi)
     break;
 
   case 31:
-    fprintf(errout, " ] + -\n");
+    fprintf(errout, " ] + - between of < ,\n");
     break;
 
   case 32:
@@ -18988,6 +19002,7 @@ advance(void)
      end;D*/
   if ((redutop > 0) && (j < oldbufi) &&
       (redubuf[redutop + REDUMAX].prod_ != closeblock1) &&
+      (redubuf[redutop + REDUMAX].prod_ != suffix3) &&
       (redubuf[redutop + REDUMAX].prod_ != suffix2) &&
       (redubuf[redutop + REDUMAX].prod_ != suffix1)) {
       FORLIM = chbufi - oldbufi;
@@ -19317,7 +19332,7 @@ getoptions(void)
 	  FMHGD*/
       }
       else if ((cht == 'h') || (cht == '-')) {
-	  fprintf(errout, " *** dpic version 2018.05.15\n");
+	  fprintf(errout, " *** dpic version 2018.07.30\n");
 	  /*DGHMF
 	  writeln(errout,' Debug is enabled');
 	  FMHGD*/
