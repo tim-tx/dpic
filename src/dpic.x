@@ -48,7 +48,7 @@ program dpic(input,output,errout,copyin,redirect
 (* include dp0.h *)
 #include 'dp0.h'
 
-procedure copyleft( mac: fbufferp; var buf: fbufferp ); forward;
+procedure copyleft( mac: fbufferp; var buf: fbufferp; attr: integer ); forward;
 procedure doprod(prno: integer); forward;
 procedure markerror(emi: integer); forward;
 procedure readfor( p0: fbufferp; attx: integer; var p2: fbufferp ); forward;
@@ -60,6 +60,7 @@ procedure deletetree( var p: primitivep ); forward;
     procedure snaptype(var iou: text; p: integer); forward;
     procedure wrbuf(p: fbufferp; job,r: integer); forward;
     procedure logaddr(b: fbufferp); forward;
+    procedure wrbufaddr(q: fbufferp; job: integer); forward;
     procedure wlogfl( nm: string; v: real; cr: integer); forward;
   D*)
 (* DGHM function ordp(p:pointer): integer; forward; MHGD *)
@@ -95,7 +96,7 @@ procedure pointoutput(nw: boolean; txt: strptr; var ier: integer ); forward;
 
 (*DFGHM function odp(p:pointer): integer; MHGFD*)
 (*D begin
-      odp := ordp(p) mod 10000
+      odp := abs(ordp(p)) mod 10000
       end; D*)
 
                                 (* Numerical utilities: *)
@@ -173,7 +174,6 @@ begin
    if freeinbuf = nil then begin
       (* p2c automatically adds memory allocation failure checks *)
       new(buf); new(buf@.carray)
-      (*D; if debuglevel > 0 then logaddr( buf ) D*)
       end
    else begin
       (*D if debuglevel > 0 then write(log,' f'); D*)
@@ -184,14 +184,14 @@ begin
       savedlen := 0; carray@[0] := ' '; readx := 1; attrib := 0;
       higherb := nil; prevb := nil; nextb := nil
       end
-   (*D; if debuglevel > 0 then writeln(log) D*)
+   (*D; if debuglevel > 0 then begin logaddr( buf ); writeln(log) end D*)
    end;
                                 (* Put buffers onto top of old-buffer stack *)
 procedure disposebufs( var buf: fbufferp (*D; loc: integer D*));
 var bu: fbufferp;
 begin
    (*D if debuglevel > 0 then begin writeln(log);
-       write(log,'disposebufs(',loc:1,')[',odp(buf):1,']') end; D*)
+       write(log,'disposebufs(',loc:1,')'); wrbufaddr(buf,1) end; D*)
    if buf <> nil then begin
       bu := buf;
       while bu@.nextb <> nil do bu := bu@.nextb;
@@ -1377,11 +1377,6 @@ begin
    write(log,'"')
    end;
 
-procedure winbuf;
-begin
-   write(log,' inbuf=[',odp(inbuf):1,'] ')
-   end;
-
 procedure wlogfl D*)(*DF(nm: string; v: real; cr: integer)FD*)(*D;
 begin
    write(log,' ',nm,'=');
@@ -1394,21 +1389,34 @@ begin
 procedure logaddr D*)(*DF(b: fbufferp)FD*)(*D;
 begin
    write(log,'[');
-   if b <> nil then write(log,odp(b):1) else write(log,'nil');
+   if b <> nil then write(log,odp(b):1,':',b@.attrib:1) else write(log,'nil');
    writeln(log,']')
+   end;
+
+procedure wrbufaddr D*)(*DF(q: fbufferp; job: integer)FD*)(*D;
+var r: fbufferp;
+begin
+   if q=nil then write(log,'[nil]') else begin
+      if job <=0 then begin
+         r := q; while r@.prevb<>nil do r := r@.prevb;
+         while r<>q do begin
+            write(log,'[',odp(r):1,':',r@.attrib:1); r := r@.nextb end
+         end;
+      write(log,'[',odp(q):1,':',q@.attrib:1,']');
+      if job >=0 then while q@.nextb<>nil do begin
+         q := q@.nextb;
+         write(log,odp(q):1,':',q@.attrib:1,']')
+         end
+      end
    end;
 
 procedure wrbuf D*)(*DF(p: fbufferp; job,r: integer)FD*)(*D;
 var i,j,k,m: integer;
 begin
   if p=nil then write(log,' nil buffer ')
-  else with p@ do begin
+  else while p<>nil do with p@ do begin
      if job > 2 then begin
-        write(log,' buf[');
-        if p@.prevb<>nil then write(log,odp(p@.prevb):1);
-        write(log,'<'); write(log,odp(p):1,'>');
-        if p@.nextb<>nil then write(log,odp(p@.nextb):1);
-        write(log,']')
+        write(log,' buf'); wrbufaddr(p,0)
         end;
      if job > 1 then
        write(log,' readx=',readx:1,' savedlen=',savedlen:1,' attrib=',attrib:1);
@@ -1429,7 +1437,8 @@ begin
            i := i+1
            end
         end;
-     writeln(log,'|')
+     writeln(log,'|');
+     p := p@.nextb
      end
   end; D*)
 (*--------------------------------------------------------------------*)
@@ -1442,9 +1451,8 @@ var inx, j,k: integer;
 begin
     if emi < 900 then errcount := errcount + 1; (* Do not count warnings *)
     (*D if debuglevel > 0 then begin
-        write(log,'*** Markerror[');
-        if inbuf=nil then write(log,'nil') else write(log,odp(inbuf):1);
-        writeln(log,'] emi=', emi:1, ', lexsymb=', lexsymb:1,':') end; D*)
+        write(log,'*** Markerror'); wrbufaddr(inbuf,0);
+        writeln(log,' emi=', emi:1, ', lexsymb=', lexsymb:1,':') end; D*)
                                     (* Write out the current and prev line *)
     if emi < 903 then begin
       thisbuf := inbuf; lastbuf := nil; inx := 1;
@@ -1481,6 +1489,7 @@ begin
           'Backslash not followed by line end (LaTeX macro?)');
         XLfloat: write(errout,'Float');
         XERROR: write(errout,'Error');
+        XEND: write(errout,'.PE');
 (* include controlerr.i *)
 (*GHMF#include 'controlerr.i'FMHG*)
         otherwise write(errout,'Punctuation characters')
@@ -1709,15 +1718,13 @@ procedure inchar;
 var tp: fbufferp;
    endofbuf: boolean;
 begin
-   if inbuf=nil then begin newbuf(inbuf); inbuf@.attrib := -1;
-      topbuf := inbuf end;
-   (*D if debuglevel = 2 then with inbuf@ do begin
-      writeln(log);
-      write(log,' inchar['); if prevb<>nil then
-        write(log,odp(prevb):1);
-      write(log,'<',odp(inbuf):1,'>');
-      if nextb<>nil then write(log,odp(nextb):1);
-      write(log,']: instr=',instr,' rx=',readx:1) end; D*)
+   if inbuf=nil then begin
+      (*D if debuglevel = 2 then write(log,' new inbuf'); D*)
+      newbuf(inbuf); inbuf@.attrib := -1; topbuf := inbuf
+      end;
+   (*D if debuglevel = 2 then with inbuf@ do begin writeln(log);
+      write(log,'inchar'); wrbufaddr(inbuf,0);
+      write(log,': instr=',instr:1,' readx=',readx:1) end; D*)
 
    endofbuf := inbuf@.readx >= inbuf@.savedlen;
    while endofbuf do begin
@@ -1743,8 +1750,7 @@ begin
             end
          else if inbuf@.attrib > 0 then begin   (* for buf *)
             (*D if debuglevel = 2 then begin
-              write(log,' For detected, '); logchar(ch); write(log,' ')
-              end; D*)
+              write(log,' For detected, '); logchar(ch); write(log,' ') end; D*)
             inbuf@.readx := 1;
             while inbuf@.prevb <> nil do begin
                inbuf := inbuf@.prevb; inbuf@.readx := 1
@@ -1752,12 +1758,12 @@ begin
             forbufend := true
             end
          else begin                             (* This is not a loop *)
+            (*D if debuglevel = 2 then begin
+              write(log,' Not for, '); logchar(ch); write(log,' ') end; D*)
             while inbuf@.prevb <> nil do inbuf := inbuf@.prevb;
             if inbuf@.nextb<>nil then disposebufs(inbuf@.nextb (*D,10D*) );
             if inbuf@.higherb<>nil then begin
                tp := inbuf@.higherb; disposebufs(inbuf (*D,3D*)); inbuf := tp
-               (* tp := inbuf; inbuf := inbuf@.higherb;
-               disposebufs(tp ( *D,3D* )) *)
                end
             else if not inputeof then with inbuf@ do begin
                if (savedlen < 1) or (inbuf <> topbuf) then nextline(' ')
@@ -1773,8 +1779,7 @@ begin
    (*D; if debuglevel = 2 then with inbuf@ do begin
       write(log,' savedlen=',savedlen:1,' ');
       if inputeof then write(log,'inputeof ');
-      logchar(ch); write(log,' readx=',readx:1)
-      end D*)
+      logchar(ch) end D*)
    end; (* inchar *)
 
                                 (* skip to end of the current input line *)
@@ -1782,7 +1787,7 @@ procedure skiptoend;
 var skip: boolean;
 begin
    (*D if debuglevel>1 then begin writeln(log);
-       writeln(log,'skiptoend:'); winbuf end; D*)
+       writeln(log,'skiptoend: inbuf='); wrbufaddr(inbuf,0) end; D*)
    skip := true;
    while skip do if inbuf = nil then skip := false else with inbuf@ do begin
       (*D if (debuglevel>1) and (carray@[readx]=nlch) then
@@ -1984,7 +1989,7 @@ var n (*D,jD*) : integer;
    abuf: fbufferp;
    c: char;
 begin
-   (*D if debuglevel > 0 then begin
+   (*D j := 0; if debuglevel > 0 then begin
       writeln(log); write(log,'readstring '); j := chbufi end; D*)
    instr := true;
    repeat
@@ -2098,13 +2103,13 @@ function nbuf(buf: fbufferp): fbufferp;
 begin
    if buf@.prevb=nil then newbuf(buf@.prevb);
    with buf@.prevb@ do begin
-      attrib := buf@.attrib; savedlen := CHBUFSIZ;
-      readx := CHBUFSIZ+1; nextb := buf end;
+      attrib := buf@.attrib; higherb := buf@.higherb;
+      savedlen := CHBUFSIZ; readx := CHBUFSIZ+1; nextb := buf end;
    nbuf := buf@.prevb
    end;
                                 (* Push macro or arg or string from mac into
                                    the head of the input stream *)
-procedure copyleft(*F(mac: fbufferp; var buf: fbufferp)F*);
+procedure copyleft(*F(mac: fbufferp; var buf: fbufferp; attr: integer)F*);
 var ml: fbufferp;
    i,k: integer;
    newflag, copied: boolean;
@@ -2122,11 +2127,15 @@ begin
             if buf = nil then newflag := true
             else if buf@.attrib >= 0 then newflag := true  (* for *)
             else newflag := false;
-            (*D if debuglevel > 0 then
-               writeln(log,'newflag=',newflag:1,' attrib=',buf@.attrib:1); D*)
+            (*D if debuglevel > 0 then writeln(log,
+               ' in copyleft, [',odp(mac):1,']@.savedlen(',
+               mac@.savedlen:1,') >= mac@.readx(',mac@.readx:1,')',
+               ' newflag=',newflag:1,' [',odp(buf):1,']:attrib=',
+               buf@.attrib:1) ; D*)
             if newflag then begin
                newbuf(ml); with ml@ do begin
-                  attrib := -1; savedlen := CHBUFSIZ; readx := CHBUFSIZ+1;
+                  if attr=0 then attrib := mac@.attrib else attrib := attr;
+                  savedlen := CHBUFSIZ; readx := CHBUFSIZ+1;
                   higherb := buf end;
                buf := ml
                end
@@ -2136,6 +2145,7 @@ begin
             with buf@ do while readx > 1 do begin
                readx := readx-1; carray@[readx] := mac@.carray@[k]; k := k-1
                end;
+            (* D if debuglevel = 2 then write(log,' nbuf 1:'); D *)
             buf := nbuf(buf)
             end;
          with buf@ do for i:=k downto mac@.readx do begin
@@ -2144,12 +2154,12 @@ begin
       mac := mac@.prevb
       end;
    if copied then begin
+     (* D if (debuglevel=2) and (buf@.readx<=1) then write(log,' nbuf 2:'); D *)
      if buf@.readx <= 1 then buf := nbuf(buf);
      with buf@ do carray@[readx-1] := nlch
      end;
    (*D; if debuglevel > 0 then begin
-      ml := buf; writeln(log,' copyleft result'); while ml <> nil do begin
-         wrbuf(ml,3,1); ml := ml@.nextb end end D*)
+      writeln(log,' copyleft result'); wrbuf(ml,3,1) end D*)
    end;
 
                                 (* $n has been seen in a macro argument;
@@ -2313,7 +2323,7 @@ begin
             lastarg := ar
          until level < 0;
          args := firstarg;
-         copyleft(mac@.argbody,inbuf)
+         copyleft(mac@.argbody,inbuf,0)
          end
       end;
    (*D if debuglevel > 0 then begin
@@ -2333,7 +2343,7 @@ begin
    ar := findarg( args,n );
    backup;
    if ar=nil then begin end
-   else if ar@.argbody<>nil then copyleft(ar@.argbody,inbuf)
+   else if ar@.argbody<>nil then copyleft(ar@.argbody,inbuf,-1)
    end;
                                 (* Check for $+ or copy arg *)
 function insertarg: boolean;
@@ -2618,8 +2628,8 @@ var j,bracelevel: integer;
 begin
    (*D if debuglevel > 0 then begin
        write(log,'readfor: p0');
-       if p0=nil then write(log,'=') else write(log,'<>');
-       write(log,'nil attx(');
+       if p0=nil then write(log,'=nil') else write(log,'<>nil');
+       write(log,' attx(');
        if attx<0 then write(log,'-length)=') else write(log,'attstack idx)=');
        writeln(log,attx:5)
        end; D*)
@@ -2661,8 +2671,8 @@ begin
       end;
    while p1@.prevb <> nil do p1 := p1@.prevb;
    backup;
-   (*D if debuglevel > 0 then begin
-      write(log,'readfor: for/macro buffer'); wrbuf(p1,3,0) end; D*)
+   (*D if debuglevel > 0 then begin writeln(log);
+      write(log,'readfor done: for/macro buffer'); wrbuf(p1,3,0) end; D*)
    p2 := p1
    end;
 
@@ -2926,7 +2936,8 @@ begin (* parse *)
    initrandom;
 
    new(chbuf);
-   (*D if debuglevel > 0 then writeln(log,'new(chbuf)[',odp(chbuf):1,']'); D*)
+   (*D if debuglevel > 0 then
+      writeln(log,'new(chbuf)[',odp(chbuf):1,']'); D*)
    (*P2 IP*) inittables; (*P2 P*)
    (*P2CIP*) initchars; (*P2CP*)
    entrytv[ordNL] := XNL;

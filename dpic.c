@@ -745,7 +745,7 @@ int startinx, lri, start;
 
 
 /*--------------------------------------------------------------------*/
-void copyleft(fbuffer *mac, fbuffer **buf);
+void copyleft(fbuffer *mac, fbuffer **buf, int attr);
 
 void doprod(int prno);
 
@@ -765,6 +765,7 @@ void deletetree(primitive **p);
     procedure snaptype(var iou: text; p: integer); forward;
     procedure wrbuf(p: fbufferp; job,r: integer); forward;
     procedure logaddr(b: fbufferp); forward;
+    procedure wrbufaddr(q: fbufferp; job: integer); forward;
     procedure wlogfl( nm: string; v: real; cr: integer); forward;
   D*/
 /* DGHM function ordp(p:pointer): integer; forward; MHGD */
@@ -835,7 +836,7 @@ extern int access(Char *f, int n);
 /*DM function ordp(p:pointer): integer; external; MD*/
 /*DFGHM function odp(p:pointer): integer; MHGFD*/
 /*D begin
-      odp := ordp(p) mod 10000
+      odp := abs(ordp(p)) mod 10000
       end; D*/
 /* Numerical utilities: */
 double
@@ -946,7 +947,6 @@ newbuf(fbuffer **buf)
   /*D if debuglevel > 0 then write(log,' newbuf'); D*/
   if (freeinbuf == NULL) {
       *buf = Malloc(sizeof(fbuffer));
-      /*D; if debuglevel > 0 then logaddr( buf ) D*/
       (*buf)->carray = Malloc(sizeof(chbufarray));
   }
   /* p2c automatically adds memory allocation failure checks */
@@ -956,7 +956,7 @@ newbuf(fbuffer **buf)
       freeinbuf = freeinbuf->nextb;
   }
   With = *buf;
-  /*D; if debuglevel > 0 then writeln(log) D*/
+  /*D; if debuglevel > 0 then begin logaddr( buf ); writeln(log) end D*/
   With->savedlen = 0;
   With->carray[0] = ' ';
   With->readx = 1;
@@ -974,7 +974,7 @@ disposebufs(fbuffer **buf)
   fbuffer *bu;
 
   /*D if debuglevel > 0 then begin writeln(log);
-      write(log,'disposebufs(',loc:1,')[',odp(buf):1,']') end; D*/
+      write(log,'disposebufs(',loc:1,')'); wrbufaddr(buf,1) end; D*/
   if ((*buf) == NULL) {
       return;
   }
@@ -2311,7 +2311,7 @@ xfigprelude(void)
      writeln('Center');
      writeln('Inches');
      writeln(xfigres:1,' 2');
-     writeln('# dpic version 2018.07.30 option -x for Fig 3.1')
+     writeln('# dpic version 2018.08.15 option -x for Fig 3.1')
      */
   printf("#FIG 3.2\n");
   printf("Landscape\n");
@@ -2321,7 +2321,7 @@ xfigprelude(void)
   printf("100.00\n");
   printf("Single\n");
   printf("-2\n");
-  printf("# dpic version 2018.07.30 option -x for Fig 3.2\n");
+  printf("# dpic version 2018.08.15 option -x for Fig 3.2\n");
   printf("%ld 2\n", (long)xfigres);
 }
 
@@ -2758,7 +2758,7 @@ svgprelude(double n, double s, double e, double w, double lth)
   printf("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
   printf("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\"\n");
   printf("\"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n");
-  printf("<!-- Creator: dpic version 2018.07.30 option -v for SVG 1.1 -->\n");
+  printf("<!-- Creator: dpic version 2018.08.15 option -v for SVG 1.1 -->\n");
   hsize = (e - w + (2 * lth)) / fsc;
   vsize = (n - s + (2 * lth)) / fsc;
   printf("<!-- width=\"%d\" height=\"%d\" -->\n",
@@ -3669,7 +3669,7 @@ pstprelude(double n, double s, double e, double w)
   wcoord(&output, w, s);
   wcoord(&output, e, n);
   printf("%%\n");
-  printf("%% dpic version 2018.07.30 option -p for PSTricks 0.93a or later\n");
+  printf("%% dpic version 2018.08.15 option -p for PSTricks 0.93a or later\n");
 }
 
 
@@ -4450,7 +4450,7 @@ mfpprelude(double n, double s, double e, double w)
   wbrace(e / fsc);
   wbrace(s / fsc);
   wbrace(n / fsc);
-  printf("\n%% dpic version 2018.07.30 option -m for mfpic\n");
+  printf("\n%% dpic version 2018.08.15 option -m for mfpic\n");
   printf("\\dashlen=4bp\\dashspace=4bp\\dotspace=3bp\\pen{0.8bp}\n");
   printf("\\def\\mfpdefaultcolor{black}\\drawcolor{\\mfpdefaultcolor}\n");
   gslinethick = 0.8;
@@ -5162,7 +5162,7 @@ mfpdraw(primitive *node)
 void
 mpoprelude(void)
 { printstate++;
-  printf("%% dpic version 2018.07.30 option -s for MetaPost\n");
+  printf("%% dpic version 2018.08.15 option -s for MetaPost\n");
   printf("beginfig(%d)\n", printstate);
   printf("def lcbutt=linecap:=butt enddef;\n");
   printf("def lcsq=linecap:=squared enddef;\n");
@@ -5839,7 +5839,7 @@ mpodraw(primitive *node)
 void
 pgfprelude(void)
 { printf("\\begin{tikzpicture}[scale=2.54]\n");
-  printf("%% dpic version 2018.07.30 option -g for TikZ and PGF 1.01\n");
+  printf("%% dpic version 2018.08.15 option -g for TikZ and PGF 1.01\n");
   printf("\\ifx\\dpiclw\\undefined\\newdimen\\dpiclw\\fi\n");
   printf("\\global\\def\\dpicdraw{\\draw[line width=\\dpiclw]}\n");
   printf("\\global\\def\\dpicstop{;}\n");
@@ -6566,7 +6566,7 @@ psprelude(double n, double s, double e, double w, double lth)
   pswfloat(&output, sx);
   pswfloat(&output, ex);
   pswfloat(&output, nx);
-  printf("\n%%%%Creator: dpic version 2018.07.30 option ");
+  printf("\n%%%%Creator: dpic version 2018.08.15 option ");
   switch (drawmode) {
 
   case PSfrag:
@@ -7487,7 +7487,7 @@ pdfprelude(double n, double s, double e, double w, double lth)
 
   pdfobjcount = 0;
   printf("%%PDF-1.4\n");
-  printf("%% Creator: dpic version 2018.07.30 option -d for PDF\n");
+  printf("%% Creator: dpic version 2018.08.15 option -d for PDF\n");
   addbytes(62);                                 /* pdfobjcount must be 1 here */
   /* 123456789 123456789 123456789 123456789 123456789 123456789 12345*/
   /* 1. 2. 3. 4. 5. 6. */
@@ -8457,7 +8457,7 @@ texprelude(double n, double s, double e, double w)
       wcoord(&output, w, s);
       printf("\n\\thicklines\n");
   }
-  printf("%% dpic version 2018.07.30 option ");
+  printf("%% dpic version 2018.08.15 option ");
   switch (drawmode) {
 
   case TeX:
@@ -9527,8 +9527,9 @@ if env = nil then write(log,'nil') D*/
             write(log,' (|','startangle|,|','arcangle|)(deg)=');
             wpair(log,endpos.xpos *180.0/pi,endpos.ypos *180.0/pi);writeln(log);
             write(log,' (from)=');
-            wpair(log,aat.xpos+aradius*cos(endpos.xpos),
-       aat.ypos+aradius*sin(endpos.xpos));
+            xx := aat.xpos+aradius*cos(endpos.xpos);
+            yy := aat.ypos+aradius*sin(endpos.xpos);
+            wpair(log,xx,yy);
             write(log,' (to)=');
             xx := aat.xpos+aradius*cos(endpos.xpos+endpos.ypos);
             yy := aat.ypos+aradius*sin(endpos.xpos+endpos.ypos);
@@ -9548,7 +9549,7 @@ procedure prvars(np: integer);
 var lv: strptr;
    i,x: integer;
 begin
-   with attstack^[np] do if envblock = nil then
+   if envblock = nil then
       write(log,'vars=nil: nil envblock')
    else begin
       i := 0; x := HASHLIM+1;
@@ -12320,19 +12321,21 @@ produce(stackinx newp, int p)
 	    if (attstack[newp+1].prim->textp->segmnt != NULL) {
 		With4 = attstack[newp+1].prim->textp;
 		/*D if debuglevel > 0 then write(log,'"exec" stringexpr:'); D*/
-		newbuf(&lastm);
+		newbuf(&lastm);      /* Temporary buffer; put nlch into inbuf */
 		lastm->carray[1] = nlch;
 		lastm->savedlen = 1;
-		copyleft(lastm, &inbuf);
+		copyleft(lastm, &inbuf, -1);
 		FORLIM = With4->len;
-		for (i = 1; i <= FORLIM; i++) {
+		for (i = 1; i <= FORLIM; i++)
+		{                       /* Copy string to lastm then to inbuf */
 		    lastm->carray[i] = With4->segmnt[With4->seginx + i - 1];
 		}
 		lastm->savedlen = With4->len;
-		copyleft(lastm, &inbuf);
+		copyleft(lastm, &inbuf, -1);
+		/* Add nlch in inbuf */
 		lastm->carray[1] = nlch;
 		lastm->savedlen = 1;
-		copyleft(lastm, &inbuf);
+		copyleft(lastm, &inbuf, -1);
 		deletestringbox(&attstack[newp+1].prim);                /*D,2D*/
 		disposebufs(&lastm);
 	    }
@@ -13258,12 +13261,16 @@ produce(stackinx newp, int p)
 	lastm = lastm->nextb;
     }
     lastm->carray[lastm->savedlen] = etxch;
+    /* if lastm^.savedlen>=CHBUFSIZ then begin
+       newbuf(lastm^.nextb); lastm^.nextb^.prevb := lastm;
+       lastm := lastm^.nextb end;
+    with lastm^ do begin
+       savedlen := savedlen+1; carray^[savedlen] := etxch
+       end */
     /*D; if debuglevel > 1 then begin
        writeln(log);
        if p=defhead1 then write(log,'defhead1') else write(log,'defhead2');
-       lastm := macp^.argbody; while lastm<> nil do begin
-          wrbuf(lastm,3,0); lastm := lastm^.nextb end
-       end D*/
+       wrbuf(macp^.argbody,3,0) end D*/
     break;
 
   /* sprintf = "sprintf" "(" stringexpr */
@@ -16059,10 +16066,6 @@ begin
    wchar(log,c);
    write(log,'"')
    end;
-procedure winbuf;
-begin
-   write(log,' inbuf=[',odp(inbuf):1,'] ')
-   end;
 procedure wlogfl D*/
 /*DF(nm: string; v: real; cr: integer)FD*/
 /*D;
@@ -16078,8 +16081,26 @@ procedure logaddr D*/
 /*D;
 begin
    write(log,'[');
-   if b <> nil then write(log,odp(b):1) else write(log,'nil');
+   if b <> nil then write(log,odp(b):1,':',b^.attrib:1) else write(log,'nil');
    writeln(log,']')
+   end;
+procedure wrbufaddr D*/
+/*DF(q: fbufferp; job: integer)FD*/
+/*D;
+var r: fbufferp;
+begin
+   if q=nil then write(log,'[nil]') else begin
+      if job <=0 then begin
+         r := q; while r^.prevb<>nil do r := r^.prevb;
+         while r<>q do begin
+            write(log,'[',odp(r):1,':',r^.attrib:1); r := r^.nextb end
+         end;
+      write(log,'[',odp(q):1,':',q^.attrib:1,']');
+      if job >=0 then while q^.nextb<>nil do begin
+         q := q^.nextb;
+         write(log,odp(q):1,':',q^.attrib:1,']')
+         end
+      end
    end;
 procedure wrbuf D*/
 /*DF(p: fbufferp; job,r: integer)FD*/
@@ -16087,13 +16108,9 @@ procedure wrbuf D*/
 var i,j,k,m: integer;
 begin
   if p=nil then write(log,' nil buffer ')
-  else with p^ do begin
+  else while p<>nil do with p^ do begin
      if job > 2 then begin
-        write(log,' buf[');
-        if p^.prevb<>nil then write(log,odp(p^.prevb):1);
-        write(log,'<'); write(log,odp(p):1,'>');
-        if p^.nextb<>nil then write(log,odp(p^.nextb):1);
-        write(log,']')
+        write(log,' buf'); wrbufaddr(p,0)
         end;
      if job > 1 then
        write(log,' readx=',readx:1,' savedlen=',savedlen:1,' attrib=',attrib:1);
@@ -16114,7 +16131,8 @@ begin
            i := i+1
            end
         end;
-     writeln(log,'|')
+     writeln(log,'|');
+     p := p^.nextb
      end
   end; D*/
 /*--------------------------------------------------------------------*/
@@ -16130,9 +16148,8 @@ markerror(int emi)
       errcount++;
   }
   /*D if debuglevel > 0 then begin
-      write(log,'*** Markerror[');
-      if inbuf=nil then write(log,'nil') else write(log,odp(inbuf):1);
-      writeln(log,'] emi=', emi:1, ', lexsymb=', lexsymb:1,':') end; D*/
+      write(log,'*** Markerror'); wrbufaddr(inbuf,0);
+      writeln(log,' emi=', emi:1, ', lexsymb=', lexsymb:1,':') end; D*/
   /* Write out the current and prev line */
   if (emi < 903) {
       thisbuf = inbuf;
@@ -16235,6 +16252,10 @@ markerror(int emi)
 
       case XERROR:
 	fprintf(errout, "Error");
+	break;
+
+      case XEND:
+	fprintf(errout, ".PE");
 	break;
 
       /* include controlerr.i */
@@ -17484,17 +17505,14 @@ inchar(void)
   fbuffer *With;
 
   if (inbuf == NULL) {
+      /*D if debuglevel = 2 then write(log,' new inbuf'); D*/
       newbuf(&inbuf);
       inbuf->attrib = -1;
       topbuf = inbuf;
   }
-  /*D if debuglevel = 2 then with inbuf^ do begin
-     writeln(log);
-     write(log,' inchar['); if prevb<>nil then
-       write(log,odp(prevb):1);
-     write(log,'<',odp(inbuf):1,'>');
-     if nextb<>nil then write(log,odp(nextb):1);
-     write(log,']: instr=',instr,' rx=',readx:1) end; D*/
+  /*D if debuglevel = 2 then with inbuf^ do begin writeln(log);
+     write(log,'inchar'); wrbufaddr(inbuf,0);
+     write(log,': instr=',instr:1,' readx=',readx:1) end; D*/
   endofbuf = (inbuf->readx >= inbuf->savedlen);
   while (endofbuf) {
       With = inbuf;
@@ -17535,8 +17553,7 @@ inchar(void)
       }
       if (inbuf->attrib > 0) {  /* for buf */
 	  /*D if debuglevel = 2 then begin
-	    write(log,' For detected, '); logchar(ch); write(log,' ')
-	    end; D*/
+	    write(log,' For detected, '); logchar(ch); write(log,' ') end; D*/
 	  inbuf->readx = 1;
 	  while (inbuf->prevb != NULL) {
 	      inbuf = inbuf->prevb;
@@ -17545,6 +17562,8 @@ inchar(void)
 	  forbufend = true;
 	  continue;
       }
+      /*D if debuglevel = 2 then begin
+        write(log,' Not for, '); logchar(ch); write(log,' ') end; D*/
       while (inbuf->prevb != NULL) {
 	  inbuf = inbuf->prevb;
       }
@@ -17555,8 +17574,6 @@ inchar(void)
 	  tp = inbuf->higherb;                                          /*D,3D*/
 	  disposebufs(&inbuf);
 	  inbuf = tp;
-	  /* tp := inbuf; inbuf := inbuf^.higherb;
-	  disposebufs(tp ( *D,3D* )) */
 	  continue;
       }
       if (!inputeof) {
@@ -17578,8 +17595,7 @@ inchar(void)
   /*D; if debuglevel = 2 then with inbuf^ do begin
      write(log,' savedlen=',savedlen:1,' ');
      if inputeof then write(log,'inputeof ');
-     logchar(ch); write(log,' readx=',readx:1)
-     end D*/
+     logchar(ch) end D*/
   ch = With->carray[With->readx];
   With->readx++;
 }  /* inchar */
@@ -17592,7 +17608,7 @@ skiptoend(void)
   fbuffer *With;
 
   /*D if debuglevel>1 then begin writeln(log);
-      writeln(log,'skiptoend:'); winbuf end; D*/
+      writeln(log,'skiptoend: inbuf='); wrbufaddr(inbuf,0) end; D*/
   while (skip) {
       if (inbuf == NULL) {
 	  skip = false;
@@ -17846,7 +17862,7 @@ readstring(void)
   fbuffer *With;
   int FORLIM;
 
-  /*D if debuglevel > 0 then begin
+  /*D j := 0; if debuglevel > 0 then begin
      writeln(log); write(log,'readstring '); j := chbufi end; D*/
   instr = true;
   do {
@@ -18003,6 +18019,7 @@ nbuf(fbuffer *buf))
   }
   With = buf->prevb;
   With->attrib = buf->attrib;
+  With->higherb = buf->higherb;
   With->savedlen = CHBUFSIZ;
   With->readx = CHBUFSIZ + 1;
   With->nextb = buf;
@@ -18013,8 +18030,8 @@ nbuf(fbuffer *buf))
 /* Push macro or arg or string from mac into
    the head of the input stream */
 void
-copyleft(fbuffer *mac, fbuffer **buf)
-{ /*F(mac: fbufferp; var buf: fbufferp)F*/
+copyleft(fbuffer *mac, fbuffer **buf, int attr)
+{ /*F(mac: fbufferp; var buf: fbufferp; attr: integer)F*/
   fbuffer *ml = mac;
   int i, k;
   boolean newflag;
@@ -18043,11 +18060,19 @@ copyleft(fbuffer *mac, fbuffer **buf)
 	      else {
 		  newflag = false;
 	      }
-	      /*D if debuglevel > 0 then
-	         writeln(log,'newflag=',newflag:1,' attrib=',buf^.attrib:1); D*/
+	      /*D if debuglevel > 0 then writeln(log,
+	         ' in copyleft, [',odp(mac):1,']^.savedlen(',
+	         mac^.savedlen:1,') >= mac^.readx(',mac^.readx:1,')',
+	         ' newflag=',newflag:1,' [',odp(buf):1,']:attrib=',
+	         buf^.attrib:1) ; D*/
 	      if (newflag) {
 		  newbuf(&ml);
-		  ml->attrib = -1;
+		  if (attr == 0) {
+		      ml->attrib = mac->attrib;
+		  }
+		  else {
+		      ml->attrib = attr;
+		  }
 		  ml->savedlen = CHBUFSIZ;
 		  ml->readx = CHBUFSIZ + 1;
 		  ml->higherb = *buf;
@@ -18062,6 +18087,7 @@ copyleft(fbuffer *mac, fbuffer **buf)
 		  With->carray[With->readx] = mac->carray[k];
 		  k--;
 	      }
+	      /* D if debuglevel = 2 then write(log,' nbuf 1:'); D */
 	      *buf = nbuf(*buf);
 	  }
 	  With = *buf;
@@ -18077,8 +18103,8 @@ copyleft(fbuffer *mac, fbuffer **buf)
       return;
   }
   /*D; if debuglevel > 0 then begin
-     ml := buf; writeln(log,' copyleft result'); while ml <> nil do begin
-        wrbuf(ml,3,1); ml := ml^.nextb end end D*/
+     writeln(log,' copyleft result'); wrbuf(ml,3,1) end D*/
+  /* D if (debuglevel=2) and (buf^.readx<=1) then write(log,' nbuf 2:'); D */
   if ((*buf)->readx <= 1) {
       *buf = nbuf(*buf);
   }
@@ -18360,7 +18386,7 @@ ismacro(Char *chb, chbufinx obi, chbufinx chbi)
       lastarg = ar;
   } while (level >= 0);
   args = firstarg;
-  copyleft(mac->argbody, &inbuf);
+  copyleft(mac->argbody, &inbuf, 0);
   /*D if debuglevel > 0 then begin
       writeln(log); writeln(log,'ismacro returning:',ism) end; D*/
   return ism;
@@ -18384,7 +18410,7 @@ copyarg(Char *chb, chbufinx chbs, chbufinx chbi)
   backup();
   if (ar != NULL) {
       if (ar->argbody != NULL) {
-	  copyleft(ar->argbody, &inbuf);
+	  copyleft(ar->argbody, &inbuf, -1);
       }
   }
 }
@@ -18816,8 +18842,8 @@ readfor(fbuffer *p0, int attx, fbuffer **p2)
 
   /*D if debuglevel > 0 then begin
       write(log,'readfor: p0');
-      if p0=nil then write(log,'=') else write(log,'<>');
-      write(log,'nil attx(');
+      if p0=nil then write(log,'=nil') else write(log,'<>nil');
+      write(log,' attx(');
       if attx<0 then write(log,'-length)=') else write(log,'attstack idx)=');
       writeln(log,attx:5)
       end; D*/
@@ -18890,8 +18916,8 @@ readfor(fbuffer *p0, int attx, fbuffer **p2)
       p1 = p1->prevb;
   }
   backup();
-  /*D if debuglevel > 0 then begin
-     write(log,'readfor: for/macro buffer'); wrbuf(p1,3,0) end; D*/
+  /*D if debuglevel > 0 then begin writeln(log);
+     write(log,'readfor done: for/macro buffer'); wrbuf(p1,3,0) end; D*/
   *p2 = p1;
 }
 
@@ -19198,7 +19224,8 @@ void
 parse(void)
 { initrandom();
   chbuf = Malloc(sizeof(chbufarray));
-  /*D if debuglevel > 0 then writeln(log,'new(chbuf)[',odp(chbuf):1,']'); D*/
+  /*D if debuglevel > 0 then
+     writeln(log,'new(chbuf)[',odp(chbuf):1,']'); D*/
   entrytv[ordNL] = XNL;
   entrytv[ordCR] = XNL;                               /* treat ^M as line end */
   errcount = 0;
@@ -19332,7 +19359,7 @@ getoptions(void)
 	  FMHGD*/
       }
       else if ((cht == 'h') || (cht == '-')) {
-	  fprintf(errout, " *** dpic version 2018.07.30\n");
+	  fprintf(errout, " *** dpic version 2018.08.15\n");
 	  /*DGHMF
 	  writeln(errout,' Debug is enabled');
 	  FMHGD*/

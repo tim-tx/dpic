@@ -1,6 +1,7 @@
 Distribution dates other than those shown correspond to changes (usually of
 documentation) not involving functionality.
 
+2018 08 15 Modified debug output; bug fix for long macros within for loops.
 2018 07 30 Allow double subscripts; reorder p2clib.c code for Mac compilation. 
 2018 05 15 Revised SVG code so that the ht attribute sets absolute size
            of formatted text instead of nominal size.

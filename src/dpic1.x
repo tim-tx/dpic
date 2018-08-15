@@ -258,8 +258,9 @@ begin
             write(log,' (|','startangle|,|','arcangle|)(deg)=');
             wpair(log,|startangle| *180.0/pi,|arcangle| *180.0/pi);writeln(log);
             write(log,' (from)=');
-            wpair(log,aat.xpos+aradius*cos(|startangle|),
-                      aat.ypos+aradius*sin(|startangle|));
+            xx := aat.xpos+aradius*cos(|startangle|);
+            yy := aat.ypos+aradius*sin(|startangle|);
+            wpair(log,xx,yy);
             write(log,' (to)=');
             xx := aat.xpos+aradius*cos(|startangle|+|arcangle|);
             yy := aat.ypos+aradius*sin(|startangle|+|arcangle|);
@@ -280,7 +281,7 @@ procedure prvars(np: integer);
 var lv: strptr;
    i,x: integer;
 begin
-   with attstack@[np] do if envblock = nil then
+   if envblock = nil then
       write(log,'vars=nil: nil envblock')
    else begin
       i := 0; x := HASHLIM+1;
@@ -1878,11 +1879,15 @@ begin (*produce*)
       else if attstack@[newp+1].prim@.textp@.segmnt = nil then begin end
       else with attstack@[newp+1].prim@.textp@ do begin
          (*D if debuglevel > 0 then write(log,'"exec" stringexpr:'); D*)
-         newbuf(lastm);
-         lastm@.carray@[1] := nlch; lastm@.savedlen := 1; copyleft(lastm,inbuf);
-         for i:= 1 to len do lastm@.carray@[i] := segmnt@[seginx-1+i];
-         lastm@.savedlen := len; copyleft(lastm,inbuf);
-         lastm@.carray@[1] := nlch; lastm@.savedlen := 1; copyleft(lastm,inbuf);
+         newbuf(lastm);             (* Temporary buffer; put nlch into inbuf *)
+         lastm@.carray@[1] := nlch; lastm@.savedlen := 1;
+         copyleft(lastm,inbuf,-1);
+         for i:= 1 to len do        (*  Copy string to lastm then to inbuf *)
+            lastm@.carray@[i] := segmnt@[seginx-1+i];
+         lastm@.savedlen := len; copyleft(lastm,inbuf,-1);
+                                    (*  Add nlch in inbuf *)
+         lastm@.carray@[1] := nlch; lastm@.savedlen := 1;
+         copyleft(lastm,inbuf,-1);
          deletestringbox(attstack@[newp+1].prim);
          disposebufs(lastm (*D,2D*))
          end;
@@ -2436,19 +2441,23 @@ assignlist2: xval := attstack@[newp+2].xval ;
          else lastp@.nexta := macp
          end;
       disposebufs(macp@.argbody (*D,6D*) ); newbuf(macp@.argbody);
-      with macp@.argbody@ do begin (* copy the macro name *)
+      with macp@.argbody@ do begin              (* copy the macro name *)
          for i := 1 to length do carray@[i] := chbuf@[chbufx-1+i];
          savedlen := length; readx := length+1 end;
       currprod := p;
       readfor(macp@.argbody,-length,macp@.argbody); (* append the body *)
       lastm := macp@.argbody; while lastm@.nextb<>nil do lastm := lastm@.nextb;
       with lastm@ do carray@[savedlen] := etxch
+      (* if lastm@.savedlen>=CHBUFSIZ then begin
+         newbuf(lastm@.nextb); lastm@.nextb@.prevb := lastm;
+         lastm := lastm@.nextb end;
+      with lastm@ do begin
+         savedlen := savedlen+1; carray@[savedlen] := etxch
+         end *)
       (*D; if debuglevel > 1 then begin
          writeln(log);
          if p=defhead1 then write(log,'defhead1') else write(log,'defhead2');
-         lastm := macp@.argbody; while lastm<> nil do begin
-            wrbuf(lastm,3,0); lastm := lastm@.nextb end
-         end D*)
+         wrbuf(macp@.argbody,3,0) end D*)
       end;
 
 (*      sprintf = "sprintf" "(" stringexpr   *)

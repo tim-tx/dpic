@@ -8,7 +8,7 @@ unsigned long
 /*
 ordp(p) char **p; { return (p==NULL) ? (unsigned long) 0 : (unsigned long) *p; }
 */
-ordp(p) char *p; { return (p==NULL) ? (long) 0 : (long) p; }
+ordp(p) char *p; { return (p==NULL) ? (long) 0 : (long) abs((long)p); }
 
 /*
 #include <stdio.h>
