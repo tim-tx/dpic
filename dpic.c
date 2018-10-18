@@ -6235,6 +6235,19 @@ pgfdraw(primitive *node)
   int TEMP;
   primitive *With1;
 
+  /* printf("%% "); */
+  if (node->name != NULL) {
+      printf("\\coordinate (");
+      if (node->parent->name != NULL) {
+	wstring(&output, node->parent->name);
+	printf(" ");
+      }
+      wstring(&output, node->name);
+      printf(") at ");
+      wpos(node->aat);
+      printf(";\n");
+  }
+  
   getlinespec(node, &lsp, &tn);
   lth = qenv(node, XLlinethick, node->lthick);
   switch (node->ptype) {
@@ -10585,8 +10598,8 @@ newprim(primitive **pr, int primtype, primitive *envblk)
   With->lthick = mdistmax;
   if ((primtype == XLstring) || (primtype == XLspline) ||
       (primtype == XLarc) || (primtype == XLarrow) || (primtype == XLline) ||
-      (primtype == XLellipse) || (primtype == XLcircle) ||
-      (primtype == XLbox)) {
+      (primtype == XLellipse) ||
+      (primtype == XLcircle) || (primtype == XLbox)) {
       resetspec(&With->spec, XLsolid);
   }
   else {
@@ -11742,8 +11755,8 @@ hasoutline(int lx, boolean warn)
 { boolean hs;
 
   hs = ((lx == XLspline) || (lx == XLarrow) || (lx == XLline) ||
-	(lx == XLarc) || (lx == XLellipse) ||
-	(lx == XLcircle) || (lx == XLbox));
+	(lx == XLarc) || (lx == XLellipse) || (lx == XLcircle) ||
+	(lx == XLbox));
   if (drawmode == SVG) {
       hs = (hs || (lx == XLstring));
   }
@@ -13965,8 +13978,8 @@ produce(stackinx newp, int p)
     if (With->prim != NULL) {
 	With2 = With->prim;
 	if ((With2->ptype == XLspline) || (With2->ptype == XLarrow) ||
-	    (With2->ptype == XLmove) || (With2->ptype == XLline) ||
-	    (With2->ptype == XLarc)) {
+	    (With2->ptype == XLmove) ||
+	    (With2->ptype == XLline) || (With2->ptype == XLarc)) {
 	    i = attstack[newp+1].lexval;
 	    envblock->direction = i;
 	    eb = findenv(envblock);
@@ -14061,8 +14074,8 @@ produce(stackinx newp, int p)
   case object10:
     if (With->prim != NULL) {
 	if ((With->prim->ptype != XLspline) &&
-	    (With->prim->ptype != XLmove) &&
-	    (With->prim->ptype != XLarrow) && (With->prim->ptype != XLline)) {
+	    (With->prim->ptype != XLmove) && (With->prim->ptype != XLarrow) &&
+	    (With->prim->ptype != XLline)) {
 	    markerror(858);
 	}
 	else {
@@ -14510,8 +14523,8 @@ produce(stackinx newp, int p)
     if (With->prim != NULL) {
 	With2 = With->prim;
 	if ((With2->ptype == XLmove) || (With2->ptype == XLspline) ||
-	    (With2->ptype == XLarrow) ||
-	    (With2->ptype == XLline) || (With2->ptype == XLarc)) {
+	    (With2->ptype == XLarrow) || (With2->ptype == XLline) ||
+	    (With2->ptype == XLarc)) {
 	    if (With2->ptype == XLarc) {
 		r = attstack[newp+2].xval;
 		s = attstack[newp+2].yval;
@@ -16584,7 +16597,7 @@ markerror(int emi)
 	break;
 
       case 93:
-	fprintf(errout, ".b or .bot or .bottom or .s or .south or bottom");
+	fprintf(errout, ".b or .bot or .bottom or bottom or .s or .south");
 	break;
 
       case 94:
